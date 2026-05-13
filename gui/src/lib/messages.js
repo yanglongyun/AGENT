@@ -1,4 +1,4 @@
-const SHELL_TOOL_NAMES = new Set(["terminal_exec", "terminal_start"]);
+const SHELL_TOOL_NAMES = new Set(["shell"]);
 
 const parseToolArgs = (raw) => {
   if (typeof raw !== "string" || !raw) return null;

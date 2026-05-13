@@ -1,10 +1,7 @@
 import { listMessages } from "../../repository/messages/index.js";
 import { getServerSettings } from "../settings/index.js";
 import { normalizeConversationId } from "../chats/active.js";
-import {
-  buildConversationContext,
-  buildMemoriesContext,
-} from "../chats/context.js";
+import { buildSystemPrompt } from "../prompt/index.js";
 
 const mergeSettings = (input = {}) => {
   const serverSettings = getServerSettings();
@@ -70,11 +67,7 @@ const prepareChatInput = async (body) => {
 
   contextMessages = limitMessagesByTurns(contextMessages, mergedSettings.contextTurns);
 
-  const convContext = buildConversationContext(conversationId, contextMessages);
-  const memContext = buildMemoriesContext();
-  const fullSystem = [mergedSettings.system, memContext, convContext]
-    .filter(Boolean)
-    .join("\n\n");
+  const fullSystem = buildSystemPrompt(conversationId, contextMessages, mergedSettings);
 
   let messages = injectSystemMessage(contextMessages, fullSystem);
   if (body.prompt) {

@@ -14,8 +14,8 @@ const errorText = ref("");
 
 const VISIBILITY_ORDER = ["hidden", "starred", "pinned"];
 const VISIBILITY_META = {
-  hidden: { label: "隐藏", hint: "模型不可见,可通过 search 查到", badge: "badge-neutral" },
-  starred: { label: "星标", hint: "标题+描述进 system,模型可 memory_get", badge: "badge-warning" },
+  hidden: { label: "隐藏", hint: "模型不可见,需要时可用 shell 查库", badge: "badge-neutral" },
+  starred: { label: "星标", hint: "标题+描述进 system,全文可用 shell 查库", badge: "badge-warning" },
   pinned: { label: "必读", hint: "完整内容直接拼进 system", badge: "badge-success" },
 };
 

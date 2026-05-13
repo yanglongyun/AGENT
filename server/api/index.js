@@ -1,6 +1,7 @@
 import { handleChatApi } from "./chat/index.js";
 import { handleChatsApi } from "./chats/index.js";
 import { handleHealthApi } from "./health/index.js";
+import { handleLlmApi } from "./llm/index.js";
 import { handleMemoriesApi } from "./memories/index.js";
 import { handleMemosApi } from "./memos/index.js";
 import { handleMessagesApi } from "./messages/index.js";
@@ -10,6 +11,7 @@ import { handleTasksApi } from "./tasks/index.js";
 const ROUTES = [
   { prefix: "/api/chat", handler: handleChatApi },
   { prefix: "/api/chats", handler: handleChatsApi },
+  { prefix: "/api/llm", handler: handleLlmApi },
   { prefix: "/api/memories", handler: handleMemoriesApi },
   { prefix: "/api/memos", handler: handleMemosApi },
   { prefix: "/api/messages", handler: handleMessagesApi },
@@ -28,7 +30,7 @@ const handleApiRequest = async (req, res, deps, context = {}) => {
       return handleHealthApi(req, res, deps, path, method, url, context);
     }
     for (const route of ROUTES) {
-      if (path === route.prefix) {
+      if (path === route.prefix || path.startsWith(`${route.prefix}/`)) {
         return route.handler(req, res, deps, path, method, url, context);
       }
     }

@@ -1,4 +1,4 @@
-import { chat } from "../../../agent/handler.js";
+import { chat } from "../../../ai/handler.js";
 import { saveMessageBatch } from "../../repository/messages/index.js";
 import { prepareChatInput } from "./prepare.js";
 

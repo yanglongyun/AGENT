@@ -23,6 +23,7 @@ const api = {
     `/api/memos${conversationId ? `?conversationId=${encodeURIComponent(conversationId)}` : ""}`,
   ),
   getSettings: () => request("/api/settings"),
+  getProviderCatalog: () => request("/api/llm/providers"),
   saveSettings: (settings) => request("/api/settings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

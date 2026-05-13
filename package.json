@@ -7,10 +7,5 @@
     "start": "node ./index.js",
     "cli": "node ./cli/index.js repl",
     "gui": "node ./gui/start.js"
-  },
-  "dependencies": {
-    "better-sqlite3": "^12.8.0",
-    "node-pty": "^1.2.0-beta.12",
-    "playwright": "^1.59.1"
   }
 }

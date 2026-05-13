@@ -5,7 +5,7 @@ import { readSseResponse } from "./sse.js";
 const titleFromPrompt = (prompt) => String(prompt || "").trim().slice(0, 20) || "untitled";
 
 const createConversation = async (title) => {
-  const res = await request("/api/conversations", {
+  const res = await request("/api/chats", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title }),

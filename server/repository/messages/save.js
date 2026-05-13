@@ -4,13 +4,17 @@ import { insertOne, lastSummaryOf, updateConversationSummaryStmt } from "./_inte
 const saveMessageBatch = (conversationId, messages) => {
   const db = getDb();
   const summary = lastSummaryOf(messages);
-  const tx = db.transaction((items) => {
-    for (const message of items) {
+  db.exec("BEGIN");
+  try {
+    for (const message of messages) {
       insertOne(db, conversationId, message);
     }
     updateConversationSummaryStmt(db, conversationId, summary);
-  });
-  tx(messages);
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
 };
 
 export { saveMessageBatch };

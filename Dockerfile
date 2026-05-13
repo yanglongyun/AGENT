@@ -6,7 +6,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY index.js ./
-COPY agent ./agent
+COPY ai ./ai
+COPY llm ./llm
 COPY cli ./cli
 COPY server ./server
 COPY README.md ./
