@@ -4,8 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node ./index.js",
-    "cli": "node ./cli/index.js repl",
-    "gui": "node ./gui/start.js"
+    "start": "tsx ./index.ts",
+    "server": "tsx ./server/index.ts",
+    "cli": "tsx ./cli/index.ts",
+    "gui": "tsx ./gui/start.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
   }
 }

@@ -286,12 +286,15 @@
      消息气泡(chat-ui 招牌)
      ───────────────────────────────────────────────────────── */
   .msg-content {
-    @apply m-0 px-5 py-3.5 rounded-2xl whitespace-pre-wrap break-words text-smd;
+    @apply m-0 px-5 py-3.5 rounded-2xl break-words text-smd;
     font-family: var(--font-sans);
     line-height: 1.65;
     background: linear-gradient(135deg, var(--bubble-from) 0%, var(--bubble-to) 100%);
     border: 1px solid var(--bubble-border);
     color: var(--color-text);
+  }
+  .msg-content:not(.md-prose) {
+    white-space: pre-wrap;
   }
   /* 用户气泡:跟 AI 气泡同色(chat-ui 真实做法 — 不强调用户) */
   /* 想区分对齐就够,不再用色块 */
@@ -393,7 +396,7 @@
     font-family: var(--font-sans);
     line-height: 1.7;
   }
-  .md-prose p { margin: 0.5em 0; }
+  .md-prose p { margin: 0.35em 0; }
   .md-prose p:first-child { margin-top: 0; }
   .md-prose p:last-child { margin-bottom: 0; }
   .md-prose h1, .md-prose h2, .md-prose h3, .md-prose h4 {

@@ -11,11 +11,11 @@
 ## 🧱 六块结构
 
 ```
-llm/        模型管线         provider、输入整理、请求构建、输出解析
+llm/        模型调用         client、common、regular、stream parser
 ai/         无状态执行器     agent loop、tool call、shell 工具
 server/     有状态编排器     HTTP API、prompt、消息持久化、任务管理
 cli/        终端入口         REPL、单次问答、设置管理
-gui/        图形入口         本地 Vue 控制台
+gui/        图形入口         本地 React 控制台
 database/   SQLite 数据目录   一个文件搞定所有持久化
 ```
 
@@ -39,7 +39,7 @@ database/   SQLite 数据目录   一个文件搞定所有持久化
 
 ## 🛠 技术栈
 
-Node.js · node:sqlite · Vue · Vite
+Node.js · TypeScript · node:sqlite · React · Tailwind · Vite
 
 六层顶级目录结构,默认监听 `9500`,SQLite 单文件持久化在 `./database/`。
 
@@ -55,7 +55,7 @@ cd AGENT && npm install
 ```bash
 npm start      # 只起 server
 npm run cli    # server + 进入 CLI repl
-npm run gui    # server + 起 GUI(可选)
+npm run gui    # server + 起 React GUI(可选)
 ```
 
 或者直接一键:

@@ -1,0 +1,230 @@
+export type Conversation = {
+  id: string;
+  title: string;
+  summary?: string;
+  createdAt?: string;
+  created_at?: string;
+};
+
+export type Message = {
+  _id?: number | string;
+  id?: number | string;
+  role: "system" | "user" | "assistant" | "tool" | string;
+  content?: string;
+  message?: string;
+  memo?: string;
+  tool_call_id?: string;
+  tool_calls?: ToolCall[];
+  created_at?: string;
+};
+
+export type DisplayMessage = {
+  role: "user" | "assistant" | "tool";
+  content?: string;
+  _id: string;
+  memo?: string;
+  streaming?: boolean;
+  toolCallId?: string;
+  toolName?: string;
+  toolSub?: string;
+  shell?: boolean;
+  command?: string;
+  args?: string;
+  result?: string | null;
+  expanded?: boolean;
+  orphan?: boolean;
+};
+
+export type ToolCall = {
+  id?: string;
+  function?: {
+    name?: string;
+    arguments?: string;
+  };
+};
+
+export type Memo = {
+  id: number;
+  messageId?: number;
+  conversationId?: string;
+  chatTitle?: string;
+  content: string;
+  createdAt: string;
+};
+
+export type Memory = {
+  id: number;
+  title: string;
+  description?: string;
+  content: string;
+  creator?: string;
+  visibility?: "hidden" | "starred" | "pinned" | string;
+  enabled?: boolean | number;
+  created_at?: string;
+};
+
+export type Task = {
+  id: number;
+  name: string;
+  prompt?: string;
+  detail?: string;
+  status: string;
+  response?: string;
+  error?: string;
+  conversation_id?: string;
+  created_at?: string;
+  finished_at?: string;
+};
+
+export type Settings = {
+  provider: string;
+  apiUrl: string;
+  apiKey: string;
+  model: string;
+  system: string;
+  contextTurns: number;
+};
+
+export type ProviderGroup = {
+  id: string;
+  name: string;
+};
+
+export type Provider = {
+  id: string;
+  name: string;
+  group: string;
+  apiUrl?: string;
+  defaultModel?: string;
+};
+
+const request = async <T>(path: string, options: RequestInit = {}) => {
+  const response = await fetch(path, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || `${response.status} ${response.statusText}`);
+  }
+  return data as T;
+};
+
+export const api = {
+  health: () => request<{ ok: boolean; port: number }>("/health"),
+  listConversations: (search = "") =>
+    request<{ conversations: Conversation[] }>(
+      `/api/chats${search ? `?search=${encodeURIComponent(search)}` : ""}`,
+    ),
+  createConversation: (title: string) =>
+    request<{ conversation: Conversation }>("/api/chats", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    }),
+  deleteConversation: (id: string) =>
+    request<{ ok: boolean }>(`/api/chats?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+  updateConversationTitle: (id: string, title: string) =>
+    request<{ conversation: Conversation }>(`/api/chats?id=${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    }),
+  listMessages: (conversationId: string) =>
+    request<{ messages: Message[] }>(
+      `/api/messages?conversationId=${encodeURIComponent(conversationId)}`,
+    ),
+  listMemos: (conversationId = "") =>
+    request<{ memos: Memo[] }>(
+      `/api/memos${conversationId ? `?conversationId=${encodeURIComponent(conversationId)}` : ""}`,
+    ),
+  getSettings: () => request<{ settings: Settings }>("/api/settings"),
+  getProviderCatalog: () =>
+    request<{ groups: ProviderGroup[]; providers: Provider[] }>("/api/llm/providers"),
+  saveSettings: (settings: Settings) =>
+    request<{ ok: boolean }>("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+    }),
+  listTasks: () => request<{ tasks: Task[] }>("/api/tasks"),
+  createTask: (payload: { name: string; detail: string }) =>
+    request<{ taskId: number; conversationId: string }>("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  abortTask: (id: number) =>
+    request<{ ok: boolean; task?: Task }>(`/api/tasks?id=${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "aborted" }),
+    }),
+  listMemories: () => request<{ memories: Memory[] }>("/api/memories"),
+  createMemory: (payload: Pick<Memory, "title" | "description" | "content" | "visibility">) =>
+    request<{ ok: boolean; memory?: Memory }>("/api/memories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  updateMemory: (id: number, payload: Partial<Memory>) =>
+    request<{ ok: boolean; memory?: Memory }>(`/api/memories?id=${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  deleteMemory: (id: number) =>
+    request<{ ok: boolean }>(`/api/memories?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+};
+
+export const streamChat = async ({
+  conversationId,
+  prompt,
+  signal,
+  onEvent,
+}: {
+  conversationId: string;
+  prompt: string;
+  signal: AbortSignal;
+  onEvent: (event: string, payload: Record<string, any>) => void;
+}) => {
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ conversationId, prompt }),
+    signal,
+  });
+
+  if (!response.ok || !response.body) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `stream failed: ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    let separator = buffer.indexOf("\n\n");
+    while (separator >= 0) {
+      const chunk = buffer.slice(0, separator);
+      buffer = buffer.slice(separator + 2);
+      separator = buffer.indexOf("\n\n");
+
+      const lines = chunk.split("\n").filter(Boolean);
+      const eventName = lines.find((line) => line.startsWith("event:"))?.slice(6).trim();
+      const payloadRaw = lines
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trim())
+        .join("\n");
+
+      if (!eventName || !payloadRaw) continue;
+      onEvent(eventName, JSON.parse(payloadRaw));
+    }
+  }
+};

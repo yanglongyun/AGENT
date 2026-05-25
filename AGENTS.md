@@ -3,14 +3,19 @@
 `agent-kernel` 实验仓。
 
 - origin: `https://github.com/valueriver/AGENT.git`
-- ESM (`type: "module"`)，私有包。
+- ESM (`type: "module"`)，TypeScript 源码，私有包。
+- SQLite 使用 Node 内置 `node:sqlite`。
+- 前端使用 React + Tailwind + TypeScript。
 
 ## 命令
 
 ```bash
-npm run start   # node ./index.js
-npm run cli     # node ./cli/index.js repl
-npm run gui     # node ./gui/start.js
+npm run start       # tsx ./index.ts
+npm run server      # tsx ./server/index.ts
+npm run cli         # tsx ./cli/index.ts
+npm run gui         # tsx ./gui/start.ts
+npm run typecheck   # tsc --noEmit
+cd gui && npm run build
 ```
 
 `package.json` 未声明 `engines.node`，也没有显式端口配置；如需端口请看 `gui/start.js` / `index.js` 内部。
