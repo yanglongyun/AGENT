@@ -32,18 +32,17 @@ const normalizeChatOptions = (options = {}) => {
   };
 };
 
-const shouldReplayReasoning = (model, apiUrl, provider) => {
+const shouldReplayReasoning = (model, apiUrl) => {
   const modelId = String(model || "").trim();
   const url = String(apiUrl || "").trim();
-  const providerId = String(provider || "").trim();
-  return providerId === "deepseek" || modelId.startsWith("deepseek-") || url.includes("api.deepseek.com");
+  return modelId.startsWith("deepseek-") || url.includes("api.deepseek.com");
 };
 
-const normalizeAgentMessages = (messages = [], { model, apiUrl, provider } = {}) => {
+const normalizeAgentMessages = (messages = [], { model, apiUrl } = {}) => {
   if (!Array.isArray(messages)) return [];
   const validRoles = new Set(["system", "user", "assistant", "tool"]);
   const normalized = [];
-  const replayReasoning = shouldReplayReasoning(model, apiUrl, provider);
+  const replayReasoning = shouldReplayReasoning(model, apiUrl);
 
   for (const item of messages) {
     if (!item || typeof item !== "object") continue;

@@ -12,7 +12,6 @@
 ```bash
 npm run start       # tsx ./index.ts
 npm run server      # tsx ./server/index.ts
-npm run cli         # tsx ./cli/index.ts
 npm run gui         # tsx ./gui/start.ts
 npm run typecheck   # tsc --noEmit
 cd gui && npm run build

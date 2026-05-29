@@ -3,6 +3,7 @@ import { DEFAULT_SYSTEM_PROMPT } from "./default.js";
 import { environment as environmentSection } from "./environment.js";
 import { model as modelSection } from "./model.js";
 import { tools as toolsSection } from "./tools.js";
+import { skills as skillsSection } from "./skills.js";
 import { chats as chatsSection } from "./chats.js";
 import { memory as memorySection } from "./memory.js";
 
@@ -13,7 +14,6 @@ const buildSystemPrompt = (conversationId, contextMessages = [], settings = {}) 
   let prompt = instruction(settings);
   prompt += environmentSection(process.cwd());
   prompt += modelSection({
-    provider: settings.provider,
     name: settings.model,
     apiUrl: settings.apiUrl,
   });
@@ -23,6 +23,7 @@ const buildSystemPrompt = (conversationId, contextMessages = [], settings = {}) 
     enableToolLoopLimit: settings.enableToolLoopLimit,
     toolMaxRounds: settings.toolMaxRounds,
   });
+  prompt += skillsSection();
   prompt += chatsSection(conversationId, contextMessages);
   prompt += memorySection();
   return prompt;

@@ -12,3 +12,5 @@ src/web/dist/
 .tmp_codex/
 database/
 gui/dist/
+skills/browser-use/extension/config.js
+skills/computer-use/config.js

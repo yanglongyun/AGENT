@@ -7,8 +7,6 @@ RUN npm ci --omit=dev
 
 COPY index.js ./
 COPY ai ./ai
-COPY llm ./llm
-COPY cli ./cli
 COPY server ./server
 COPY README.md ./
 

@@ -7,7 +7,6 @@ import { buildSystemPrompt } from "../prompt/index.js";
 const mergeSettings = (input = {}) => {
   const serverSettings = getServerSettings();
   return {
-    provider: input.provider || serverSettings.provider || "deepseek",
     apiUrl: input.apiUrl || serverSettings.apiUrl || "",
     apiKey: input.apiKey || serverSettings.apiKey || "",
     model: input.model || serverSettings.model || "",

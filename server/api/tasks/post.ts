@@ -15,7 +15,6 @@ const handleTaskPost = async (req, res, { readBody, sendJson }) => {
     detail: body.detail,
     messages: body.messages,
     inputOverrides: {
-      provider: body.provider,
       apiUrl: body.apiUrl,
       apiKey: body.apiKey,
       model: body.model,

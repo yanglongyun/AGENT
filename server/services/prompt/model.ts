@@ -1,8 +1,7 @@
 // @ts-nocheck
-const model = ({ provider, name, apiUrl } = {}) => `
+const model = ({ name, apiUrl } = {}) => `
 
 ## 模型
-- provider: ${provider || ""}
 - model: ${name || ""}
 - apiUrl: ${apiUrl || ""}`;
 

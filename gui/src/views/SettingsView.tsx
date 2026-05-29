@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import type { Provider, ProviderGroup, Settings } from "../api";
+import { useEffect, useState } from "react";
+import type { Settings } from "../api";
 import { api } from "../api";
 import { ModelSettings } from "./settings/ModelSettings";
 import { SystemPromptSettings } from "./settings/SystemPromptSettings";
 
 const DEFAULT_SETTINGS: Settings = {
-  provider: "deepseek",
   apiUrl: "",
   apiKey: "",
   model: "",
@@ -13,29 +12,16 @@ const DEFAULT_SETTINGS: Settings = {
   contextTurns: 100,
 };
 
-const DEFAULT_SYSTEM = `你是一个嵌入在本地控制台里的 Agent，拥有持久化会话、便签索引和真实终端执行能力。
-
-回复使用中文，工程向、简洁。需要保留长期上下文时，在回复中按需写入 <summary> 或 <memo> 标签；这些标签不会展示给用户，会被系统抓取并落库。
-
-使用 shell 工具前简短说明目的。破坏性操作必须先确认。`;
-
 export function SettingsView() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [groups, setGroups] = useState<ProviderGroup[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [defaultSystem, setDefaultSystem] = useState("");
   const [statusText, setStatusText] = useState("");
-
-  const selectedProvider = useMemo(
-    () => providers.find((provider) => provider.id === settings.provider) || providers.find((provider) => provider.id === "custom") || null,
-    [providers, settings.provider],
-  );
 
   const refresh = async () => {
     setStatusText("");
     try {
-      const [catalog, result] = await Promise.all([api.getProviderCatalog(), api.getSettings()]);
-      setGroups(catalog.groups || []);
-      setProviders(catalog.providers || []);
+      const result = await api.getSettings();
+      setDefaultSystem(result.defaultSystem || "");
       setSettings({ ...DEFAULT_SETTINGS, ...(result.settings || {}) });
     } catch (error) {
       setStatusText(`加载失败：${error instanceof Error ? error.message : String(error)}`);
@@ -45,17 +31,6 @@ export function SettingsView() {
   useEffect(() => {
     refresh();
   }, []);
-
-  const applyProviderDefaults = (providerId: string) => {
-    const provider = providers.find((item) => item.id === providerId);
-    if (!provider) return;
-    setSettings((current) => ({
-      ...current,
-      provider: provider.id,
-      apiUrl: provider.apiUrl || "",
-      model: provider.defaultModel || "",
-    }));
-  };
 
   const save = async () => {
     setStatusText("保存中…");
@@ -71,7 +46,7 @@ export function SettingsView() {
 
   const applyDefaultSystem = () => {
     if (settings.system && !window.confirm("当前系统提示词非空，是否用默认模板覆盖？")) return;
-    setSettings((current) => ({ ...current, system: DEFAULT_SYSTEM }));
+    setSettings((current) => ({ ...current, system: defaultSystem }));
   };
 
   const clearSystem = () => {
@@ -97,10 +72,6 @@ export function SettingsView() {
         <ModelSettings
           settings={settings}
           setSettings={setSettings}
-          groups={groups}
-          providers={providers}
-          selectedProvider={selectedProvider}
-          applyProviderDefaults={applyProviderDefaults}
         />
         <SystemPromptSettings
           system={settings.system}

@@ -1,31 +1,13 @@
 // @ts-nocheck
 import http from "http";
 import { createApiHandler } from "../api/index.js";
+import { attachRealtimeWebSocketServer } from "./ws.js";
 
 let serverInstance = null;
 
 const sendJson = (res, statusCode, payload) => {
   res.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
   res.end(`${JSON.stringify(payload, null, 2)}\n`);
-};
-
-const openSse = (res) => {
-  if (res.writableEnded || res.destroyed) return;
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream; charset=utf-8",
-    "Cache-Control": "no-cache, no-transform",
-    Connection: "keep-alive",
-  });
-};
-
-const sendSse = (res, event, payload) => {
-  if (res.writableEnded || res.destroyed) return;
-  try {
-    res.write(`event: ${event}\n`);
-    res.write(`data: ${JSON.stringify(payload)}\n\n`);
-  } catch {
-    // connection closed
-  }
 };
 
 const readBody = async (req) => {
@@ -37,10 +19,8 @@ const readBody = async (req) => {
 };
 
 const handleRequest = createApiHandler({
-  openSse,
   readBody,
   sendJson,
-  sendSse,
 });
 
 const startServer = async (port = 9500) => {
@@ -52,6 +32,7 @@ const startServer = async (port = 9500) => {
         sendJson(res, 500, { ok: false, error: error.message });
       }
     });
+    attachRealtimeWebSocketServer(serverInstance);
 
     serverInstance.listen(port, "127.0.0.1", () => {
       console.log(`AGENT server running on http://127.0.0.1:${port}`);

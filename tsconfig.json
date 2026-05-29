@@ -10,5 +10,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["ai/**/*.ts", "cli/**/*.ts", "llm/**/*.ts", "server/**/*.ts", "index.ts"]
+  "include": ["ai/**/*.ts", "server/**/*.ts", "index.ts"]
 }

@@ -1,24 +1,23 @@
 // @ts-nocheck
 import { getSettingsRecord } from "../../repository/settings/index.js";
+import { DEFAULT_SYSTEM_PROMPT } from "../prompt/default.js";
 
 const getServerSettings = () => {
   try {
     const settings = getSettingsRecord();
     return {
-      provider: settings.provider || "deepseek",
       apiUrl: settings.apiUrl || "",
       apiKey: settings.apiKey || "",
       model: settings.model || "",
-      system: settings.system || "",
+      system: settings.system || DEFAULT_SYSTEM_PROMPT,
       contextTurns: Number.isInteger(Number(settings.contextTurns)) ? Number(settings.contextTurns) : 100,
     };
   } catch {
     return {
-      provider: "deepseek",
       apiUrl: "",
       apiKey: "",
       model: "",
-      system: "",
+      system: DEFAULT_SYSTEM_PROMPT,
       contextTurns: 100
     };
   }

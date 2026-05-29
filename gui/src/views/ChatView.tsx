@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import type { Conversation, DisplayMessage } from "../api";
-import { api, streamChat } from "../api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { Conversation, DisplayMessage, Message } from "../api";
+import { api } from "../api";
 import { useConversation } from "../state/conversation";
 import { useLayout } from "../state/layout";
+import { useSocket } from "../state/socket";
 import { buildToolMessage, normalizeForDisplay, titleFromPrompt } from "../lib/messages";
 import { ChatInput } from "./chat/ChatInput";
 import { ConversationList } from "./chat/ConversationList";
@@ -12,13 +13,14 @@ import { MobileConversationSheet } from "./chat/MobileConversationSheet";
 export function ChatView() {
   const conversation = useConversation();
   const layout = useLayout();
+  const socket = useSocket();
+  const currentIdRef = useRef("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [search, setSearch] = useState("");
   const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
   const [errorText, setErrorText] = useState("");
-  const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [draftMode, setDraftMode] = useState(false);
 
   const refreshConversations = useCallback(async (options: { selectFirst?: boolean } = {}) => {
@@ -62,6 +64,17 @@ export function ChatView() {
     refreshMessages().catch((error) => setErrorText(error.message || "加载失败"));
   }, [conversation.currentId, refreshMessages]);
 
+  useEffect(() => {
+    currentIdRef.current = conversation.currentId;
+  }, [conversation.currentId]);
+
+  useEffect(() => {
+    const conversationId = conversation.currentId;
+    if (!conversationId) return;
+    socket.send({ type: "chat.subscribe", conversationId });
+    return () => socket.send({ type: "chat.unsubscribe", conversationId });
+  }, [conversation.currentId, socket]);
+
   const selectConversation = async (id: string) => {
     const item = conversations.find((entry) => entry.id === id) || null;
     conversation.setCurrentConversation(id, item);
@@ -100,29 +113,116 @@ export function ChatView() {
     }
   };
 
-  const findStreamingAssistant = (list: DisplayMessage[]) => {
-    for (let index = list.length - 1; index >= 0; index -= 1) {
-      const item = list[index];
-      if (item.role === "assistant" && item.streaming) return index;
-    }
-    return -1;
-  };
-
-  const endStreamingAssistant = () => {
-    setMessages((items) => {
-      const index = findStreamingAssistant(items);
-      if (index < 0) return items;
-      const next = [...items];
-      next[index] = { ...next[index], streaming: false };
-      return next;
-    });
-  };
-
   const toggleTool = (id: string) => {
     setMessages((items) =>
       items.map((item) => (item._id === id ? { ...item, expanded: !item.expanded } : item)),
     );
   };
+
+  const appendMessage = useCallback((message: Message) => {
+    setMessages((items) => {
+      const next = [...items];
+      const baseId = `rt:${Date.now()}:${Math.random()}`;
+      const content = typeof message.content === "string" ? message.content : "";
+
+      if (message.role === "user" && content) {
+        next.push({ role: "user", content, _id: `${baseId}:u` });
+        return next;
+      }
+
+      if (message.role === "assistant" && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+        if (content) {
+          next.push({
+            role: "assistant",
+            content,
+            memo: message.memo,
+            _id: `${baseId}:a`,
+          });
+        }
+        message.tool_calls.forEach((toolCall, index) => {
+          next.push(buildToolMessage(toolCall, `${baseId}:tc:${index}`));
+        });
+        return next;
+      }
+
+      if (message.role === "tool") {
+        const content = message.content ?? "";
+        const toolCallId = message.tool_call_id || "";
+        let target = -1;
+        if (toolCallId) {
+          for (let index = next.length - 1; index >= 0; index -= 1) {
+            if (next[index].role === "tool" && next[index].toolCallId === toolCallId) {
+              target = index;
+              break;
+            }
+          }
+        }
+        if (target < 0) {
+          for (let index = next.length - 1; index >= 0; index -= 1) {
+            if (next[index].role === "tool" && next[index].result == null) {
+              target = index;
+              break;
+            }
+          }
+        }
+        if (target >= 0) {
+          next[target] = { ...next[target], result: String(content) };
+        } else {
+          next.push({
+            role: "tool",
+            _id: `${baseId}:tr`,
+            toolName: "tool",
+            orphan: true,
+            result: String(content),
+            expanded: false,
+          });
+        }
+        return next;
+      }
+
+      if (message.role === "assistant" && content) {
+        next.push({
+          role: "assistant",
+          content,
+          memo: message.memo,
+          _id: `${baseId}:a`,
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const finishChat = (conversationId: string) => {
+      if (conversationId !== currentIdRef.current) return;
+      setSending(false);
+      refreshConversations().catch((error) => setErrorText(error.message || "加载失败"));
+      refreshMessages(conversationId).catch(() => {});
+    };
+
+    const offMessage = socket.subscribe("chat.message", (payload) => {
+      if (payload.conversationId !== currentIdRef.current || !payload.message) return;
+      appendMessage(payload.message as Message);
+    });
+    const offEnd = socket.subscribe("chat.end", (payload) => {
+      finishChat(String(payload.conversationId || ""));
+    });
+    const offStopped = socket.subscribe("chat.stopped", (payload) => {
+      finishChat(String(payload.conversationId || ""));
+    });
+    const offError = socket.subscribe("chat.error", (payload) => {
+      if (payload.conversationId !== currentIdRef.current) return;
+      setSending(false);
+      setErrorText(String(payload.error || "发送失败"));
+    });
+
+    return () => {
+      offMessage();
+      offEnd();
+      offStopped();
+      offError();
+    };
+  }, [appendMessage, refreshConversations, refreshMessages, socket]);
 
   const sendPrompt = async () => {
     const text = prompt.trim();
@@ -137,120 +237,22 @@ export function ChatView() {
         const result = await api.createConversation(titleFromPrompt(text));
         conversationId = result.conversation?.id;
         if (!conversationId) throw new Error("failed to create conversation");
+        currentIdRef.current = conversationId;
         conversation.setCurrentConversation(conversationId, result.conversation);
         setDraftMode(false);
       }
 
-      setMessages((items) => [
-        ...items,
-        { role: "user", content: text, _id: `local:${Date.now()}:u` },
-      ]);
       setPrompt("");
-
-      const controller = new AbortController();
-      setAbortController(controller);
-
-      await streamChat({
+      socket.send({ type: "chat.subscribe", conversationId });
+      socket.send({
+        type: "chat.send",
         conversationId,
         prompt: text,
-        signal: controller.signal,
-        onEvent: (eventName, payload) => {
-          if (eventName === "delta") {
-            setMessages((items) => {
-              const next = [...items];
-              let index = findStreamingAssistant(next);
-              if (index < 0) {
-                next.push({
-                  role: "assistant",
-                  content: "",
-                  streaming: true,
-                  _id: `local:${Date.now()}:${Math.random()}:a`,
-                });
-                index = next.length - 1;
-              }
-              next[index] = {
-                ...next[index],
-                content: `${next[index].content || ""}${payload.delta || ""}`,
-              };
-              return next;
-            });
-            return;
-          }
-
-          if (eventName === "tool_call") {
-            endStreamingAssistant();
-            setMessages((items) => [
-              ...items,
-              buildToolMessage(payload.toolCall, `local:${Date.now()}:${Math.random()}:tc`),
-            ]);
-            return;
-          }
-
-          if (eventName === "tool_result") {
-            const content = payload.message?.content ?? "";
-            const toolCallId = payload.message?.tool_call_id || "";
-            setMessages((items) => {
-              const next = [...items];
-              let target = -1;
-              if (toolCallId) {
-                for (let index = next.length - 1; index >= 0; index -= 1) {
-                  if (next[index].role === "tool" && next[index].toolCallId === toolCallId) {
-                    target = index;
-                    break;
-                  }
-                }
-              }
-              if (target < 0) {
-                for (let index = next.length - 1; index >= 0; index -= 1) {
-                  if (next[index].role === "tool" && next[index].result == null) {
-                    target = index;
-                    break;
-                  }
-                }
-              }
-              if (target >= 0) next[target] = { ...next[target], result: String(content) };
-              else {
-                next.push({
-                  role: "tool",
-                  _id: `local:${Date.now()}:${Math.random()}:tr`,
-                  toolName: "tool",
-                  orphan: true,
-                  result: String(content),
-                  expanded: false,
-                });
-              }
-              return next;
-            });
-            return;
-          }
-
-          if (eventName === "done") {
-            setMessages((items) => {
-              const index = findStreamingAssistant(items);
-              if (index < 0) return items;
-              const next = [...items];
-              next[index] = {
-                ...next[index],
-                streaming: false,
-                memo: payload.message?.memo || next[index].memo,
-              };
-              return next;
-            });
-          }
-        },
       });
-
-      await refreshConversations();
-      await refreshMessages(conversationId);
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) {
-        setErrorText(error instanceof Error ? error.message : "发送失败");
-      }
-      endStreamingAssistant();
-      await refreshMessages().catch(() => {});
-    } finally {
       setSending(false);
-      setAbortController(null);
+      setErrorText(error instanceof Error ? error.message : "发送失败");
+      await refreshMessages().catch(() => {});
     }
   };
 
@@ -280,7 +282,7 @@ export function ChatView() {
           sending={sending}
           errorText={errorText}
           send={sendPrompt}
-          stop={() => abortController?.abort()}
+          stop={() => conversation.currentId && socket.send({ type: "chat.stop", conversationId: conversation.currentId })}
         />
       </section>
       <MobileConversationSheet

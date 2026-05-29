@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { chat } from "../../../ai/handler.js";
+import { chat } from "../../../ai/index.js";
 import { saveMessageBatch } from "../../repository/messages/index.js";
 import { prepareChatInput } from "./prepare.js";
 

@@ -77,7 +77,6 @@ export type Task = {
 };
 
 export type Settings = {
-  provider: string;
   apiUrl: string;
   apiKey: string;
   model: string;
@@ -85,17 +84,10 @@ export type Settings = {
   contextTurns: number;
 };
 
-export type ProviderGroup = {
-  id: string;
+export type Skill = {
   name: string;
-};
-
-export type Provider = {
-  id: string;
-  name: string;
-  group: string;
-  apiUrl?: string;
-  defaultModel?: string;
+  description: string;
+  path: string;
 };
 
 const request = async <T>(path: string, options: RequestInit = {}) => {
@@ -137,9 +129,7 @@ export const api = {
     request<{ memos: Memo[] }>(
       `/api/memos${conversationId ? `?conversationId=${encodeURIComponent(conversationId)}` : ""}`,
     ),
-  getSettings: () => request<{ settings: Settings }>("/api/settings"),
-  getProviderCatalog: () =>
-    request<{ groups: ProviderGroup[]; providers: Provider[] }>("/api/llm/providers"),
+  getSettings: () => request<{ settings: Settings; defaultSystem?: string }>("/api/settings"),
   saveSettings: (settings: Settings) =>
     request<{ ok: boolean }>("/api/settings", {
       method: "POST",
@@ -160,6 +150,7 @@ export const api = {
       body: JSON.stringify({ status: "aborted" }),
     }),
   listMemories: () => request<{ memories: Memory[] }>("/api/memories"),
+  listSkills: () => request<{ skills: Skill[] }>("/api/skills"),
   createMemory: (payload: Pick<Memory, "title" | "description" | "content" | "visibility">) =>
     request<{ ok: boolean; memory?: Memory }>("/api/memories", {
       method: "POST",
@@ -176,55 +167,4 @@ export const api = {
     request<{ ok: boolean }>(`/api/memories?id=${encodeURIComponent(id)}`, {
       method: "DELETE",
     }),
-};
-
-export const streamChat = async ({
-  conversationId,
-  prompt,
-  signal,
-  onEvent,
-}: {
-  conversationId: string;
-  prompt: string;
-  signal: AbortSignal;
-  onEvent: (event: string, payload: Record<string, any>) => void;
-}) => {
-  const response = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ conversationId, prompt }),
-    signal,
-  });
-
-  if (!response.ok || !response.body) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || `stream failed: ${response.status}`);
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder("utf-8");
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    let separator = buffer.indexOf("\n\n");
-    while (separator >= 0) {
-      const chunk = buffer.slice(0, separator);
-      buffer = buffer.slice(separator + 2);
-      separator = buffer.indexOf("\n\n");
-
-      const lines = chunk.split("\n").filter(Boolean);
-      const eventName = lines.find((line) => line.startsWith("event:"))?.slice(6).trim();
-      const payloadRaw = lines
-        .filter((line) => line.startsWith("data:"))
-        .map((line) => line.slice(5).trim())
-        .join("\n");
-
-      if (!eventName || !payloadRaw) continue;
-      onEvent(eventName, JSON.parse(payloadRaw));
-    }
-  }
 };

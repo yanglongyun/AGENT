@@ -1,4 +1,4 @@
-import { Bot, CheckSquare, FileText, MessageSquare, Settings, Star } from "lucide-react";
+import { Bot, CheckSquare, FileText, MessageSquare, Settings, Sparkles, Star } from "lucide-react";
 import { useLayout } from "../state/layout";
 import { useTheme } from "../state/theme";
 import { Logo } from "./Icon";
@@ -9,6 +9,7 @@ const iconMap = {
   tasks: CheckSquare,
   memos: FileText,
   memories: Star,
+  skills: Sparkles,
   settings: Settings,
 };
 
