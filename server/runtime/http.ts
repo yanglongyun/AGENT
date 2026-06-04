@@ -1,6 +1,7 @@
 // @ts-nocheck
 import http from "http";
 import { createApiHandler } from "../api/index.js";
+import { restoreHeartbeats } from "../services/objectives/index.js";
 import { attachRealtimeWebSocketServer } from "./ws.js";
 
 let serverInstance = null;
@@ -36,6 +37,12 @@ const startServer = async (port = 9500) => {
 
     serverInstance.listen(port, "127.0.0.1", () => {
       console.log(`AGENT server running on http://127.0.0.1:${port}`);
+      try {
+        const restored = restoreHeartbeats();
+        if (restored > 0) console.log(`Restored ${restored} objective heartbeat(s)`);
+      } catch (error) {
+        console.error(`restoreHeartbeats failed: ${error.message}`);
+      }
       resolve(serverInstance);
     });
 

@@ -1,6 +1,30 @@
-import type { DisplayMessage, Message, ToolCall } from "../api";
+import type { DisplayMessage, Message, NoticeMeta, ToolCall } from "../api";
 
 const SHELL_TOOL_NAMES = new Set(["shell"]);
+
+// 判断一条消息是否为任务回调消息(REST 走 _meta,WS 实时走 meta,兜底看 [TASK] 前缀)
+export const isNoticeMessage = (msg: any): boolean =>
+  msg?._meta?.source === "task" ||
+  msg?.meta?.source === "task" ||
+  (typeof msg?.content === "string" && msg.content.trimStart().startsWith("[TASK]"));
+
+// 把 [TASK]…[END] 文本解析成结构,供卡片展示
+export const parseNoticeContent = (content: string): NoticeMeta => {
+  const lines = String(content || "").split("\n");
+  let title = "";
+  let event = "";
+  const body: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === "[TASK]" || trimmed === "[END]") continue;
+    const t = trimmed.match(/^任务[：:]\s*(.*)$/);
+    if (t) { title = t[1]; continue; }
+    const e = trimmed.match(/^事件[：:]\s*(.*)$/);
+    if (e) { event = e[1]; continue; }
+    body.push(line);
+  }
+  return { title: title || "任务", event: event || "事件", body: body.join("\n").trim() };
+};
 
 const parseToolArgs = (raw: unknown) => {
   if (typeof raw !== "string" || !raw) return null;
@@ -111,6 +135,7 @@ export const normalizeForDisplay = (raw: Message[]) => {
         role: "user",
         content,
         _id: `${baseId}:u`,
+        ...(isNoticeMessage(msg) ? { notice: parseNoticeContent(content) } : {}),
       });
       continue;
     }

@@ -2,7 +2,14 @@
 import { executeAgentTask } from "./executors/agent.js";
 import { createTaskRun } from "./runner.js";
 
-const createTask = ({ taskName, detail, messages, inputOverrides = {} }) => {
+const createTask = ({
+  taskName,
+  detail,
+  messages,
+  inputOverrides = {},
+  notifyConversationId = null,
+  notifyPrompt = null,
+}) => {
   const initialMessages = Array.isArray(messages)
     ? messages
     : String(detail || "").trim()
@@ -20,6 +27,8 @@ const createTask = ({ taskName, detail, messages, inputOverrides = {} }) => {
       ...inputOverrides,
     },
     execute: executeAgentTask,
+    notifyConversationId,
+    notifyPrompt,
   });
 };
 

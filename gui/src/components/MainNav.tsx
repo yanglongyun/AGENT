@@ -1,4 +1,4 @@
-import { Bot, CheckSquare, FileText, MessageSquare, Settings, Sparkles, Star } from "lucide-react";
+import { Bot, CheckSquare, FileText, MessageSquare, Settings, Sparkles, Star, Target } from "lucide-react";
 import { useLayout } from "../state/layout";
 import { useTheme } from "../state/theme";
 import { Logo } from "./Icon";
@@ -6,6 +6,7 @@ import { navItems, type RouteName } from "./AppShell";
 
 const iconMap = {
   chat: MessageSquare,
+  objectives: Target,
   tasks: CheckSquare,
   memos: FileText,
   memories: Star,
@@ -35,14 +36,12 @@ export function MainNav({
       ].join(" ")}
       style={{ background: "linear-gradient(to right, var(--nav-from), var(--nav-to)), var(--color-bg)" }}
     >
-      <div className={["flex items-center gap-2.5 pt-4 pb-4 select-none", collapsed ? "md:px-3 md:justify-center" : "px-4"].join(" ")}>
+      <div className={["flex items-center gap-2.5 pt-4 pb-4 select-none px-4", collapsed ? "md:px-3 md:justify-center" : ""].join(" ")}>
         <Logo />
-        {!collapsed ? (
-          <div className="flex flex-col leading-tight min-w-0">
-            <strong className="text-base font-semibold tracking-tight text-text truncate">AGENT</strong>
-            <span className="text-xxs text-text-mute truncate">本地控制台</span>
-          </div>
-        ) : null}
+        <div className={["flex flex-col leading-tight min-w-0", collapsed ? "md:hidden" : ""].join(" ")}>
+          <strong className="text-base font-semibold tracking-tight text-text truncate">AGENT</strong>
+          <span className="text-xxs text-text-mute truncate">本地控制台</span>
+        </div>
         <button className="md:hidden btn btn-sm btn-ghost ml-auto !px-2" title="关闭" onClick={layout.closeMobileNav}>
           <Bot size={16} className="hidden" />
           <span className="text-lg leading-none">×</span>
@@ -50,7 +49,7 @@ export function MainNav({
       </div>
 
       <div className="flex flex-col gap-0.5 px-2 flex-1 min-h-0 overflow-y-auto">
-        {!collapsed ? <div className="text-xxs uppercase tracking-wider text-text-faint px-3 pt-2 pb-1.5 font-semibold">工作区</div> : null}
+        <div className={["text-xxs uppercase tracking-wider text-text-faint px-3 pt-2 pb-1.5 font-semibold", collapsed ? "md:hidden" : ""].join(" ")}>工作区</div>
         {navItems.map((item) => {
           const Icon = iconMap[item.icon];
           return (
@@ -66,7 +65,7 @@ export function MainNav({
               <span className="w-4 h-4 grid place-items-center shrink-0" aria-hidden="true">
                 <Icon size={16} strokeWidth={1.8} />
               </span>
-              {!collapsed ? <span className="flex-1 min-w-0 truncate">{item.label}</span> : null}
+              <span className={["flex-1 min-w-0 truncate", collapsed ? "md:hidden" : ""].join(" ")}>{item.label}</span>
             </button>
           );
         })}

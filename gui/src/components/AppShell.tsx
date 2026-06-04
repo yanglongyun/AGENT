@@ -5,16 +5,17 @@ import { useTask } from "../state/task";
 import { MainNav } from "./MainNav";
 import { MobileTopBar } from "./MobileTopBar";
 
-export type RouteName = "chat" | "tasks" | "memos" | "memories" | "skills" | "settings";
+export type RouteName = "chat" | "objectives" | "tasks" | "memos" | "memories" | "skills" | "settings";
 
 export type NavItem = {
   name: RouteName;
   label: string;
-  icon: "chat" | "tasks" | "memos" | "memories" | "skills" | "settings";
+  icon: "chat" | "objectives" | "tasks" | "memos" | "memories" | "skills" | "settings";
 };
 
 export const navItems: NavItem[] = [
   { name: "chat", label: "聊天", icon: "chat" },
+  { name: "objectives", label: "目标", icon: "objectives" },
   { name: "tasks", label: "任务", icon: "tasks" },
   { name: "memos", label: "便签", icon: "memos" },
   { name: "memories", label: "记忆", icon: "memories" },

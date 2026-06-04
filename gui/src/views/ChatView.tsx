@@ -4,7 +4,7 @@ import { api } from "../api";
 import { useConversation } from "../state/conversation";
 import { useLayout } from "../state/layout";
 import { useSocket } from "../state/socket";
-import { buildToolMessage, normalizeForDisplay, titleFromPrompt } from "../lib/messages";
+import { buildToolMessage, isNoticeMessage, normalizeForDisplay, parseNoticeContent, titleFromPrompt } from "../lib/messages";
 import { ChatInput } from "./chat/ChatInput";
 import { ConversationList } from "./chat/ConversationList";
 import { MessageList } from "./chat/MessageList";
@@ -126,7 +126,12 @@ export function ChatView() {
       const content = typeof message.content === "string" ? message.content : "";
 
       if (message.role === "user" && content) {
-        next.push({ role: "user", content, _id: `${baseId}:u` });
+        next.push({
+          role: "user",
+          content,
+          _id: `${baseId}:u`,
+          ...(isNoticeMessage(message) ? { notice: parseNoticeContent(content) } : {}),
+        });
         return next;
       }
 

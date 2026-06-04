@@ -16,6 +16,14 @@ export type Message = {
   tool_call_id?: string;
   tool_calls?: ToolCall[];
   created_at?: string;
+  meta?: Record<string, any>;
+  _meta?: Record<string, any>;
+};
+
+export type NoticeMeta = {
+  title: string;
+  event: string;
+  body: string;
 };
 
 export type DisplayMessage = {
@@ -33,6 +41,7 @@ export type DisplayMessage = {
   result?: string | null;
   expanded?: boolean;
   orphan?: boolean;
+  notice?: NoticeMeta;
 };
 
 export type ToolCall = {
@@ -88,6 +97,20 @@ export type Skill = {
   name: string;
   description: string;
   path: string;
+};
+
+export type Objective = {
+  id: number;
+  conversationId: string;
+  title: string;
+  objective: string;
+  status: "idle" | "running" | "paused" | "done" | string;
+  heartbeatSeconds: number;
+  beats: number;
+  lastBeatAt?: string | null;
+  lastError?: string | null;
+  createdAt?: string;
+  finishedAt?: string | null;
 };
 
 const request = async <T>(path: string, options: RequestInit = {}) => {
@@ -151,6 +174,28 @@ export const api = {
     }),
   listMemories: () => request<{ memories: Memory[] }>("/api/memories"),
   listSkills: () => request<{ skills: Skill[] }>("/api/skills"),
+  listObjectives: (status?: string) =>
+    request<{ objectives: Objective[] }>(
+      `/api/objectives${status ? `?status=${encodeURIComponent(status)}` : ""}`,
+    ),
+  createObjective: (payload: { title?: string; objective: string; heartbeatSeconds?: number }) =>
+    request<{ ok: boolean; objective: Objective }>("/api/objectives", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  controlObjective: (
+    id: number,
+    payload: { action: "start" | "resume" | "pause" | "done" | "update"; heartbeatSeconds?: number },
+  ) =>
+    request<{ ok: boolean; objective: Objective }>(
+      `/api/objectives?id=${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    ),
   createMemory: (payload: Pick<Memory, "title" | "description" | "content" | "visibility">) =>
     request<{ ok: boolean; memory?: Memory }>("/api/memories", {
       method: "POST",

@@ -10,6 +10,25 @@ const DB_DIR = path.dirname(DB_PATH);
 
 let db;
 
+// 幂等迁移:为已存在的库补列 / 清理已废弃的表。
+const migrate = (database) => {
+  const addColumn = (table, column, type) => {
+    try {
+      database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    } catch {
+      // 列已存在,忽略
+    }
+  };
+  addColumn("tasks", "notify_conversation_id", "TEXT");
+  addColumn("tasks", "notify_prompt", "TEXT");
+  // 监视器已折叠进任务,丢弃遗留表
+  try {
+    database.exec("DROP TABLE IF EXISTS monitors");
+  } catch {
+    // ignore
+  }
+};
+
 const initDb = () => {
   if (db) return db;
 
@@ -57,6 +76,8 @@ const initDb = () => {
       response TEXT,
       status TEXT NOT NULL DEFAULT 'pending',
       error TEXT,
+      notify_conversation_id TEXT,
+      notify_prompt TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       finished_at DATETIME
     );
@@ -72,6 +93,20 @@ const initDb = () => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS objectives (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversation_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      objective TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'idle',
+      heartbeat_seconds INTEGER NOT NULL DEFAULT 300,
+      beats INTEGER NOT NULL DEFAULT 0,
+      last_beat_at DATETIME,
+      last_error TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      finished_at DATETIME
+    );
+
     CREATE INDEX IF NOT EXISTS idx_chats_conversation ON chats(conversation_id);
     CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
     CREATE INDEX IF NOT EXISTS idx_messages_memo ON messages(conversation_id) WHERE memo IS NOT NULL;
@@ -80,7 +115,11 @@ const initDb = () => {
     CREATE INDEX IF NOT EXISTS idx_tasks_conversation ON tasks(conversation_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_memories_enabled_visibility ON memories(enabled, visibility);
+    CREATE INDEX IF NOT EXISTS idx_objectives_status ON objectives(status);
+    CREATE INDEX IF NOT EXISTS idx_objectives_conversation ON objectives(conversation_id);
   `);
+
+  migrate(db);
 
   return db;
 };

@@ -20,6 +20,8 @@ const handleTaskPost = async (req, res, { readBody, sendJson }) => {
       model: body.model,
       system: body.system,
     },
+    notifyConversationId: body.notifyConversationId || null,
+    notifyPrompt: body.notifyPrompt || null,
   });
 
   sendJson(res, 202, {

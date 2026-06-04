@@ -65,6 +65,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   }, [dispatch, flushQueue]);
 
   useEffect(() => {
+    closedRef.current = false;
     connect();
     return () => {
       closedRef.current = true;

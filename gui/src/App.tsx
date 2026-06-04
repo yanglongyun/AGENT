@@ -8,11 +8,12 @@ import { ThemeProvider } from "./state/theme";
 import { ChatView } from "./views/ChatView";
 import { MemoriesView } from "./views/MemoriesView";
 import { MemosView } from "./views/MemosView";
+import { ObjectivesView } from "./views/ObjectivesView";
 import { SettingsView } from "./views/SettingsView";
 import { SkillsView } from "./views/SkillsView";
 import { TasksView } from "./views/TasksView";
 
-const routes = new Set<RouteName>(["chat", "tasks", "memos", "memories", "skills", "settings"]);
+const routes = new Set<RouteName>(["chat", "objectives", "tasks", "memos", "memories", "skills", "settings"]);
 
 const readRoute = (): RouteName => {
   const value = window.location.hash.replace(/^#\/?/, "");
@@ -42,6 +43,7 @@ export function App() {
             <TaskProvider>
               <AppShell route={route} setRoute={setRoute}>
                 {route === "chat" ? <ChatView /> : null}
+                {route === "objectives" ? <ObjectivesView setRoute={setRoute} /> : null}
                 {route === "tasks" ? <TasksView setRoute={setRoute} /> : null}
                 {route === "memos" ? <MemosView setRoute={setRoute} /> : null}
                 {route === "memories" ? <MemoriesView /> : null}

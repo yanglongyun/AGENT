@@ -6,6 +6,7 @@ import { tools as toolsSection } from "./tools.js";
 import { skills as skillsSection } from "./skills.js";
 import { chats as chatsSection } from "./chats.js";
 import { memory as memorySection } from "./memory.js";
+import { objective as objectiveSection } from "./objective.js";
 
 const instruction = (settings = {}) =>
   String(settings.system || "").trim() || DEFAULT_SYSTEM_PROMPT;
@@ -24,6 +25,7 @@ const buildSystemPrompt = (conversationId, contextMessages = [], settings = {}) 
     toolMaxRounds: settings.toolMaxRounds,
   });
   prompt += skillsSection();
+  prompt += objectiveSection(conversationId);
   prompt += chatsSection(conversationId, contextMessages);
   prompt += memorySection();
   return prompt;
