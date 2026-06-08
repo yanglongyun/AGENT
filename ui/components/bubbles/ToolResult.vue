@@ -11,21 +11,6 @@ const displayContent = computed(() => String(props.content || '').replace(/[\r\n
 <template>
   <div class="m tool">
     <div class="who"><i></i>Tool result</div>
-    <pre class="standalone-tool-result">{{ displayContent }}</pre>
+    <pre class="overflow-x-auto whitespace-pre rounded-xl border border-[var(--line2)] bg-white px-3 py-2.5 font-mono text-[11px] leading-[1.6] text-[var(--ink2)]">{{ displayContent }}</pre>
   </div>
 </template>
-
-<style scoped>
-.standalone-tool-result {
-  overflow-x: auto;
-  border: 1px solid var(--line2);
-  border-radius: 12px;
-  background: #fff;
-  color: var(--ink2);
-  font-family: var(--mono);
-  font-size: 11px;
-  line-height: 1.6;
-  padding: 10px 12px;
-  white-space: pre;
-}
-</style>

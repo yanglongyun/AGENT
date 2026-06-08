@@ -103,25 +103,25 @@ defineExpose({ pendingFiles, clearFiles, resetTextarea, appendFiles });
   <div class="composer">
     <input ref="fileInput" type="file" class="hidden" multiple @change="onPickFiles" />
 
-    <div v-if="pendingFiles.length" class="attachments-row">
+    <div v-if="pendingFiles.length" class="mx-auto mb-2 flex max-w-[620px] gap-2 overflow-x-auto px-0.5 pb-1 pt-0.5">
       <div
         v-for="(f, idx) in pendingFiles"
         :key="pendingFileKey(f)"
-        class="attachment-pill"
+        class="relative flex h-[52px] w-[168px] shrink-0 items-center gap-2.5 rounded-xl border border-[var(--line2)] bg-white px-2.5"
       >
-        <div class="file-icon"></div>
+        <div class="h-8 w-[27px] shrink-0 rounded-[5px] border border-[var(--line2)] bg-gradient-to-b from-[#fff8ef] to-[#f0dfd3]"></div>
         <div class="min-w-0 flex-1">
-          <div class="file-name">{{ f.name }}</div>
-          <div class="file-meta" :title="f.path">{{ f.path || formatSize(f.size) || f.type || t('server_attachment_file', 'file') }}</div>
+          <div class="overflow-hidden text-ellipsis whitespace-nowrap text-xs font-semibold leading-tight text-[var(--ink)]">{{ f.name }}</div>
+          <div class="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[9.5px] text-[var(--muted)]" :title="f.path">{{ f.path || formatSize(f.size) || f.type || t('server_attachment_file', 'file') }}</div>
         </div>
         <button
           type="button"
-          class="file-remove"
+          class="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[var(--ink)] text-xs font-bold text-white"
           @click="pendingFiles.splice(idx,1)"
         >×</button>
       </div>
     </div>
-    <div v-if="uploadError" class="upload-error">{{ uploadError }}</div>
+    <div v-if="uploadError" class="mx-auto mb-1.5 max-w-[620px] text-[11px] text-[#b34b33]">{{ uploadError }}</div>
 
     <div class="inputwrap">
       <button
@@ -160,73 +160,3 @@ defineExpose({ pendingFiles, clearFiles, resetTextarea, appendFiles });
     <div class="hint">Agent Chat can stream replies and use shell when local work is needed.</div>
   </div>
 </template>
-
-<style scoped>
-.attachments-row {
-  display: flex;
-  max-width: 620px;
-  gap: 8px;
-  margin: 0 auto 8px;
-  overflow-x: auto;
-  padding: 2px 2px 4px;
-}
-.attachment-pill {
-  position: relative;
-  display: flex;
-  width: 168px;
-  height: 52px;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid var(--line2);
-  border-radius: 12px;
-  background: #fff;
-  padding: 0 10px;
-}
-.file-icon {
-  width: 27px;
-  height: 32px;
-  flex-shrink: 0;
-  border: 1px solid var(--line2);
-  border-radius: 5px;
-  background: linear-gradient(180deg, #fff8ef, #f0dfd3);
-}
-.file-name {
-  overflow: hidden;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 620;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.file-meta {
-  margin-top: 2px;
-  overflow: hidden;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.file-remove {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  display: grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--ink);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-}
-.upload-error {
-  max-width: 620px;
-  margin: 0 auto 6px;
-  color: #b34b33;
-  font-size: 11px;
-}
-</style>

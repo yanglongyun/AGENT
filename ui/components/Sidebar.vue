@@ -1,10 +1,10 @@
 <script setup>
-import { BookOpen, Clock, MessagesSquare, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
+import { BookOpen, Clock, MessagesSquare, MonitorSmartphone, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { apps } from '../apps/registry.js';
 import { listConversations } from '../lib/api.js';
 
-const emit = defineEmits(['new-chat', 'open-chat', 'open-app', 'tasks', 'subscriptions', 'growth', 'memories', 'skills', 'settings']);
+const emit = defineEmits(['new-chat', 'open-chat', 'open-app', 'tasks', 'subscriptions', 'growth', 'memories', 'skills', 'controls', 'settings']);
 
 const chats = ref([]);
 
@@ -57,6 +57,10 @@ onUnmounted(() => {
         <button class="side-primary" type="button" @click="emit('skills')">
           <ShieldCheck />
           Skills
+        </button>
+        <button class="side-primary" type="button" @click="emit('controls')">
+          <MonitorSmartphone />
+          Controls
         </button>
         <button class="side-primary" type="button" @click="emit('growth')">
           <Sprout />

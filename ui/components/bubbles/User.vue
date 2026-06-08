@@ -21,60 +21,18 @@ const formatSize = (size) => {
   <div class="m me">
     <div class="who"><i></i>You</div>
     <div class="txt">
-      <div v-if="attachments?.length" class="attachment-list">
+      <div v-if="attachments?.length" class="mb-2.5 flex flex-wrap gap-[7px]">
         <div
           v-for="(f, fi) in attachments"
           :key="fi"
-          class="user-file"
+          class="flex max-w-[220px] items-center gap-[7px] rounded-[10px] border border-[var(--line2)] bg-white px-2 py-[5px] text-[var(--ink2)]"
         >
-          <span class="file-dot"></span>
-          <span class="file-label">{{ f.name }}</span>
-          <span v-if="formatSize(f.size)" class="file-size">{{ formatSize(f.size) }}</span>
+          <span class="h-[15px] w-[13px] rounded-sm border border-[var(--line2)] bg-gradient-to-b from-[#fff8ef] to-[#f0dfd3]"></span>
+          <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] font-semibold">{{ f.name }}</span>
+          <span v-if="formatSize(f.size)" class="shrink-0 font-mono text-[9px] text-[var(--muted)]">{{ formatSize(f.size) }}</span>
         </div>
       </div>
       <p v-if="displayContent">{{ displayContent }}</p>
     </div>
   </div>
 </template>
-
-<style scoped>
-.attachment-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-bottom: 10px;
-}
-.user-file {
-  display: flex;
-  max-width: 220px;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid var(--line2);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--ink2);
-  padding: 5px 8px;
-}
-.file-label {
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  font-size: 11px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.file-size {
-  flex-shrink: 0;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 9px;
-}
-.file-dot {
-  width: 13px;
-  height: 15px;
-  border-radius: 2px;
-  border: 1px solid var(--line2);
-  background: linear-gradient(180deg, #fff8ef, #f0dfd3);
-}
-</style>

@@ -78,3 +78,5 @@ export const deleteMemory = (id) => request(`/api/memories?id=${encodeURICompone
 export const listSkills = async () => request('/api/skills');
 
 export const getSkill = async (id) => request(`/api/skills?id=${encodeURIComponent(id)}`);
+
+export const getControls = async () => request('/api/controls');

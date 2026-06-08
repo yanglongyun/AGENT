@@ -41,10 +41,29 @@ const appsBlock = () => [
   "- Use shell/curl to inspect or operate app APIs when needed.",
 ].join("\n");
 
+const controlsBlock = () => [
+  "## Controls",
+  "- Controls are connector status resources, not additional AI tools.",
+  "- There are exactly two controls: browser and computer.",
+  "- Browser means the browser-use connector. Computer means the computer-use connector.",
+  "- Use only the shell tool to inspect control status through HTTP APIs.",
+  "- Control status: GET http://127.0.0.1:9500/api/controls.",
+  "- Call computer-use: POST JSON to http://127.0.0.1:9500/api/controls/computer/call with tool and args.",
+  "- Available computer-use tools are reported by GET /api/controls. Do not treat computer-use as shell execution.",
+  "- Tool Vision setting controls whether screenshot results can be sent to the model as image context.",
+].join("\n");
+
+const evolutionBlock = (settings = {}) => {
+  const text = String(settings.evolution || "").trim();
+  if (!text) return "";
+  return ["## Evolution", text].join("\n");
+};
+
 const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
   const instruction = String(settings.system || "").trim() || defaultInstruction;
   return [
     instruction,
+    evolutionBlock(settings),
     "",
     "## Runtime",
     `- Current chatId: ${chatId}`,
@@ -71,7 +90,9 @@ const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
     `- If the task result should return to this chat, include {"subscription":{"chatId":"${chatId}"}}.`,
     "",
     appsBlock(),
-  ].join("\n");
+    "",
+    controlsBlock(),
+  ].filter((part) => String(part ?? "").trim()).join("\n\n");
 };
 
 export { buildSystemPrompt };

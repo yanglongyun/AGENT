@@ -7,82 +7,20 @@ defineProps({
 <template>
   <div class="m tool">
     <div class="who"><i></i>Tool call</div>
-    <div class="tool-card">
-      <div class="tool-head" @click="msg.expanded = !msg.expanded">
-        <span class="chev">{{ msg.expanded ? '▼' : '▶' }}</span>
-        <span class="tool-title">{{ msg.title }}</span>
-        <span v-if="msg.result" class="tool-done">Done</span>
+    <div class="overflow-hidden rounded-xl border border-[var(--line2)] bg-white">
+      <div class="flex cursor-pointer select-none items-center gap-2 bg-[#fffaf7] px-3 py-[9px]" @click="msg.expanded = !msg.expanded">
+        <span class="shrink-0 text-[10px] text-[var(--muted)]">{{ msg.expanded ? '▼' : '▶' }}</span>
+        <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-semibold text-[var(--ink2)]">{{ msg.title }}</span>
+        <span v-if="msg.result" class="text-[11px] text-[var(--win)]">Done</span>
       </div>
       <div v-if="msg.expanded" class="tool-body">
-        <div v-if="msg.shell && msg.command" class="tool-command"><span>$ </span>{{ msg.command }}</div>
-        <div v-else-if="msg.detail" class="tool-command">{{ msg.detail }}</div>
+        <div v-if="msg.shell && msg.command" class="overflow-x-auto whitespace-pre bg-[#1f1d1a] px-3 py-2.5 font-mono text-[11px] leading-[1.6] text-[#f7e8e0]"><span class="select-none text-[#b9b4ac]">$ </span>{{ msg.command }}</div>
+        <div v-else-if="msg.detail" class="overflow-x-auto whitespace-pre bg-[#1f1d1a] px-3 py-2.5 font-mono text-[11px] leading-[1.6] text-[#f7e8e0]">{{ msg.detail }}</div>
         <template v-if="msg.result">
-          <div class="tool-sep"></div>
-          <div class="tool-result">{{ msg.result }}</div>
+          <div class="h-px bg-[var(--line)]"></div>
+          <div class="overflow-x-auto whitespace-pre bg-white px-3 py-2.5 font-mono text-[11px] leading-[1.6] text-[var(--ink2)]">{{ msg.result }}</div>
         </template>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.tool-card {
-  overflow: hidden;
-  border: 1px solid var(--line2);
-  border-radius: 12px;
-  background: #fff;
-}
-.tool-head {
-  display: flex;
-  cursor: pointer;
-  user-select: none;
-  align-items: center;
-  gap: 8px;
-  background: #fffaf7;
-  padding: 9px 12px;
-}
-.chev {
-  flex-shrink: 0;
-  color: var(--muted);
-  font-size: 10px;
-}
-.tool-title {
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  color: var(--ink2);
-  font-size: 12px;
-  font-weight: 620;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tool-done {
-  color: var(--win);
-  font-size: 11px;
-}
-.tool-command,
-.tool-result {
-  overflow-x: auto;
-  white-space: pre;
-  font-family: var(--mono);
-  font-size: 11px;
-  line-height: 1.6;
-  padding: 10px 12px;
-}
-.tool-command {
-  background: #1f1d1a;
-  color: #f7e8e0;
-}
-.tool-command span {
-  color: #b9b4ac;
-  user-select: none;
-}
-.tool-sep {
-  height: 1px;
-  background: var(--line);
-}
-.tool-result {
-  background: #fff;
-  color: var(--ink2);
-}
-</style>

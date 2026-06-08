@@ -1,5 +1,5 @@
 <script setup>
-import { computed, inject, onMounted, reactive, ref } from 'vue';
+import { computed, inject, onMounted, reactive, ref, watch } from 'vue';
 
 const setPageNav = inject('pageNav');
 const providerGroups = ref([]);
@@ -7,6 +7,9 @@ const providers = ref([]);
 const status = ref('');
 const loading = ref(false);
 const error = ref('');
+const activeTab = ref('model');
+const promptPreview = ref({ custom: '', evolution: '', full: '' });
+let previewTimer = null;
 
 const settings = reactive({
   provider: 'openai',
@@ -14,7 +17,9 @@ const settings = reactive({
   apiKey: '',
   model: '',
   system: '',
+  evolution: '',
   contextTurns: '100',
+  toolVision: '0',
 });
 
 const activeProvider = computed(() => providers.value.find((item) => item.id === settings.provider) || null);
@@ -55,11 +60,28 @@ async function loadSettings() {
     if (!settings.provider && providers.value.length) settings.provider = providers.value[0].id;
     if (!settings.apiUrl && activeProvider.value?.apiUrl) settings.apiUrl = activeProvider.value.apiUrl;
     if (!settings.model && activeProvider.value?.defaultModel) settings.model = activeProvider.value.defaultModel;
+    await loadPromptPreview();
   } catch (err) {
     error.value = err.message || 'Load failed';
   } finally {
     loading.value = false;
   }
+}
+
+async function loadPromptPreview() {
+  const res = await fetch('/api/settings/prompt-preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  });
+  promptPreview.value = await res.json();
+}
+
+function schedulePromptPreview() {
+  if (previewTimer) clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => {
+    loadPromptPreview().catch(() => {});
+  }, 250);
 }
 
 async function saveSettings() {
@@ -72,6 +94,7 @@ async function saveSettings() {
       body: JSON.stringify(settings),
     });
     Object.assign(settings, await res.json());
+    await loadPromptPreview();
     status.value = 'Saved';
     setTimeout(() => { status.value = ''; }, 1200);
   } catch (err) {
@@ -84,6 +107,11 @@ onMounted(async () => {
   setPageNav('Agent', null, null, null);
   await loadSettings();
 });
+
+watch(
+  () => [settings.system, settings.evolution, settings.model, settings.toolVision],
+  schedulePromptPreview,
+);
 </script>
 
 <template>
@@ -93,49 +121,85 @@ onMounted(async () => {
         <div class="settings-page-head">
           <div>
             <h2>Settings</h2>
-            <p>OpenAI-compatible chat completions endpoint</p>
+            <p>Model, prompt, and project information</p>
           </div>
+        </div>
+
+        <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+          <button type="button" :class="{ active: activeTab === 'model' }" @click="activeTab = 'model'">Model</button>
+          <button type="button" :class="{ active: activeTab === 'prompt' }" @click="activeTab = 'prompt'">Prompt</button>
+          <button type="button" :class="{ active: activeTab === 'about' }" @click="activeTab = 'about'">About</button>
         </div>
 
         <div v-if="error" class="task-error">{{ error }}</div>
         <div v-if="loading" class="task-empty">Loading settings...</div>
 
         <template v-else>
-          <label>
-            Provider
-            <select v-model="settings.provider" class="settings-select" @change="applyProviderDefaults">
-              <optgroup v-for="group in groupedProviders" :key="group.id" :label="group.name">
-                <option v-for="provider in group.providers" :key="provider.id" :value="provider.id">
-                  {{ provider.name }}
-                </option>
-              </optgroup>
-            </select>
-          </label>
-          <label>
-            Model
-            <select v-if="activeProvider?.models?.length" v-model="settings.model" class="settings-select">
-              <option v-for="model in activeProvider.models" :key="model" :value="model">{{ model }}</option>
-            </select>
-            <input v-else v-model="settings.model" placeholder="model name" />
-          </label>
-          <label>
-            API URL
-            <input v-model="settings.apiUrl" class="mono-input" placeholder="https://api.openai.com/v1/chat/completions" />
-          </label>
-          <label>
-            API Key
-            <input v-model="settings.apiKey" class="mono-input" type="password" placeholder="sk-..." />
-          </label>
-          <label>
-            Context Turns
-            <input v-model="settings.contextTurns" type="number" min="1" max="200" />
-          </label>
-          <label>
-            System Prompt
-            <textarea v-model="settings.system" rows="8" placeholder="Optional custom system prompt"></textarea>
-          </label>
+          <div v-if="activeTab === 'model'" class="settings-panel">
+            <label>
+              Provider
+              <select v-model="settings.provider" class="settings-select" @change="applyProviderDefaults">
+                <optgroup v-for="group in groupedProviders" :key="group.id" :label="group.name">
+                  <option v-for="provider in group.providers" :key="provider.id" :value="provider.id">
+                    {{ provider.name }}
+                  </option>
+                </optgroup>
+              </select>
+            </label>
+            <label>
+              Model
+              <select v-if="activeProvider?.models?.length" v-model="settings.model" class="settings-select">
+                <option v-for="model in activeProvider.models" :key="model" :value="model">{{ model }}</option>
+              </select>
+              <input v-else v-model="settings.model" placeholder="model name" />
+            </label>
+            <label>
+              API URL
+              <input v-model="settings.apiUrl" class="mono-input" placeholder="https://api.openai.com/v1/chat/completions" />
+            </label>
+            <label>
+              API Key
+              <input v-model="settings.apiKey" class="mono-input" type="password" placeholder="sk-..." />
+            </label>
+            <label>
+              Context Turns
+              <input v-model="settings.contextTurns" type="number" min="1" max="200" />
+            </label>
+            <label class="settings-toggle">
+              <span>
+                <b>Tool Vision</b>
+                <small>Allow screenshot tool results to be used as visual context</small>
+              </span>
+              <input
+                type="checkbox"
+                :checked="settings.toolVision === '1'"
+                @change="settings.toolVision = $event.target.checked ? '1' : '0'"
+              />
+            </label>
+          </div>
 
-          <div class="settings-actions">
+          <div v-else-if="activeTab === 'prompt'" class="settings-panel prompt-panel">
+            <label>
+              Custom Prompt
+              <textarea v-model="settings.system" rows="8" placeholder="Optional custom system prompt"></textarea>
+            </label>
+            <label>
+              Evolution
+              <textarea v-model="settings.evolution" rows="6" placeholder="Durable behavior updates or evolution instructions"></textarea>
+            </label>
+            <label>
+              Full Prompt
+              <textarea class="mono-input prompt-preview" :value="promptPreview.full" rows="16" readonly></textarea>
+            </label>
+          </div>
+
+          <div v-else class="settings-panel about-panel">
+            <h3>Agent Chat</h3>
+            <p>A local AI workspace with chat, apps, background tasks, Controls, memory, skills, and configurable model settings.</p>
+            <a href="https://github.com/realuckyang/AGENT" target="_blank" rel="noreferrer">Open source repository</a>
+          </div>
+
+          <div v-if="activeTab !== 'about'" class="settings-actions">
             <span>{{ status }}</span>
             <button class="primary-btn" type="submit">Save</button>
           </div>

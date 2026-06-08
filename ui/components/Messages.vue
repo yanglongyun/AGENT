@@ -54,7 +54,7 @@ defineExpose({ msgBox, scrollToBottom });
       </div>
 
       <template v-else>
-        <button v-if="hasMore" class="load-more" type="button">{{ t('chat_load_more', 'Load more...') }}</button>
+        <button v-if="hasMore" class="mx-auto mt-2.5 block text-[11.5px] text-[var(--muted)]" type="button">{{ t('chat_load_more', 'Load more...') }}</button>
 
         <template v-for="(m, i) in messages" :key="m._key || i">
           <BubbleUser v-if="m.role === 'user'" :content="m.content" :attachments="m.attachments" />
@@ -66,7 +66,11 @@ defineExpose({ msgBox, scrollToBottom });
 
         <div v-if="busy" class="m ai">
           <div class="who"><i></i>Agent Chat</div>
-          <div class="thinking"><i></i><i></i><i></i></div>
+          <div class="flex gap-[5px] py-[3px]">
+            <i class="h-[7px] w-[7px] animate-[blink_1.2s_infinite] rounded-full bg-[var(--accent)] opacity-50"></i>
+            <i class="h-[7px] w-[7px] animate-[blink_1.2s_infinite] rounded-full bg-[var(--accent)] opacity-50 [animation-delay:0.2s]"></i>
+            <i class="h-[7px] w-[7px] animate-[blink_1.2s_infinite] rounded-full bg-[var(--accent)] opacity-50 [animation-delay:0.4s]"></i>
+          </div>
         </div>
       </template>
     </div>
@@ -74,31 +78,6 @@ defineExpose({ msgBox, scrollToBottom });
 </template>
 
 <style scoped>
-.load-more {
-  display: block;
-  margin: 10px auto 0;
-  color: var(--muted);
-  font-size: 11.5px;
-}
-.thinking {
-  display: flex;
-  gap: 5px;
-  padding: 3px 0;
-}
-.thinking i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  opacity: 0.5;
-  animation: blink 1.2s infinite;
-}
-.thinking i:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.thinking i:nth-child(3) {
-  animation-delay: 0.4s;
-}
 @keyframes blink {
   0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
   30% { opacity: 1; transform: translateY(-3px); }

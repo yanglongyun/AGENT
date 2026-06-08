@@ -1,10 +1,4 @@
 @import "tailwindcss";
 
 @import "./styles/base.css";
-@import "./styles/shell.css";
-@import "./styles/sidebar.css";
-@import "./styles/chat.css";
-@import "./styles/tasks.css";
-@import "./styles/assets.css";
-@import "./styles/apps.css";
-@import "./styles/responsive.css";
+@import "./styles/components.css";

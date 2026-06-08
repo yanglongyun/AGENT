@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { handleChatApi } from "./chat.js";
+import { handleControlsApi } from "./controls.js";
 import { handleFsApi } from "./fs.js";
 import { handleMemoriesApi } from "./memories.js";
 import { handleSettingsApi } from "./settings.js";
@@ -49,6 +50,10 @@ const createApiHandler = ({ sendJson }) => async (req, res) => {
     }
     if (path.startsWith("/api/fs")) {
       await handleFsApi(req, res, deps, path, method, url);
+      return;
+    }
+    if (path.startsWith("/api/controls")) {
+      await handleControlsApi(req, res, deps, path, method, url);
       return;
     }
     sendJson(res, 404, { error: "API endpoint not found" });

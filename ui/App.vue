@@ -3,6 +3,7 @@ import { PanelLeft } from '@lucide/vue';
 import { onMounted, onUnmounted, provide, reactive, ref } from 'vue';
 import AppsView from './components/Apps.vue';
 import ChatView from './components/Chat.vue';
+import ControlsView from './components/Controls.vue';
 import GrowthView from './components/Growth.vue';
 import MemoriesView from './components/Memories.vue';
 import Sidebar from './components/Sidebar.vue';
@@ -80,6 +81,12 @@ function requestSkills() {
   closeSidebarOnMobile();
 }
 
+function requestControls() {
+  activeView.value = 'controls';
+  activeAppId.value = '';
+  closeSidebarOnMobile();
+}
+
 function requestSettings() {
   activeView.value = 'settings';
   activeAppId.value = '';
@@ -125,6 +132,7 @@ onUnmounted(() => {
       @growth="requestGrowth"
       @memories="requestMemories"
       @skills="requestSkills"
+      @controls="requestControls"
       @settings="requestSettings"
     />
 
@@ -148,6 +156,7 @@ onUnmounted(() => {
         <GrowthView v-else-if="activeView === 'growth'" />
         <MemoriesView v-else-if="activeView === 'memories'" />
         <SkillsView v-else-if="activeView === 'skills'" />
+        <ControlsView v-else-if="activeView === 'controls'" />
         <SettingsView v-else />
       </div>
     </main>

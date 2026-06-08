@@ -1,7 +1,7 @@
 <template>
   <History v-if="showHistory" class="absolute inset-0" @open="onHistorySelect" @new="onNewChat" />
 
-  <div v-else class="absolute inset-0 flex flex-col overflow-hidden chat-panel">
+  <div v-else class="absolute inset-0 flex flex-col overflow-hidden bg-[var(--bg)]">
     <Messages
       ref="messagesRef"
       :messages="messages"
@@ -231,9 +231,3 @@ onUnmounted(() => {
   unsubs.forEach((fn) => fn?.());
 });
 </script>
-
-<style scoped>
-.chat-panel {
-  background: var(--bg);
-}
-</style>

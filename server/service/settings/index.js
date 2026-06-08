@@ -7,7 +7,9 @@ const DEFAULTS = {
   apiKey: process.env.LLM_API_KEY || "",
   model: process.env.LLM_MODEL || "gpt-4.1-mini",
   system: process.env.AGENT_SYSTEM_PROMPT || "",
+  evolution: process.env.AGENT_EVOLUTION_PROMPT || "",
   contextTurns: process.env.AGENT_CONTEXT_TURNS || "100",
+  toolVision: process.env.AGENT_TOOL_VISION || "0",
 };
 
 const getServerSettings = () => ({
@@ -16,7 +18,7 @@ const getServerSettings = () => ({
 });
 
 const updateServerSettings = (settings = {}) => {
-  const allowed = ["provider", "apiUrl", "apiKey", "model", "system", "contextTurns"];
+  const allowed = ["provider", "apiUrl", "apiKey", "model", "system", "evolution", "contextTurns", "toolVision"];
   const next = {};
   for (const key of allowed) {
     if (settings[key] != null) next[key] = String(settings[key]);

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { getServerSettings, updateServerSettings } from "../service/settings/index.js";
 import { listLlmProviderGroups, listLlmProviders } from "../ai/llm/models.js";
+import { buildSystemPrompt } from "../service/chat/prompt.js";
 import { readJsonBody } from "../utils/http.js";
 
 const maskSettings = (settings) => ({
@@ -14,6 +15,18 @@ const handleSettingsApi = async (req, res, { sendJson }, path, method) => {
       ok: true,
       groups: listLlmProviderGroups(),
       providers: listLlmProviders(),
+    });
+    return;
+  }
+
+  if (path === "/api/settings/prompt-preview" && (method === "GET" || method === "POST")) {
+    const body = method === "POST" ? await readJsonBody(req) : {};
+    const settings = { ...getServerSettings(), ...body };
+    sendJson(res, 200, {
+      ok: true,
+      custom: settings.system || "",
+      evolution: settings.evolution || "",
+      full: buildSystemPrompt("", [], settings),
     });
     return;
   }

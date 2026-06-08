@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { chat } from "../../ai/index.js";
+import { stripImages } from "../../ai/vision.js";
 import { buildSystemPrompt } from "./prompt.js";
 import { getChat, setChatState } from "./chats.js";
 import { appendChatMessage, listChatMessages, saveChatMessages } from "./messages.js";
@@ -107,7 +108,7 @@ const handleAiEvent = ({ chatId, event, emit }) => {
   }
   if (event.type === "tool_results") {
     const messages = event.messages || [];
-    if (messages.length) saveChatMessages({ chatId, source: "tool", messages });
+    if (messages.length) saveChatMessages({ chatId, source: "tool", messages: messages.map(stripImages) });
     emit({
       type: "tool_results",
       chatId,

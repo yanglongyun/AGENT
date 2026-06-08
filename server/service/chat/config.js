@@ -9,7 +9,9 @@ const getChatRunConfig = (input = {}) => {
     model: input.model || settings.model || "",
     provider: input.provider || settings.provider || "",
     system: input.system || settings.system || "",
+    evolution: input.evolution ?? settings.evolution ?? "",
     contextTurns: input.contextTurns ?? settings.contextTurns ?? 100,
+    toolVision: input.toolVision ?? settings.toolVision ?? "0",
   };
   const missing = [];
   if (!config.apiUrl) missing.push("apiUrl");

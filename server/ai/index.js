@@ -2,6 +2,7 @@
 import { tools } from "./tools.js";
 import { runTools } from "./runner.js";
 import { callLlmStream } from "./llm/stream.js";
+import { prepareVisionMessages } from "./vision.js";
 import {
   normalizeAgentMessages,
   normalizeChatOptions,
@@ -18,10 +19,12 @@ const chat = async (messages, {
   maxRounds = 50,
   enableToolResultTruncate = true,
   toolResultMaxChars = 12000,
+  toolVision = "0",
   responseFormat = null
 } = {}) => {
   const opts = normalizeChatOptions({ maxRounds, enableToolResultTruncate, toolResultMaxChars });
   const workMessages = normalizeAgentMessages(messages, { model, apiUrl });
+  const toolVisionEnabled = String(toolVision || "") === "1" || toolVision === true;
   const replayReasoning = shouldReplayReasoning(model, apiUrl);
   let round = 0;
 
@@ -29,7 +32,7 @@ const chat = async (messages, {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     // responseFormat(如任务强制 { type: "json_object" })只约束最终回答那一轮;
     // 需要调工具的中间轮 DeepSeek 仍正常返回 tool_calls(实测验证)。
-    const payload = { model, messages: workMessages, tools };
+    const payload = { model, messages: prepareVisionMessages(workMessages, toolVisionEnabled), tools };
     if (responseFormat) payload.response_format = responseFormat;
 
     let message;
@@ -52,7 +55,7 @@ const chat = async (messages, {
       onEvent({ type: "tool_calls", message: assistantMsg });
       const toolMessages = await runTools(message.tool_calls, {
         signal,
-        enableToolResultTruncate: opts.enableToolResultTruncate,
+        enableToolResultTruncate: toolVisionEnabled ? false : opts.enableToolResultTruncate,
         toolResultMaxChars: opts.toolResultMaxChars
       });
       for (const toolMessage of toolMessages) {
