@@ -7,18 +7,10 @@ export function setupChatStream({ messages, currentChatId, busy, streamingKey, s
   const closeStreaming = (finalText) => {
     const key = streamingKey.value;
     streamingKey.value = '';
-    const text = finalText == null ? '' : String(finalText);
-    if (!key) {
-      if (text) {
-        const _key = mkKey('assistant-final');
-        seenKeys.value.add(_key);
-        messages.value.push({ role: 'assistant', content: text, _key });
-      }
-      return;
-    }
+    if (!key) return;
     const msg = messages.value.find((item) => item._key === key);
     if (!msg || msg.role !== 'assistant') return;
-    if (text) msg.content = text;
+    if (finalText) msg.content = String(finalText);
     if (!msg.content) {
       messages.value = messages.value.filter((item) => item._key !== key);
     }
@@ -66,15 +58,15 @@ export function setupChatStream({ messages, currentChatId, busy, streamingKey, s
 
     on('done', (data) => {
       if (!isCurrent(data)) return;
-      closeStreaming(data.message?.content ?? data.text);
+      closeStreaming();
       busy.value = false;
       scrollToBottom?.(true);
     }),
 
     on('tool_calls', (data) => {
       if (!isCurrent(data)) return;
-      closeStreaming(data.message?.content);
-      for (const toolCall of data.message?.tool_calls || data.toolCalls || []) {
+      closeStreaming();
+      for (const toolCall of data.toolCalls || []) {
         const _key = mkKey('tool_call');
         seenKeys.value.add(_key);
         messages.value.push(mapToolCall(toolCall, _key));
