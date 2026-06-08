@@ -11,9 +11,10 @@ import SettingsView from './components/Settings.vue';
 import SkillsView from './components/Skills.vue';
 import SubscriptionsView from './components/Subscriptions.vue';
 import TasksView from './components/Tasks.vue';
+import { t } from './lib/locale.js';
 
 const nav = reactive({
-  title: 'Agent Chat',
+  title: '',
   back: null,
   left: null,
   right: null,
@@ -25,7 +26,7 @@ const isMobile = ref(false);
 let viewportInitialized = false;
 
 provide('pageNav', (title, back, left, right) => {
-  nav.title = title || 'Agent Chat';
+  nav.title = title || '';
   nav.back = back || null;
   nav.left = left || null;
   nav.right = right || null;
@@ -144,7 +145,7 @@ onUnmounted(() => {
         <button v-if="nav.back" class="back-btn" type="button" aria-label="Back" @click="nav.back">
           &lt;
         </button>
-        <b>{{ nav.title || 'Agent Chat' }}</b>
+        <b>{{ nav.title || t('chat_title', 'Agent Chat') }}</b>
         <span class="spacer"></span>
       </header>
 

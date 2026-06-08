@@ -1,5 +1,23 @@
+import { ref } from 'vue';
+
 const dictionaries = {
   en: {
+    nav_new_chat: 'New chat',
+    nav_subscriptions: 'Subscriptions',
+    nav_tasks: 'Tasks',
+    nav_memories: 'Memories',
+    nav_skills: 'Skills',
+    nav_controls: 'Controls',
+    nav_growth: 'Growth',
+    nav_apps: 'Apps',
+    nav_chats: 'Chats',
+    nav_settings: 'Settings',
+    nav_settings_desc: 'Model and system prompt',
+    nav_app: 'Apps',
+    nav_skill: 'Skill',
+    nav_task: 'Task',
+    nav_memory: 'Memory',
+    nav_new_memory: 'New memory',
     chat_title: 'Agent Chat',
     chat_tagline: 'Ask anything, stream replies, run shell tools when needed.',
     chat_load_more: 'Load more...',
@@ -33,8 +51,63 @@ const dictionaries = {
     time_minutes_ago: '{n} min ago',
     time_hours_ago: '{n} hours ago',
     time_days_ago: '{n} days ago',
+    settings_desc: 'Model, prompt, appearance, and project information',
+    settings_tab_model: 'Model',
+    settings_tab_prompt: 'Prompt',
+    settings_tab_display: 'Display',
+    settings_tab_about: 'About',
+    settings_provider: 'Provider',
+    settings_model: 'Model',
+    settings_api_url: 'API URL',
+    settings_api_key: 'API Key',
+    settings_context_turns: 'Context Turns',
+    settings_tool_vision: 'Tool Vision',
+    settings_tool_vision_desc: 'Allow screenshot tool results to be used as visual context',
+    settings_custom_prompt: 'Custom Prompt',
+    settings_custom_prompt_placeholder: 'Optional custom system prompt',
+    settings_evolution: 'Evolution',
+    settings_evolution_placeholder: 'Durable behavior updates or evolution instructions',
+    settings_full_prompt: 'Full Prompt',
+    settings_theme: 'Theme',
+    settings_theme_light: 'Light',
+    settings_theme_dark: 'Dark',
+    settings_language: 'Language',
+    settings_save: 'Save',
+    settings_saving: 'Saving...',
+    settings_saved: 'Saved',
+    settings_loading: 'Loading settings...',
+    settings_load_failed: 'Load failed',
+    settings_save_failed: 'Save failed',
+    settings_about_title: 'Agent Chat',
+    settings_about_desc: 'A local AI workspace with chat, apps, background tasks, Controls, memory, skills, and configurable model settings.',
+    settings_about_link: 'Open source repository',
+    common_refresh: 'Refresh',
+    common_load_failed: 'Load failed',
+    common_online: 'Online',
+    common_not_connected: 'Not connected',
+    controls_browser: 'Browser',
+    controls_computer: 'Computer',
+    controls_browser_disconnected: 'browser-use connector is not connected',
+    controls_computer_disconnected: 'computer-use connector is not connected',
+    controls_actions_available: '{n} actions available',
   },
   zh: {
+    nav_new_chat: '新聊天',
+    nav_subscriptions: '订阅',
+    nav_tasks: '任务',
+    nav_memories: '记忆',
+    nav_skills: '技能',
+    nav_controls: '控制',
+    nav_growth: '成长',
+    nav_apps: '应用',
+    nav_chats: '聊天',
+    nav_settings: '设置',
+    nav_settings_desc: '模型和系统提示词',
+    nav_app: '应用',
+    nav_skill: '技能',
+    nav_task: '任务',
+    nav_memory: '记忆',
+    nav_new_memory: '新建记忆',
     chat_title: 'Agent Chat',
     chat_tagline: '直接提问，需要时可以流式回复并运行 shell 工具。',
     chat_load_more: '加载更多...',
@@ -68,12 +141,61 @@ const dictionaries = {
     time_minutes_ago: '{n} 分钟前',
     time_hours_ago: '{n} 小时前',
     time_days_ago: '{n} 天前',
+    settings_desc: '模型、提示词、外观和项目信息',
+    settings_tab_model: '模型',
+    settings_tab_prompt: '提示词',
+    settings_tab_display: '显示',
+    settings_tab_about: '关于',
+    settings_provider: '服务商',
+    settings_model: '模型',
+    settings_api_url: 'API 地址',
+    settings_api_key: 'API 密钥',
+    settings_context_turns: '上下文轮数',
+    settings_tool_vision: '工具视觉',
+    settings_tool_vision_desc: '允许把截图工具结果作为视觉上下文使用',
+    settings_custom_prompt: '自定义提示词',
+    settings_custom_prompt_placeholder: '可选的自定义系统提示词',
+    settings_evolution: '进化',
+    settings_evolution_placeholder: '长期行为更新或进化指令',
+    settings_full_prompt: '完整提示词',
+    settings_theme: '主题',
+    settings_theme_light: '明亮',
+    settings_theme_dark: '暗色',
+    settings_language: '语言',
+    settings_save: '保存',
+    settings_saving: '保存中...',
+    settings_saved: '已保存',
+    settings_loading: '正在加载设置...',
+    settings_load_failed: '加载失败',
+    settings_save_failed: '保存失败',
+    settings_about_title: 'Agent Chat',
+    settings_about_desc: '本地 AI 工作区，支持聊天、应用、后台任务、控制、记忆、技能和可配置模型设置。',
+    settings_about_link: '开源仓库',
+    common_refresh: '刷新',
+    common_load_failed: '加载失败',
+    common_online: '在线',
+    common_not_connected: '未连接',
+    controls_browser: '浏览器',
+    controls_computer: '电脑',
+    controls_browser_disconnected: 'browser-use 连接器未连接',
+    controls_computer_disconnected: 'computer-use 连接器未连接',
+    controls_actions_available: '{n} 个可用动作',
   },
 };
 
+const language = ref('zh');
+
 const currentLanguage = () => {
-  if (typeof localStorage === 'undefined') return 'zh';
-  return localStorage.getItem('agent:language') === 'en' ? 'en' : 'zh';
+  if (typeof localStorage !== 'undefined') {
+    const stored = localStorage.getItem('agent:language');
+    if (stored) language.value = stored === 'en' ? 'en' : 'zh';
+  }
+  return language.value;
+};
+
+const setLocaleLanguage = (value) => {
+  language.value = value === 'en' ? 'en' : 'zh';
+  return language.value;
 };
 
 const t = (key, fallback, vars = {}) => {
@@ -85,4 +207,4 @@ const t = (key, fallback, vars = {}) => {
   return text;
 };
 
-export { t };
+export { language, setLocaleLanguage, t };

@@ -3,6 +3,7 @@ import { BookOpen, Clock, MessagesSquare, MonitorSmartphone, ShieldCheck, Sprout
 import { onMounted, onUnmounted, ref } from 'vue';
 import { apps } from '../apps/registry.js';
 import { listConversations } from '../lib/api.js';
+import { t } from '../lib/locale.js';
 
 const emit = defineEmits(['new-chat', 'open-chat', 'open-app', 'tasks', 'subscriptions', 'growth', 'memories', 'skills', 'controls', 'settings']);
 
@@ -17,7 +18,7 @@ async function refresh() {
 }
 
 function formatChatTitle(chat) {
-  return chat?.title || 'New chat';
+  return chat?.title || t('nav_new_chat', 'New chat');
 }
 
 onMounted(() => {
@@ -40,38 +41,38 @@ onUnmounted(() => {
       <div class="primary-nav">
         <button class="side-primary" type="button" @click="emit('new-chat')">
           <SquarePen />
-          New chat
+          {{ t('nav_new_chat', 'New chat') }}
         </button>
         <button class="side-primary" type="button" @click="emit('subscriptions')">
           <MessagesSquare />
-          Subscriptions
+          {{ t('nav_subscriptions', 'Subscriptions') }}
         </button>
         <button class="side-primary" type="button" @click="emit('tasks')">
           <Clock />
-          Tasks
+          {{ t('nav_tasks', 'Tasks') }}
         </button>
         <button class="side-primary" type="button" @click="emit('memories')">
           <BookOpen />
-          Memories
+          {{ t('nav_memories', 'Memories') }}
         </button>
         <button class="side-primary" type="button" @click="emit('skills')">
           <ShieldCheck />
-          Skills
+          {{ t('nav_skills', 'Skills') }}
         </button>
         <button class="side-primary" type="button" @click="emit('controls')">
           <MonitorSmartphone />
-          Controls
+          {{ t('nav_controls', 'Controls') }}
         </button>
         <button class="side-primary" type="button" @click="emit('growth')">
           <Sprout />
-          Growth
+          {{ t('nav_growth', 'Growth') }}
         </button>
       </div>
     </div>
 
     <div class="list">
       <div class="sec">
-        Apps
+        {{ t('nav_apps', 'Apps') }}
       </div>
       <button
         v-for="app in apps"
@@ -84,7 +85,7 @@ onUnmounted(() => {
         {{ app.name }}
       </button>
 
-      <div class="sec">Chats</div>
+      <div class="sec">{{ t('nav_chats', 'Chats') }}</div>
       <button
         v-for="chat in chats"
         :key="chat.id"
@@ -94,15 +95,15 @@ onUnmounted(() => {
       >
         {{ formatChatTitle(chat) }}
       </button>
-      <div v-if="!chats.length" class="nav-empty">No conversations yet</div>
+      <div v-if="!chats.length" class="nav-empty">{{ t('chat_history_empty', 'No conversations yet') }}</div>
     </div>
 
     <div class="nav-footer">
       <button class="settings-entry" type="button" @click="emit('settings')">
         <span class="settings-dot"></span>
         <span>
-          <b>Settings</b>
-          <small>Model and system prompt</small>
+          <b>{{ t('nav_settings', 'Settings') }}</b>
+          <small>{{ t('nav_settings_desc', 'Model and system prompt') }}</small>
         </span>
       </button>
     </div>

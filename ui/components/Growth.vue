@@ -1,6 +1,7 @@
 <script setup>
 import { inject, onMounted, onUnmounted, ref } from 'vue';
 import { listUpdates } from '../lib/api.js';
+import { t } from '../lib/locale.js';
 
 const setPageNav = inject('pageNav');
 const updates = ref([]);
@@ -15,7 +16,7 @@ async function refresh() {
     const data = await listUpdates(200);
     updates.value = data.updates || [];
   } catch (err) {
-    error.value = err.message || 'Load failed';
+    error.value = err.message || t('common_load_failed', 'Load failed');
   } finally {
     loading.value = false;
   }
@@ -27,7 +28,7 @@ function formatTime(value) {
 }
 
 onMounted(async () => {
-  setPageNav('Growth', null, null, null);
+  setPageNav(t('nav_growth', 'Growth'), null, null, null);
   await refresh();
   timer = setInterval(refresh, 3000);
 });

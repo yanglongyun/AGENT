@@ -1,6 +1,7 @@
 <script setup>
 import { inject, onMounted, onUnmounted, ref } from 'vue';
 import { listSubscriptions } from '../lib/api.js';
+import { t } from '../lib/locale.js';
 
 const setPageNav = inject('pageNav');
 const subscriptions = ref([]);
@@ -15,7 +16,7 @@ async function refresh() {
     const data = await listSubscriptions(200);
     subscriptions.value = data.subscriptions || [];
   } catch (err) {
-    error.value = err.message || 'Load failed';
+    error.value = err.message || t('common_load_failed', 'Load failed');
   } finally {
     loading.value = false;
   }
@@ -27,7 +28,7 @@ function formatTime(value) {
 }
 
 onMounted(async () => {
-  setPageNav('Subscriptions', null, null, null);
+  setPageNav(t('nav_subscriptions', 'Subscriptions'), null, null, null);
   await refresh();
   timer = setInterval(refresh, 2500);
 });

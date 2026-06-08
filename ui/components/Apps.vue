@@ -1,6 +1,7 @@
 <script setup>
 import { computed, defineAsyncComponent, inject, watch } from 'vue';
 import { apps, getApp } from '../apps/registry.js';
+import { t } from '../lib/locale.js';
 
 const props = defineProps({
   appId: { type: String, default: '' },
@@ -12,7 +13,7 @@ const activeApp = computed(() => getApp(props.appId));
 const activeComponent = computed(() => activeApp.value ? defineAsyncComponent(activeApp.value.load) : null);
 
 watch(activeApp, () => {
-  setPageNav(activeApp.value?.name || 'Apps', null, null, null);
+  setPageNav(activeApp.value?.name || t('nav_app', 'Apps'), null, null, null);
 }, { immediate: true });
 </script>
 

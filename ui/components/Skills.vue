@@ -1,6 +1,7 @@
 <script setup>
 import { inject, onMounted, ref } from 'vue';
 import { getSkill, listSkills } from '../lib/api.js';
+import { t } from '../lib/locale.js';
 
 const setPageNav = inject('pageNav');
 const skills = ref([]);
@@ -9,7 +10,7 @@ const loading = ref(false);
 const error = ref('');
 
 function setListNav() {
-  setPageNav('Skills', null, null, null);
+  setPageNav(t('nav_skills', 'Skills'), null, null, null);
 }
 
 function closeSkill() {
@@ -18,7 +19,7 @@ function closeSkill() {
 }
 
 function setDetailNav(skill) {
-  setPageNav(skill?.name || 'Skill', null, null, null);
+  setPageNav(skill?.name || t('nav_skill', 'Skill'), null, null, null);
 }
 
 async function refresh() {
@@ -28,7 +29,7 @@ async function refresh() {
     const data = await listSkills();
     skills.value = data.skills || [];
   } catch (err) {
-    error.value = err.message || 'Load failed';
+    error.value = err.message || t('common_load_failed', 'Load failed');
   } finally {
     loading.value = false;
   }
@@ -41,7 +42,7 @@ async function openSkill(skill) {
     current.value = data.skill || null;
     setDetailNav(current.value || skill);
   } catch (err) {
-    error.value = err.message || 'Load failed';
+    error.value = err.message || t('common_load_failed', 'Load failed');
   }
 }
 

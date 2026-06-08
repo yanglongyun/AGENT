@@ -1,6 +1,7 @@
 <script setup>
 import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
 import { abortTask, getTask, listTasks } from '../lib/api.js';
+import { t } from '../lib/locale.js';
 
 const setPageNav = inject('pageNav');
 
@@ -25,7 +26,7 @@ const isActive = (task) => ['pending', 'running'].includes(task?.status);
 const visibleTask = computed(() => currentTask.value || tasks.value.find((task) => task.id === currentTaskId.value) || null);
 
 function setListNav() {
-  setPageNav('Tasks', null, null, null);
+  setPageNav(t('nav_tasks', 'Tasks'), null, null, null);
 }
 
 function closeDetail() {
@@ -36,7 +37,7 @@ function closeDetail() {
 }
 
 function setDetailNav(task) {
-  setPageNav(task?.title || task?.name || 'Task', null, null, null);
+  setPageNav(task?.title || task?.name || t('nav_task', 'Task'), null, null, null);
 }
 
 async function loadTasks() {
@@ -46,7 +47,7 @@ async function loadTasks() {
     const data = await listTasks(200);
     tasks.value = data.tasks || [];
   } catch (err) {
-    error.value = err.message || 'Load failed';
+    error.value = err.message || t('common_load_failed', 'Load failed');
   } finally {
     loading.value = false;
   }

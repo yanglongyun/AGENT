@@ -1,3 +1,5 @@
+import { setLocaleLanguage } from './locale.js';
+
 const normalizeTheme = (value) => (value === 'dark' ? 'dark' : 'light');
 const normalizeLanguage = (value) => (value === 'en' ? 'en' : 'zh');
 
@@ -12,6 +14,7 @@ const applyLanguage = (value) => {
   const language = normalizeLanguage(value);
   document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
   localStorage.setItem('agent:language', language);
+  setLocaleLanguage(language);
   return language;
 };
 

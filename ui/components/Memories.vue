@@ -1,6 +1,7 @@
 <script setup>
 import { computed, inject, onMounted, reactive, ref } from 'vue';
 import { createMemory, deleteMemory, listMemories, updateMemory } from '../lib/api.js';
+import { t } from '../lib/locale.js';
 
 const setPageNav = inject('pageNav');
 const memories = ref([]);
@@ -19,10 +20,10 @@ const form = reactive({
 const selected = computed(() => memories.value.find((item) => item.id === selectedId.value) || null);
 
 function setListNav() {
-  setPageNav('Memories', null, null, null);
+  setPageNav(t('nav_memories', 'Memories'), null, null, null);
 }
 
-function setEditorNav(title = 'Memory') {
+function setEditorNav(title = t('nav_memory', 'Memory')) {
   setPageNav(title, null, null, null);
 }
 
@@ -36,7 +37,7 @@ function newMemory() {
   selectedId.value = null;
   mode.value = 'new';
   Object.assign(form, { title: '', description: '', body: '', visibility: 'stored' });
-  setEditorNav('New memory');
+  setEditorNav(t('nav_new_memory', 'New memory'));
 }
 
 function editMemory(memory) {
@@ -48,7 +49,7 @@ function editMemory(memory) {
     body: memory.body || '',
     visibility: memory.visibility || 'stored',
   });
-  setEditorNav(memory.title || 'Memory');
+  setEditorNav(memory.title || t('nav_memory', 'Memory'));
 }
 
 async function refresh() {
@@ -58,7 +59,7 @@ async function refresh() {
     const data = await listMemories();
     memories.value = data.memories || [];
   } catch (err) {
-    error.value = err.message || 'Load failed';
+    error.value = err.message || t('common_load_failed', 'Load failed');
   } finally {
     loading.value = false;
   }
