@@ -133,7 +133,6 @@ button {
   align-items: center;
   gap: 9px;
   border-radius: 10px;
-  background: var(--accent-soft);
   color: var(--accent-d);
   padding: 10px 13px;
   font-size: 13.5px;
