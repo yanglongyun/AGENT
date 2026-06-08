@@ -1,0 +1,84 @@
+.app {
+  position: relative;
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.mhead {
+  display: flex;
+  height: 57px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 11px;
+  border-bottom: 1px solid var(--line);
+  padding: 0 24px;
+}
+
+.hamburger {
+  display: flex;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 9px;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.hamburger:hover {
+  background: #f1ece3;
+  color: var(--ink2);
+}
+
+.hamburger span {
+  display: block;
+  width: 17px;
+  height: 1.7px;
+  border-radius: 99px;
+  background: currentColor;
+}
+
+.hamburger span + span {
+  margin-top: 0;
+}
+
+.mhead b {
+  font-size: 14.5px;
+  font-weight: 620;
+}
+
+.mhead .spacer {
+  flex: 1;
+}
+
+.mhead .ghost {
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12.5px;
+  padding: 6px 10px;
+}
+
+.mhead .ghost:hover {
+  background: #f1ece3;
+  color: var(--ink2);
+}
+
+.chat-stage {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
