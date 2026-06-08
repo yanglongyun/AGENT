@@ -80,3 +80,28 @@ export const listSkills = async () => request('/api/skills');
 export const getSkill = async (id) => request(`/api/skills?id=${encodeURIComponent(id)}`);
 
 export const getControls = async () => request('/api/controls');
+
+export const listSpaces = async () => request('/api/spaces');
+
+export const createSpace = (space) => request('/api/spaces', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(space)
+});
+
+export const listSpaceTree = ({ spaceId, path = '.' }) => {
+  const params = new URLSearchParams({ spaceId, path });
+  return request(`/api/spaces/tree?${params}`);
+};
+
+export const listSpaceChats = ({ spaceId, path = null }) => {
+  const params = new URLSearchParams({ spaceId });
+  if (path !== null) params.set('path', path);
+  return request(`/api/spaces/chats?${params}`);
+};
+
+export const createSpaceChat = ({ spaceId, relativePath = '.', title = 'New chat' }) => request('/api/spaces/chats', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ spaceId, relativePath, title })
+});

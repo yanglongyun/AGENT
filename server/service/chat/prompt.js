@@ -116,6 +116,20 @@ const skillsBlock = () => {
   return lines.join("\n");
 };
 
+const spaceBlock = (spaceContext = null) => {
+  if (!spaceContext) return "";
+  const lines = [
+    "## 空间",
+    `- 当前空间：${spaceContext.space_name || spaceContext.space_id}`,
+    `- 空间根目录：${spaceContext.root_path}`,
+    `- 当前目录：${spaceContext.relative_path || "."}`,
+    `- 当前目录绝对路径：${spaceContext.cwd}`,
+    "- 这个空间用于组织和隔离不同本地项目；当前 chat 属于这个空间目录。",
+    "- 需要在当前空间内执行本地操作时，shell 可使用上面的当前目录作为 cwd。",
+  ];
+  return lines.join("\n");
+};
+
 const evolutionBlock = (settings = {}) => {
   const text = String(settings.evolution || "").trim();
   if (!text) return "";
@@ -132,6 +146,7 @@ const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
     `- 当前 chatId：${chatId}`,
     `- 工作目录：${process.cwd()}`,
     `- 模型：${settings.model || ""}`,
+    spaceBlock(settings.spaceContext),
     "",
     "## 工具",
     "- shell(command, summary, timeout?, cwd?)：执行 shell 命令并返回 stdout/stderr。",

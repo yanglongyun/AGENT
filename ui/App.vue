@@ -9,6 +9,7 @@ import MemoriesView from './components/Memories.vue';
 import Sidebar from './components/Sidebar.vue';
 import SettingsView from './components/Settings.vue';
 import SkillsView from './components/Skills.vue';
+import SpacesView from './components/Spaces.vue';
 import SubscriptionsView from './components/Subscriptions.vue';
 import TasksView from './components/Tasks.vue';
 import { t } from './lib/locale.js';
@@ -88,6 +89,12 @@ function requestControls() {
   closeSidebarOnMobile();
 }
 
+function requestSpaces() {
+  activeView.value = 'spaces';
+  activeAppId.value = '';
+  closeSidebarOnMobile();
+}
+
 function requestSettings() {
   activeView.value = 'settings';
   activeAppId.value = '';
@@ -134,6 +141,7 @@ onUnmounted(() => {
       @memories="requestMemories"
       @skills="requestSkills"
       @controls="requestControls"
+      @spaces="requestSpaces"
       @settings="requestSettings"
     />
 
@@ -158,6 +166,7 @@ onUnmounted(() => {
         <MemoriesView v-else-if="activeView === 'memories'" />
         <SkillsView v-else-if="activeView === 'skills'" />
         <ControlsView v-else-if="activeView === 'controls'" />
+        <SpacesView v-else-if="activeView === 'spaces'" @open-chat="requestOpenChat" />
         <SettingsView v-else />
       </div>
     </main>

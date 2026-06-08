@@ -218,6 +218,17 @@
   .apps-grid .app-card span { @apply grid h-[42px] w-[42px] shrink-0 place-items-center rounded-xl bg-[#f1ece3] text-[22px]; }
   .apps-grid .app-card b { @apply text-sm font-semibold text-[var(--ink)]; }
   .app-head { @apply mb-0.5; }
+
+  .space-form { @apply mb-3 grid grid-cols-[minmax(110px,0.45fr)_minmax(180px,1fr)_auto] gap-2; }
+  .space-form input { @apply rounded-[10px] border border-[var(--line2)] bg-white px-[11px] py-2.5 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]; }
+  .space-tabs { @apply mb-3 grid gap-2; }
+  .space-tabs button { @apply rounded-xl border border-[var(--line2)] bg-white p-3 text-left transition hover:border-[var(--accent)]; }
+  .space-tabs button.active { @apply border-[rgba(204,106,69,0.55)] bg-[#fff8f4]; }
+  .space-tabs b { @apply block text-[13.5px] font-semibold text-[var(--ink)]; }
+  .space-tabs small { @apply mt-1 block overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[11px] text-[var(--muted)]; }
+  .space-grid { @apply grid grid-cols-2 gap-3; }
+  .space-panel { @apply min-w-0 rounded-xl border border-[var(--line2)] bg-white p-3; }
+  .space-panel h3 { @apply mb-2 text-[13px] font-semibold text-[var(--ink2)]; }
   .app-card.soft { @apply bg-[#fffaf7]; }
   button.app-card { @apply w-full text-left; }
   .app-row { @apply flex items-center gap-[11px]; }
@@ -261,6 +272,8 @@
   :root[data-theme="dark"] .settings-entry,
   :root[data-theme="dark"] .control-card,
   :root[data-theme="dark"] .app-empty,
+  :root[data-theme="dark"] .space-tabs button,
+  :root[data-theme="dark"] .space-panel,
   :root[data-theme="dark"] .chip {
     background-color: var(--panel);
   }
@@ -332,5 +345,7 @@
   .tasks-view,
   .app-page { @apply px-3.5; }
   .app-grid-2,
-  .app-grid-3 { @apply grid-cols-1; }
+  .app-grid-3,
+  .space-grid,
+  .space-form { @apply grid-cols-1; }
 }

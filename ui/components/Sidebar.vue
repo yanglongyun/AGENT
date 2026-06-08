@@ -1,11 +1,11 @@
 <script setup>
-import { BookOpen, Clock, MessagesSquare, MonitorSmartphone, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
+import { BookOpen, Boxes, Clock, MessagesSquare, MonitorSmartphone, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { apps } from '../apps/registry.js';
 import { listConversations } from '../lib/api.js';
 import { t } from '../lib/locale.js';
 
-const emit = defineEmits(['new-chat', 'open-chat', 'open-app', 'tasks', 'subscriptions', 'growth', 'memories', 'skills', 'controls', 'settings']);
+const emit = defineEmits(['new-chat', 'open-chat', 'open-app', 'tasks', 'subscriptions', 'growth', 'memories', 'skills', 'controls', 'spaces', 'settings']);
 
 const chats = ref([]);
 
@@ -62,6 +62,10 @@ onUnmounted(() => {
         <button class="side-primary" type="button" @click="emit('controls')">
           <MonitorSmartphone />
           {{ t('nav_controls', 'Controls') }}
+        </button>
+        <button class="side-primary" type="button" @click="emit('spaces')">
+          <Boxes />
+          {{ t('nav_spaces', 'Spaces') }}
         </button>
         <button class="side-primary" type="button" @click="emit('growth')">
           <Sprout />

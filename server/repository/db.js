@@ -75,11 +75,32 @@ const createSchema = (database) => {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS spaces (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      root_path TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      last_opened_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS space_chats (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      space_id TEXT NOT NULL,
+      chat_id TEXT NOT NULL UNIQUE,
+      relative_path TEXT NOT NULL DEFAULT '.',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(space_id) REFERENCES spaces(id) ON DELETE CASCADE,
+      FOREIGN KEY(chat_id) REFERENCES chats(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status, id);
     CREATE INDEX IF NOT EXISTS idx_subscriptions_task ON subscriptions(task_id, status, id);
     CREATE INDEX IF NOT EXISTS idx_subscriptions_chat ON subscriptions(chat_id, status, id);
     CREATE INDEX IF NOT EXISTS idx_memories_user_visibility ON memories(user_id, visibility, id);
     CREATE INDEX IF NOT EXISTS idx_updates_version ON updates(version, id);
+    CREATE INDEX IF NOT EXISTS idx_space_chats_space_path ON space_chats(space_id, relative_path, id);
   `);
 };
 
