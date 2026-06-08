@@ -12,7 +12,7 @@ const activeApp = computed(() => getApp(props.appId));
 const activeComponent = computed(() => activeApp.value ? defineAsyncComponent(activeApp.value.load) : null);
 
 watch(activeApp, () => {
-  setPageNav('Agent', null, null, null);
+  setPageNav(activeApp.value?.name || 'Apps', null, null, null);
 }, { immediate: true });
 </script>
 

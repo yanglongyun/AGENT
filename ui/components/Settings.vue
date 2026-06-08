@@ -104,7 +104,7 @@ async function saveSettings() {
 }
 
 onMounted(async () => {
-  setPageNav('Agent', null, null, null);
+  setPageNav('Settings', null, null, null);
   await loadSettings();
 });
 

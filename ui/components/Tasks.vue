@@ -25,7 +25,7 @@ const isActive = (task) => ['pending', 'running'].includes(task?.status);
 const visibleTask = computed(() => currentTask.value || tasks.value.find((task) => task.id === currentTaskId.value) || null);
 
 function setListNav() {
-  setPageNav('Agent', null, null, null);
+  setPageNav('Tasks', null, null, null);
 }
 
 function closeDetail() {
@@ -35,8 +35,8 @@ function closeDetail() {
   setListNav();
 }
 
-function setDetailNav() {
-  setPageNav('Agent', null, null, null);
+function setDetailNav(task) {
+  setPageNav(task?.title || task?.name || 'Task', null, null, null);
 }
 
 async function loadTasks() {

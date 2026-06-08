@@ -19,11 +19,11 @@ const form = reactive({
 const selected = computed(() => memories.value.find((item) => item.id === selectedId.value) || null);
 
 function setListNav() {
-  setPageNav('Agent', null, null, null);
+  setPageNav('Memories', null, null, null);
 }
 
-function setEditorNav() {
-  setPageNav('Agent', null, null, null);
+function setEditorNav(title = 'Memory') {
+  setPageNav(title, null, null, null);
 }
 
 function resetForm() {

@@ -27,7 +27,7 @@ function formatTime(value) {
 }
 
 onMounted(async () => {
-  setPageNav('Agent', null, null, null);
+  setPageNav('Growth', null, null, null);
   await refresh();
   timer = setInterval(refresh, 3000);
 });

@@ -9,7 +9,7 @@ const loading = ref(false);
 const error = ref('');
 
 function setListNav() {
-  setPageNav('Agent', null, null, null);
+  setPageNav('Skills', null, null, null);
 }
 
 function closeSkill() {
@@ -17,8 +17,8 @@ function closeSkill() {
   setListNav();
 }
 
-function setDetailNav() {
-  setPageNav('Agent', null, null, null);
+function setDetailNav(skill) {
+  setPageNav(skill?.name || 'Skill', null, null, null);
 }
 
 async function refresh() {
