@@ -256,3 +256,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.growth-row {
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px;
+}
+
+.growth-row p {
+  color: var(--ink2);
+  font-size: 13px;
+  line-height: 1.55;
+}

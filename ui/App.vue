@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, provide, reactive, ref } from 'vue';
 import ChatView from './components/Chat.vue';
+import GrowthView from './components/Growth.vue';
 import MemoriesView from './components/Memories.vue';
 import Sidebar from './components/Sidebar.vue';
 import SkillsView from './components/Skills.vue';
@@ -115,6 +116,11 @@ function requestSubscriptions() {
   closeSidebarOnMobile();
 }
 
+function requestGrowth() {
+  activeView.value = 'growth';
+  closeSidebarOnMobile();
+}
+
 function requestMemories() {
   activeView.value = 'memories';
   closeSidebarOnMobile();
@@ -160,6 +166,7 @@ onUnmounted(() => {
       @open-chat="requestOpenChat"
       @tasks="requestTasks"
       @subscriptions="requestSubscriptions"
+      @growth="requestGrowth"
       @memories="requestMemories"
       @skills="requestSkills"
       @settings="openSettings(); closeSidebarOnMobile()"
@@ -183,6 +190,7 @@ onUnmounted(() => {
         <ChatView v-if="activeView === 'chat'" />
         <TasksView v-else-if="activeView === 'tasks'" />
         <SubscriptionsView v-else-if="activeView === 'subscriptions'" />
+        <GrowthView v-else-if="activeView === 'growth'" />
         <MemoriesView v-else-if="activeView === 'memories'" />
         <SkillsView v-else />
       </div>
