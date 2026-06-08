@@ -5,6 +5,7 @@ import { handleMemoriesApi } from "./memories.js";
 import { handleSettingsApi } from "./settings.js";
 import { handleSkillsApi } from "./skills.js";
 import { handleTasksApi } from "./tasks.js";
+import { handleUpdatesApi } from "./updates.js";
 
 const createApiHandler = ({ sendJson }) => async (req, res) => {
   const url = new URL(req.url || "/", "http://127.0.0.1");
@@ -35,6 +36,10 @@ const createApiHandler = ({ sendJson }) => async (req, res) => {
     }
     if (path.startsWith("/api/skills")) {
       await handleSkillsApi(req, res, deps, path, method, url);
+      return;
+    }
+    if (path.startsWith("/api/updates")) {
+      await handleUpdatesApi(req, res, deps, path, method, url);
       return;
     }
     if (path.startsWith("/api/fs")) {

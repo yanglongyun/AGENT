@@ -67,10 +67,19 @@ const createSchema = (database) => {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS updates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      version INTEGER NOT NULL DEFAULT 1,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status, id);
     CREATE INDEX IF NOT EXISTS idx_subscriptions_task ON subscriptions(task_id, status, id);
     CREATE INDEX IF NOT EXISTS idx_subscriptions_chat ON subscriptions(chat_id, status, id);
     CREATE INDEX IF NOT EXISTS idx_memories_user_visibility ON memories(user_id, visibility, id);
+    CREATE INDEX IF NOT EXISTS idx_updates_version ON updates(version, id);
   `);
 };
 

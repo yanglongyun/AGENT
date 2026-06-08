@@ -7,6 +7,7 @@ import { abortChat } from "./abort.js";
 import { getChatRunConfig } from "./config.js";
 import { chatControllers } from "./controllers.js";
 import { normalizeAttachments } from "./attachments.js";
+import { enqueueGrowthTask } from "../growth/index.js";
 
 const limitMessagesByTurns = (messages, contextTurns) => {
   const turns = Math.max(0, Number.parseInt(contextTurns, 10) || 0);
@@ -175,6 +176,11 @@ const sendChatMessage = async (chatId, input = {}, options = {}) => {
       signal,
       onEvent: (event) => handleAiEvent({ chatId: id, event, emit }),
     });
+    try {
+      enqueueGrowthTask({ chatId: id, input, result });
+    } catch {
+      // Growth is silent maintenance and must never block the foreground chat.
+    }
     return { result, chatId: id };
   } catch (error) {
     if (error?.name === "AbortError") emit({ type: "aborted", chatId: id });
