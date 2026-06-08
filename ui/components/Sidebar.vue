@@ -34,7 +34,7 @@ onUnmounted(() => {
     <div class="top">
       <div class="logo">
         <span class="mark"></span>
-        <b>Agent Chat</b>
+        <b>Agent</b>
       </div>
       <div class="primary-nav">
         <button class="side-primary" type="button" @click="emit('new-chat')">
