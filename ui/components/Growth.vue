@@ -41,6 +41,7 @@ onUnmounted(() => {
 <template>
   <section class="tasks-view">
     <div class="tasks-inner">
+      <p class="page-intro">{{ t('page_desc_growth', 'Growth records durable behavior updates learned by the agent over time.') }}</p>
       <div v-if="error" class="task-error">{{ error }}</div>
       <div v-if="loading && !updates.length" class="task-empty">Loading growth updates...</div>
       <div v-else-if="!updates.length" class="task-empty">No growth updates yet</div>

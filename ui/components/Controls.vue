@@ -35,6 +35,7 @@ onMounted(async () => {
   <section class="tasks-view asset-view">
     <div class="tasks-inner">
       <div class="asset-head">
+        <p class="page-intro">{{ t('page_desc_controls', 'Controls shows the current browser and computer control connection state.') }}</p>
         <button type="button" :disabled="loading" @click="refresh">{{ t('common_refresh', 'Refresh') }}</button>
       </div>
       <div v-if="error" class="task-error">{{ error }}</div>

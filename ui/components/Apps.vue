@@ -22,6 +22,7 @@ watch(activeApp, () => {
     <component :is="activeComponent" v-if="activeComponent" />
     <div v-else class="tasks-view">
       <div class="tasks-inner">
+        <p class="page-intro">{{ t('page_desc_apps', 'Apps are focused workspaces built into the agent for specific tasks.') }}</p>
         <div class="apps-grid">
           <button
             v-for="app in apps"

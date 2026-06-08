@@ -56,6 +56,7 @@ onMounted(async () => {
   <section class="tasks-view asset-view">
     <div class="tasks-inner">
       <template v-if="!current">
+        <p class="page-intro">{{ t('page_desc_skills', 'Skills are local instruction packs that teach the agent how to handle specific workflows.') }}</p>
         <div v-if="error" class="task-error">{{ error }}</div>
         <div v-if="loading && !skills.length" class="task-empty">Loading skills...</div>
         <div v-else-if="!skills.length" class="task-empty">No local skills found</div>

@@ -120,6 +120,7 @@ onMounted(async () => {
     <div class="tasks-inner">
       <template v-if="mode === 'list'">
         <div class="asset-head">
+          <p class="page-intro">{{ t('page_desc_memories', 'Memories are durable facts and instructions the agent can reuse across conversations.') }}</p>
           <button type="button" @click="newMemory">New</button>
         </div>
         <div v-if="error" class="task-error">{{ error }}</div>

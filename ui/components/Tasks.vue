@@ -134,6 +134,7 @@ onUnmounted(() => {
 <template>
   <section class="tasks-view">
     <div v-if="!currentTaskId" class="tasks-inner">
+      <p class="page-intro">{{ t('page_desc_tasks', 'System tasks run in the background and keep their prompt, status, response, and related chat records here.') }}</p>
       <div v-if="error" class="task-error">{{ error }}</div>
       <div v-if="loading && !tasks.length" class="task-empty">Loading tasks...</div>
       <div v-else-if="!tasks.length" class="task-empty">No system tasks yet</div>

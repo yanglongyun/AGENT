@@ -134,8 +134,12 @@
   .task-detail-head p,
   .task-meta,
   .settings-page-head p,
+  .page-intro,
   .app-head p,
   .app-muted { @apply text-[12px] leading-[1.5] text-[var(--muted)]; }
+  .page-intro { @apply mb-3 max-w-[640px]; }
+  .asset-head .page-intro { @apply mb-0; }
+  .asset-head:has(.page-intro) { @apply flex-wrap; }
   .task-meta { @apply my-3 flex flex-wrap gap-3; }
   .task-detail section { @apply mt-3.5; }
   .task-detail h3 { @apply mb-[7px] text-xs font-semibold text-[var(--ink2)]; }
