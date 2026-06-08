@@ -133,9 +133,6 @@ onUnmounted(() => {
 <template>
   <section class="tasks-view">
     <div v-if="!currentTaskId" class="tasks-inner">
-      <div class="asset-head">
-        <h2>Tasks</h2>
-      </div>
       <div v-if="error" class="task-error">{{ error }}</div>
       <div v-if="loading && !tasks.length" class="task-empty">Loading tasks...</div>
       <div v-else-if="!tasks.length" class="task-empty">No system tasks yet</div>
@@ -163,7 +160,6 @@ onUnmounted(() => {
       <article v-if="visibleTask" class="task-detail">
         <div class="task-detail-head">
           <div>
-            <h2>{{ visibleTask.name }}</h2>
             <p>#{{ visibleTask.id }} · {{ statusText(visibleTask.status) }}</p>
           </div>
           <div class="task-head-actions">

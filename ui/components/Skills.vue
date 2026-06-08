@@ -55,9 +55,6 @@ onMounted(async () => {
   <section class="tasks-view asset-view">
     <div class="tasks-inner">
       <template v-if="!current">
-        <div class="asset-head">
-          <h2>Skills</h2>
-        </div>
         <div v-if="error" class="task-error">{{ error }}</div>
         <div v-if="loading && !skills.length" class="task-empty">Loading skills...</div>
         <div v-else-if="!skills.length" class="task-empty">No local skills found</div>
@@ -81,7 +78,6 @@ onMounted(async () => {
 
       <article v-else class="asset-editor skill-reader">
         <div class="asset-head">
-          <h2>{{ current.name }}</h2>
           <button type="button" @click="closeSkill">Back</button>
         </div>
         <p v-if="current.path" class="asset-path">{{ current.path }}</p>

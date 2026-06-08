@@ -119,7 +119,6 @@ onMounted(async () => {
     <div class="tasks-inner">
       <template v-if="mode === 'list'">
         <div class="asset-head">
-          <h2>Memories</h2>
           <button type="button" @click="newMemory">New</button>
         </div>
         <div v-if="error" class="task-error">{{ error }}</div>

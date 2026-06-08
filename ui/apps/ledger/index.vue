@@ -3,7 +3,6 @@
     <div class="app-inner">
       <div class="app-head">
         <div>
-          <h2>Ledger</h2>
           <p>一句话记账，也可以手动录入。</p>
         </div>
       </div>

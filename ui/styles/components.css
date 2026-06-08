@@ -71,6 +71,9 @@
   .task-detail-head,
   .settings-page-head { @apply flex items-center justify-between gap-3; }
   .asset-head { @apply mb-3; }
+  .asset-head:has(> button:only-child),
+  .asset-head:has(> .task-head-actions:only-child) { @apply justify-end; }
+  .settings-page-head { @apply mb-3 justify-start; }
   .asset-head h2,
   .app-head h2,
   .task-detail-head h2,

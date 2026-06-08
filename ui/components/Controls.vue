@@ -34,7 +34,6 @@ onMounted(async () => {
   <section class="tasks-view asset-view">
     <div class="tasks-inner">
       <div class="asset-head">
-        <h2>Controls</h2>
         <button type="button" :disabled="loading" @click="refresh">Refresh</button>
       </div>
       <div v-if="error" class="task-error">{{ error }}</div>

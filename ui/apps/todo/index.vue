@@ -3,7 +3,6 @@
     <div v-if="mode === 'list'" class="app-inner">
       <div class="app-head">
         <div>
-          <h2>Todo</h2>
           <p>{{ todayLabel }} · 今天完成 {{ doneToday }} / {{ todayTodos.length }}</p>
         </div>
         <button class="app-primary" type="button" @click="openAdd">

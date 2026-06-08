@@ -21,9 +21,6 @@ watch(activeApp, () => {
     <component :is="activeComponent" v-if="activeComponent" />
     <div v-else class="tasks-view">
       <div class="tasks-inner">
-        <div class="asset-head">
-          <h2>Apps</h2>
-        </div>
         <div class="apps-grid">
           <button
             v-for="app in apps"

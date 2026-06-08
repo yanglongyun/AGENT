@@ -119,10 +119,7 @@ watch(
     <div class="tasks-inner">
       <form class="settings-page" @submit.prevent="saveSettings">
         <div class="settings-page-head">
-          <div>
-            <h2>Settings</h2>
-            <p>Model, prompt, and project information</p>
-          </div>
+          <p>Model, prompt, and project information</p>
         </div>
 
         <div class="settings-tabs" role="tablist" aria-label="Settings sections">

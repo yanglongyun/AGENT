@@ -3,7 +3,6 @@
     <div v-if="!editing" class="app-inner">
       <div class="app-head">
         <div>
-          <h2>Notepad</h2>
           <p>{{ notes.length }} 篇笔记</p>
         </div>
         <button class="app-primary" type="button" @click="openEditor()">
