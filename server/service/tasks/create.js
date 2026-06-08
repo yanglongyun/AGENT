@@ -78,12 +78,12 @@ const runTaskAi = async ({ taskId, taskChatId, name, prompt, inputOverrides, sig
     content: [
       buildSystemPrompt("", [], settings),
       "",
-      "## Background Task",
-      "- You are running in a background task, not the foreground chat.",
-      "- Finish the task and return a concise final result.",
-      "- Use shell only when useful.",
-      `- Task id: ${taskId}`,
-      `- Task name: ${name}`,
+      "## 后台任务",
+      "- 你正在后台任务中运行，不是在前台聊天中。",
+      "- 完成任务并返回简洁的最终结果。",
+      "- 只在确实有帮助时使用 shell。",
+      `- 任务 id：${taskId}`,
+      `- 任务名称：${name}`,
     ].join("\n"),
   };
   const result = await chat([

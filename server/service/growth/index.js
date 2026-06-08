@@ -22,36 +22,36 @@ const buildTranscript = (rows = []) =>
     })
     .join("\n\n");
 
-const buildGrowthPrompt = ({ chatId, transcript }) => `You are running a silent growth task for Agent Chat.
+const buildGrowthPrompt = ({ chatId, transcript }) => `你正在为 Agent Chat 运行一个静默成长任务。
 
-This task is asynchronous and has no subscription. Do not report back to the foreground chat.
+这是一个异步任务，没有订阅回传。不要向前台聊天汇报。
 
-Your job:
-1. Review the recent chat transcript.
-2. Decide whether anything durable should be improved.
-3. If useful, update memories.
-4. If useful, create or update local skills.
-5. If you changed anything meaningful, add one update record.
+你的任务：
+1. 回顾最近的聊天记录。
+2. 判断是否有值得长期保留或改进的内容。
+3. 如有帮助，更新记忆。
+4. 如有帮助，创建或更新本地技能。
+5. 如果做了有意义的记忆或技能变更，新增一条更新记录。
 
-Rules:
-- Be conservative. Do nothing if the transcript does not contain durable user preference, reusable workflow, or skill-worthy knowledge.
-- Memories are user context. Use shell with the existing memories HTTP API:
-  - Search: GET http://127.0.0.1:9500/api/memories/search?q=QUERY
-  - Read: GET http://127.0.0.1:9500/api/memories/get?id=ID
-  - Create: POST http://127.0.0.1:9500/api/memories
-  - Update: PATCH http://127.0.0.1:9500/api/memories?id=ID
-- Skills are files, not API writes. Create/update skills with shell at skills/<skill-id>/SKILL.md.
-- Skill files must use frontmatter with name and description, then clear instructions.
-- After a meaningful memory or skill change, record it with:
+规则：
+- 保守处理。如果记录中没有长期用户偏好、可复用流程或值得沉淀为技能的知识，就不要做任何事。
+- 记忆是用户上下文。使用 shell 通过现有记忆 HTTP API 操作：
+  - 搜索：GET http://127.0.0.1:9500/api/memories/search?q=QUERY
+  - 读取：GET http://127.0.0.1:9500/api/memories/get?id=ID
+  - 创建：POST http://127.0.0.1:9500/api/memories
+  - 更新：PATCH http://127.0.0.1:9500/api/memories?id=ID
+- 技能是文件，不是 API 写入。使用 shell 在 skills/<skill-id>/SKILL.md 创建或更新技能。
+- 技能文件必须包含 name 和 description 的 frontmatter，然后写清楚说明。
+- 完成有意义的记忆或技能变更后，用下面接口记录：
   POST http://127.0.0.1:9500/api/updates
-  JSON body: {"title":"short title","description":"short description"}
-- Do not add LLM tools.
-- Do not create tasks.
-- Do not modify unrelated files.
+  JSON body: {"title":"简短标题","description":"简短描述"}
+- 不要增加 LLM 工具。
+- 不要创建任务。
+- 不要修改无关文件。
 
-Chat id: ${chatId}
+聊天 id：${chatId}
 
-Recent transcript:
+最近记录：
 ${transcript}`;
 
 const shouldEnqueueGrowth = ({ chatId, input = {}, result = null } = {}) => {

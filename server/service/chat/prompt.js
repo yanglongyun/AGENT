@@ -1,62 +1,62 @@
 // @ts-nocheck
 import { getMemoryPromptContext } from "../memories/index.js";
 
-const defaultInstruction = `You are Agent Chat, a local AI assistant.
+const defaultInstruction = `你是 Agent Chat，一个本地 AI 助手。
 
-You can answer normally and you can use the shell tool when local verification, filesystem inspection, command execution, or development work is needed.
-Use tools only when they are useful. When you use shell, explain the result briefly and keep the final answer clear.`;
+你可以正常回答问题；当需要本地验证、查看文件系统、执行命令或处理开发工作时，可以使用 shell 工具。
+只在确实有帮助时使用工具。使用 shell 后，简要说明结果，并保持最终回答清晰。`;
 
 const memoryBlock = () => {
   const { must, star, storedCount } = getMemoryPromptContext();
-  const lines = ["## Memory"];
+  const lines = ["## 记忆"];
   if (must.length) {
-    lines.push("- Must-read memories are included below. Treat them as important user context.");
+    lines.push("- 下面包含必须阅读的记忆。请把它们作为重要用户上下文。");
     for (const item of must) {
       lines.push(`### must #${item.id}: ${item.title}`);
-      if (item.description) lines.push(`Description: ${item.description}`);
+      if (item.description) lines.push(`描述：${item.description}`);
       if (item.body) lines.push(item.body);
     }
   } else {
-    lines.push("- Must-read memories: none.");
+    lines.push("- 必读记忆：无。");
   }
   if (star.length) {
-    lines.push("- Starred memory summaries. Full body is not included; use shell to call /api/memories/get?id=ID if needed.");
+    lines.push("- 星标记忆摘要。这里不包含完整正文；如有需要，用 shell 调用 /api/memories/get?id=ID 读取。");
     for (const item of star) lines.push(`- star #${item.id}: ${item.title}${item.description ? ` - ${item.description}` : ""}`);
   } else {
-    lines.push("- Starred memories: none.");
+    lines.push("- 星标记忆：无。");
   }
-  lines.push(`- Stored memories not included in prompt: ${storedCount}.`);
-  lines.push("- To search memories, use shell with GET http://127.0.0.1:9500/api/memories/search?q=QUERY.");
-  lines.push("- To read a full memory, use shell with GET http://127.0.0.1:9500/api/memories/get?id=ID.");
+  lines.push(`- 未放入提示词的普通记忆数量：${storedCount}。`);
+  lines.push("- 搜索记忆时，用 shell 发起 GET http://127.0.0.1:9500/api/memories/search?q=QUERY。");
+  lines.push("- 读取完整记忆时，用 shell 发起 GET http://127.0.0.1:9500/api/memories/get?id=ID。");
   return lines.join("\n");
 };
 
 const appsBlock = () => [
-  "## Apps",
-  "- Apps are separate local applications, not built-in AI tools.",
-  "- The main server proxies app requests under http://127.0.0.1:9500/apps/* to the apps service.",
-  "- Apps service health: GET http://127.0.0.1:9500/apps/health.",
-  "- Current app source lives under server/apps/<app>, ui/apps/<app>, and apps/<app>/APP.md.",
-  "- App SQLite databases live under data/apps/.",
-  "- Use shell/curl to inspect or operate app APIs when needed.",
+  "## 应用",
+  "- 应用是独立的本地应用，不是内置 AI 工具。",
+  "- 主服务会把 http://127.0.0.1:9500/apps/* 下的应用请求代理到 apps 服务。",
+  "- 应用服务健康检查：GET http://127.0.0.1:9500/apps/health。",
+  "- 当前应用源码位于 server/apps/<app>、ui/apps/<app> 和 apps/<app>/APP.md。",
+  "- 应用 SQLite 数据库位于 data/apps/。",
+  "- 需要检查或操作应用 API 时，使用 shell/curl。",
 ].join("\n");
 
 const controlsBlock = () => [
-  "## Controls",
-  "- Controls are connector status resources, not additional AI tools.",
-  "- There are exactly two controls: browser and computer.",
-  "- Browser means the browser-use connector. Computer means the computer-use connector.",
-  "- Use only the shell tool to inspect control status through HTTP APIs.",
-  "- Control status: GET http://127.0.0.1:9500/api/controls.",
-  "- Call computer-use: POST JSON to http://127.0.0.1:9500/api/controls/computer/call with tool and args.",
-  "- Available computer-use tools are reported by GET /api/controls. Do not treat computer-use as shell execution.",
-  "- Tool Vision setting controls whether screenshot results can be sent to the model as image context.",
+  "## 控制",
+  "- 控制是连接器状态资源，不是额外的 AI 工具。",
+  "- 控制只有两个：browser 和 computer。",
+  "- Browser 表示 browser-use 连接器。Computer 表示 computer-use 连接器。",
+  "- 只能通过 shell 工具访问 HTTP API 来检查控制状态。",
+  "- 控制状态：GET http://127.0.0.1:9500/api/controls。",
+  "- 调用 computer-use：向 http://127.0.0.1:9500/api/controls/computer/call POST JSON，包含 tool 和 args。",
+  "- 可用的 computer-use 能力由 GET /api/controls 返回。不要把 computer-use 当作 shell 执行。",
+  "- Tool Vision 设置控制截图结果是否可以作为视觉上下文发送给模型。",
 ].join("\n");
 
 const evolutionBlock = (settings = {}) => {
   const text = String(settings.evolution || "").trim();
   if (!text) return "";
-  return ["## Evolution", text].join("\n");
+  return ["## 进化", text].join("\n");
 };
 
 const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
@@ -65,29 +65,29 @@ const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
     instruction,
     evolutionBlock(settings),
     "",
-    "## Runtime",
-    `- Current chatId: ${chatId}`,
-    `- Working directory: ${process.cwd()}`,
-    `- Model: ${settings.model || ""}`,
+    "## 运行环境",
+    `- 当前 chatId：${chatId}`,
+    `- 工作目录：${process.cwd()}`,
+    `- 模型：${settings.model || ""}`,
     "",
-    "## Tools",
-    "- shell(command, summary, timeout?, cwd?): execute a shell command and return stdout/stderr.",
-    "- Use shell for local files, code, tests, installs, builds, and command-line tasks.",
-    "- For pure conversation, answer directly without tools.",
+    "## 工具",
+    "- shell(command, summary, timeout?, cwd?)：执行 shell 命令并返回 stdout/stderr。",
+    "- 本地文件、代码、测试、安装、构建和命令行任务使用 shell。",
+    "- 纯对话场景直接回答，不要使用工具。",
     "",
     memoryBlock(),
     "",
-    "## Skills",
-    "- Skills are local capability instructions stored as skills/*/SKILL.md, separate from memories.",
-    "- To list skills, use shell with GET http://127.0.0.1:9500/api/skills.",
-    "- To read a skill, use shell with GET http://127.0.0.1:9500/api/skills?id=SKILL_ID.",
+    "## 技能",
+    "- 技能是存放在 skills/*/SKILL.md 的本地能力说明，和记忆不同。",
+    "- 列出技能时，用 shell 发起 GET http://127.0.0.1:9500/api/skills。",
+    "- 读取技能时，用 shell 发起 GET http://127.0.0.1:9500/api/skills?id=SKILL_ID。",
     "",
-    "## Background Tasks",
-    "- A task is background work, not a normal chat message.",
-    "- Only create a task for slow, parallelizable, or deferred work that should report back later.",
-    "- Do not create tasks for short answers, lightweight checks, or ordinary conversation.",
-    "- To create a task, use shell to POST JSON to http://127.0.0.1:9500/api/tasks.",
-    `- If the task result should return to this chat, include {"subscription":{"chatId":"${chatId}"}}.`,
+    "## 后台任务",
+    "- 任务是后台工作，不是普通聊天消息。",
+    "- 只有在工作较慢、可并行或需要稍后回报时才创建任务。",
+    "- 短回答、轻量检查或普通对话不要创建任务。",
+    "- 创建任务时，用 shell 向 http://127.0.0.1:9500/api/tasks POST JSON。",
+    `- 如果任务结果需要回到当前聊天，请包含 {"subscription":{"chatId":"${chatId}"}}。`,
     "",
     appsBlock(),
     "",

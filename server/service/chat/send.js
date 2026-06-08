@@ -37,8 +37,8 @@ const appendAttachmentInstruction = (content, attachments = []) => {
   if (!lines.length) return String(content || "");
   return `${String(content || "")}
 
-Attachment file paths:
-Read these files first if the answer depends on their content.
+附件文件路径：
+如果回答依赖附件内容，请先读取这些文件。
 ${lines.join("\n")}`;
 };
 

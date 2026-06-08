@@ -20,7 +20,7 @@ const listSubscriptions = ({ limit = 200 } = {}) => repoListSubscriptions({ limi
 
 const buildSubscriptionPrompt = ({ taskId, taskName, status, response = "", error = "" }) => {
   const lines = [
-    "Background task update.",
+    "后台任务更新。",
     "",
     `taskId: ${taskId}`,
     `taskName: ${taskName || ""}`,
@@ -28,7 +28,7 @@ const buildSubscriptionPrompt = ({ taskId, taskName, status, response = "", erro
   ];
   if (response) lines.push("", "response:", String(response));
   if (error) lines.push("", "error:", String(error));
-  lines.push("", "Continue the chat based on this task result. Do not pretend the user said this.");
+  lines.push("", "请基于这个任务结果继续当前聊天。不要把这段内容当成用户亲口说的话。");
   return lines.join("\n");
 };
 
