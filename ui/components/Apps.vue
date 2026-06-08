@@ -11,8 +11,8 @@ const setPageNav = inject('pageNav');
 const activeApp = computed(() => getApp(props.appId));
 const activeComponent = computed(() => activeApp.value ? defineAsyncComponent(activeApp.value.load) : null);
 
-watch(activeApp, (app) => {
-  setPageNav(app?.name || 'Apps', null, null, null);
+watch(activeApp, () => {
+  setPageNav('Agent', null, null, null);
 }, { immediate: true });
 </script>
 

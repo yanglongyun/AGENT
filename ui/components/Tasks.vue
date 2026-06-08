@@ -25,16 +25,18 @@ const isActive = (task) => ['pending', 'running'].includes(task?.status);
 const visibleTask = computed(() => currentTask.value || tasks.value.find((task) => task.id === currentTaskId.value) || null);
 
 function setListNav() {
-  setPageNav('Tasks', null, null, null);
+  setPageNav('Agent', null, null, null);
 }
 
-function setDetailNav(task) {
-  setPageNav(task?.name || 'Task', () => {
-    currentTaskId.value = null;
-    currentTask.value = null;
-    taskMessages.value = [];
-    setListNav();
-  }, null, null);
+function closeDetail() {
+  currentTaskId.value = null;
+  currentTask.value = null;
+  taskMessages.value = [];
+  setListNav();
+}
+
+function setDetailNav() {
+  setPageNav('Agent', null, null, null);
 }
 
 async function loadTasks() {
@@ -131,6 +133,9 @@ onUnmounted(() => {
 <template>
   <section class="tasks-view">
     <div v-if="!currentTaskId" class="tasks-inner">
+      <div class="asset-head">
+        <h2>Tasks</h2>
+      </div>
       <div v-if="error" class="task-error">{{ error }}</div>
       <div v-if="loading && !tasks.length" class="task-empty">Loading tasks...</div>
       <div v-else-if="!tasks.length" class="task-empty">No system tasks yet</div>
@@ -161,9 +166,12 @@ onUnmounted(() => {
             <h2>{{ visibleTask.name }}</h2>
             <p>#{{ visibleTask.id }} · {{ statusText(visibleTask.status) }}</p>
           </div>
-          <button v-if="isActive(visibleTask)" type="button" :disabled="stopping" @click="stopTask">
-            {{ stopping ? 'Stopping...' : 'Stop' }}
-          </button>
+          <div class="task-head-actions">
+            <button type="button" @click="closeDetail">Back</button>
+            <button v-if="isActive(visibleTask)" type="button" :disabled="stopping" @click="stopTask">
+              {{ stopping ? 'Stopping...' : 'Stop' }}
+            </button>
+          </div>
         </div>
 
         <div class="task-meta">

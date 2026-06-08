@@ -19,14 +19,11 @@ const form = reactive({
 const selected = computed(() => memories.value.find((item) => item.id === selectedId.value) || null);
 
 function setListNav() {
-  setPageNav('Memories', null, null, null);
+  setPageNav('Agent', null, null, null);
 }
 
-function setEditorNav(title) {
-  setPageNav(title, () => {
-    resetForm();
-    setListNav();
-  }, null, null);
+function setEditorNav() {
+  setPageNav('Agent', null, null, null);
 }
 
 function resetForm() {
@@ -149,7 +146,10 @@ onMounted(async () => {
       <form v-else class="asset-editor" @submit.prevent="save">
         <div class="asset-head">
           <h2>{{ selected ? 'Edit memory' : 'New memory' }}</h2>
-          <button v-if="selected" class="danger-btn" type="button" @click="remove">Delete</button>
+          <div class="task-head-actions">
+            <button type="button" @click="resetForm(); setListNav()">Back</button>
+            <button v-if="selected" class="danger-btn" type="button" @click="remove">Delete</button>
+          </div>
         </div>
         <label>
           Title

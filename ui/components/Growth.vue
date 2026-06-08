@@ -27,7 +27,7 @@ function formatTime(value) {
 }
 
 onMounted(async () => {
-  setPageNav('Growth', null, null, null);
+  setPageNav('Agent', null, null, null);
   await refresh();
   timer = setInterval(refresh, 3000);
 });
@@ -40,6 +40,9 @@ onUnmounted(() => {
 <template>
   <section class="tasks-view">
     <div class="tasks-inner">
+      <div class="asset-head">
+        <h2>Growth</h2>
+      </div>
       <div v-if="error" class="task-error">{{ error }}</div>
       <div v-if="loading && !updates.length" class="task-empty">Loading growth updates...</div>
       <div v-else-if="!updates.length" class="task-empty">No growth updates yet</div>

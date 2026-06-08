@@ -19,6 +19,12 @@
   padding: 9px 13px;
 }
 
+.task-head-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
 .task-detail-head button:disabled {
   background: #e2d8cc;
   cursor: default;

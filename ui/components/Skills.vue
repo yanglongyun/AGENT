@@ -9,14 +9,16 @@ const loading = ref(false);
 const error = ref('');
 
 function setListNav() {
-  setPageNav('Skills', null, null, null);
+  setPageNav('Agent', null, null, null);
 }
 
-function setDetailNav(skill) {
-  setPageNav(skill?.name || 'Skill', () => {
-    current.value = null;
-    setListNav();
-  }, null, null);
+function closeSkill() {
+  current.value = null;
+  setListNav();
+}
+
+function setDetailNav() {
+  setPageNav('Agent', null, null, null);
 }
 
 async function refresh() {
@@ -80,6 +82,7 @@ onMounted(async () => {
       <article v-else class="asset-editor skill-reader">
         <div class="asset-head">
           <h2>{{ current.name }}</h2>
+          <button type="button" @click="closeSkill">Back</button>
         </div>
         <p v-if="current.path" class="asset-path">{{ current.path }}</p>
         <pre>{{ current.content }}</pre>

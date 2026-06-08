@@ -81,7 +81,7 @@ async function saveSettings() {
 }
 
 onMounted(async () => {
-  setPageNav('Settings', null, null, null);
+  setPageNav('Agent', null, null, null);
   await loadSettings();
 });
 </script>
@@ -92,7 +92,7 @@ onMounted(async () => {
       <form class="settings-page" @submit.prevent="saveSettings">
         <div class="settings-page-head">
           <div>
-            <h2>Model Settings</h2>
+            <h2>Settings</h2>
             <p>OpenAI-compatible chat completions endpoint</p>
           </div>
         </div>
