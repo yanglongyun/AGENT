@@ -35,7 +35,14 @@ const normalizeChatOptions = (options = {}) => {
 const shouldReplayReasoning = (model, apiUrl) => {
   const modelId = String(model || "").trim();
   const url = String(apiUrl || "").trim();
-  return modelId.startsWith("deepseek-") || url.includes("api.deepseek.com");
+  return (
+    modelId.startsWith("deepseek-") ||
+    modelId.startsWith("kimi-") ||
+    modelId.toLowerCase().includes("kimi") ||
+    url.includes("api.deepseek.com") ||
+    url.includes("moonshot") ||
+    url.includes("kimi.com")
+  );
 };
 
 const normalizeAgentMessages = (messages = [], { model, apiUrl } = {}) => {
@@ -52,12 +59,8 @@ const normalizeAgentMessages = (messages = [], { model, apiUrl } = {}) => {
     if (role === "assistant" && Array.isArray(item.tool_calls)) {
       msg.content = item.content == null ? null : String(item.content);
       msg.tool_calls = item.tool_calls;
-      if (
-        replayReasoning &&
-        typeof item.reasoning_content === "string" &&
-        item.reasoning_content.trim()
-      ) {
-        msg.reasoning_content = item.reasoning_content;
+      if (replayReasoning) {
+        msg.reasoning_content = typeof item.reasoning_content === "string" ? item.reasoning_content : "";
       }
     } else {
       msg.content = item.content == null ? "" : String(item.content);
