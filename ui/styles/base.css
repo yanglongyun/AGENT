@@ -24,6 +24,23 @@
     --mono: "SF Mono", "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
   }
 
+  :root[data-theme="dark"] {
+    --bg: #161513;
+    --panel: #201e1b;
+    --ink: #f4efe8;
+    --ink2: #d7d0c7;
+    --muted: #9d958a;
+    --line: #302c27;
+    --line2: #403930;
+    --accent: #df825b;
+    --accent-d: #f0a07a;
+    --accent-soft: #3c2a22;
+    --win: #6fbd7d;
+    --win-soft: #1e3526;
+    --fix: #e0a43b;
+    --fix-soft: #3a2d17;
+  }
+
   html,
   body,
   #app {

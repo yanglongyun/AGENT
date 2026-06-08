@@ -192,6 +192,9 @@
   .settings-tabs button { @apply rounded-t-lg px-3 py-[9px] text-[13px] font-semibold text-[var(--muted)] hover:bg-[#f3efe8] hover:text-[var(--ink2)]; }
   .settings-tabs button.active { @apply bg-[var(--accent-soft)] text-[var(--accent-d)]; }
   .settings-panel { @apply min-w-0; }
+  .settings-segment { @apply flex rounded-[11px] border border-[var(--line2)] bg-[#f6f2ed] p-[3px]; }
+  .settings-segment button { @apply flex-1 rounded-lg px-3 py-2 text-[12.5px] font-semibold text-[var(--muted)]; }
+  .settings-segment button.active { @apply bg-white text-[var(--accent-d)] shadow-[0_1px_4px_rgba(0,0,0,0.06)]; }
   .settings-page .settings-toggle { @apply flex items-center justify-between gap-3.5 rounded-[10px] border border-[var(--line2)] bg-[#fbfaf8] p-3; }
   .settings-toggle span { @apply grid gap-[3px]; }
   .settings-toggle b { @apply text-[13px] font-semibold; }
@@ -240,6 +243,77 @@
   .app-subtasks { @apply mt-2.5 grid gap-2 border-t border-dashed border-[var(--line)] pt-2.5; }
   .app-subtask { @apply flex items-center gap-2 text-[12.5px] text-[var(--ink2)]; }
   .app-money { @apply font-mono text-[22px] font-bold; }
+
+  :root[data-theme="dark"] .nav,
+  :root[data-theme="dark"] .mhead,
+  :root[data-theme="dark"] .settings-page,
+  :root[data-theme="dark"] .task-row,
+  :root[data-theme="dark"] .subscription-row,
+  :root[data-theme="dark"] .growth-row,
+  :root[data-theme="dark"] .app-card,
+  :root[data-theme="dark"] .asset-editor,
+  :root[data-theme="dark"] .task-detail,
+  :root[data-theme="dark"] .inputwrap,
+  :root[data-theme="dark"] .settings-entry,
+  :root[data-theme="dark"] .control-card,
+  :root[data-theme="dark"] .app-empty,
+  :root[data-theme="dark"] .chip {
+    background-color: var(--panel);
+  }
+
+  :root[data-theme="dark"] .nav {
+    background-color: #1b1916;
+  }
+
+  :root[data-theme="dark"] .side-primary:hover,
+  :root[data-theme="dark"] .chatitem:hover,
+  :root[data-theme="dark"] .asset-head button,
+  :root[data-theme="dark"] .text-btn,
+  :root[data-theme="dark"] .attachbtn:hover,
+  :root[data-theme="dark"] .sidebar-toggle:hover,
+  :root[data-theme="dark"] .back-btn:hover,
+  :root[data-theme="dark"] .app-ghost,
+  :root[data-theme="dark"] .app-icon,
+  :root[data-theme="dark"] .task-status,
+  :root[data-theme="dark"] .app-pill,
+  :root[data-theme="dark"] .control-status,
+  :root[data-theme="dark"] .memory-badge,
+  :root[data-theme="dark"] .skill-icon,
+  :root[data-theme="dark"] .settings-segment {
+    background-color: #292620;
+  }
+
+  :root[data-theme="dark"] .settings-tabs button:hover,
+  :root[data-theme="dark"] .settings-segment button.active,
+  :root[data-theme="dark"] .app-segment button.active {
+    background-color: var(--panel);
+  }
+
+  :root[data-theme="dark"] .asset-editor input,
+  :root[data-theme="dark"] .asset-editor select,
+  :root[data-theme="dark"] .asset-editor textarea,
+  :root[data-theme="dark"] .settings-page input,
+  :root[data-theme="dark"] .settings-page select,
+  :root[data-theme="dark"] .settings-page textarea,
+  :root[data-theme="dark"] .app-input,
+  :root[data-theme="dark"] .app-textarea,
+  :root[data-theme="dark"] .app-select,
+  :root[data-theme="dark"] .task-detail pre,
+  :root[data-theme="dark"] .task-message pre,
+  :root[data-theme="dark"] .skill-reader pre,
+  :root[data-theme="dark"] .prompt-preview,
+  :root[data-theme="dark"] .about-panel,
+  :root[data-theme="dark"] .settings-page .settings-toggle,
+  :root[data-theme="dark"] .control-icon,
+  :root[data-theme="dark"] .app-card.soft {
+    background-color: #1b1916;
+  }
+
+  :root[data-theme="dark"] .m .txt,
+  :root[data-theme="dark"] .growth-row p,
+  :root[data-theme="dark"] .about-panel p {
+    color: var(--ink2);
+  }
 }
 
 @media (max-width: 760px) {

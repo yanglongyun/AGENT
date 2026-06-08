@@ -1,5 +1,6 @@
 <script setup>
 import { computed, inject, onMounted, reactive, ref, watch } from 'vue';
+import { applyAppearance, normalizeLanguage, normalizeTheme } from '../lib/appearance.js';
 
 const setPageNav = inject('pageNav');
 const providerGroups = ref([]);
@@ -20,6 +21,8 @@ const settings = reactive({
   evolution: '',
   contextTurns: '100',
   toolVision: '0',
+  theme: 'light',
+  language: 'zh',
 });
 
 const activeProvider = computed(() => providers.value.find((item) => item.id === settings.provider) || null);
@@ -57,6 +60,9 @@ async function loadSettings() {
     providerGroups.value = modelsData.groups || [];
     providers.value = modelsData.providers || [];
     Object.assign(settings, settingsData);
+    settings.theme = normalizeTheme(settings.theme);
+    settings.language = normalizeLanguage(settings.language);
+    applyAppearance(settings);
     if (!settings.provider && providers.value.length) settings.provider = providers.value[0].id;
     if (!settings.apiUrl && activeProvider.value?.apiUrl) settings.apiUrl = activeProvider.value.apiUrl;
     if (!settings.model && activeProvider.value?.defaultModel) settings.model = activeProvider.value.defaultModel;
@@ -94,6 +100,9 @@ async function saveSettings() {
       body: JSON.stringify(settings),
     });
     Object.assign(settings, await res.json());
+    settings.theme = normalizeTheme(settings.theme);
+    settings.language = normalizeLanguage(settings.language);
+    applyAppearance(settings);
     await loadPromptPreview();
     status.value = 'Saved';
     setTimeout(() => { status.value = ''; }, 1200);
@@ -101,6 +110,16 @@ async function saveSettings() {
     error.value = err.message || 'Save failed';
     status.value = '';
   }
+}
+
+function setTheme(value) {
+  settings.theme = normalizeTheme(value);
+  applyAppearance(settings);
+}
+
+function setLanguage(value) {
+  settings.language = normalizeLanguage(value);
+  applyAppearance(settings);
 }
 
 onMounted(async () => {
@@ -125,6 +144,7 @@ watch(
         <div class="settings-tabs" role="tablist" aria-label="Settings sections">
           <button type="button" :class="{ active: activeTab === 'model' }" @click="activeTab = 'model'">Model</button>
           <button type="button" :class="{ active: activeTab === 'prompt' }" @click="activeTab = 'prompt'">Prompt</button>
+          <button type="button" :class="{ active: activeTab === 'display' }" @click="activeTab = 'display'">Display</button>
           <button type="button" :class="{ active: activeTab === 'about' }" @click="activeTab = 'about'">About</button>
         </div>
 
@@ -187,6 +207,23 @@ watch(
             <label>
               Full Prompt
               <textarea class="mono-input prompt-preview" :value="promptPreview.full" rows="16" readonly></textarea>
+            </label>
+          </div>
+
+          <div v-else-if="activeTab === 'display'" class="settings-panel">
+            <label>
+              Theme
+              <span class="settings-segment">
+                <button type="button" :class="{ active: settings.theme === 'light' }" @click="setTheme('light')">Light</button>
+                <button type="button" :class="{ active: settings.theme === 'dark' }" @click="setTheme('dark')">Dark</button>
+              </span>
+            </label>
+            <label>
+              Language
+              <span class="settings-segment">
+                <button type="button" :class="{ active: settings.language === 'zh' }" @click="setLanguage('zh')">中文</button>
+                <button type="button" :class="{ active: settings.language === 'en' }" @click="setLanguage('en')">English</button>
+              </span>
             </label>
           </div>
 

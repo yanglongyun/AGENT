@@ -10,6 +10,8 @@ const DEFAULTS = {
   evolution: process.env.AGENT_EVOLUTION_PROMPT || "",
   contextTurns: process.env.AGENT_CONTEXT_TURNS || "100",
   toolVision: process.env.AGENT_TOOL_VISION || "0",
+  theme: process.env.AGENT_THEME || "light",
+  language: process.env.AGENT_LANGUAGE || "zh",
 };
 
 const getServerSettings = () => ({
@@ -18,7 +20,7 @@ const getServerSettings = () => ({
 });
 
 const updateServerSettings = (settings = {}) => {
-  const allowed = ["provider", "apiUrl", "apiKey", "model", "system", "evolution", "contextTurns", "toolVision"];
+  const allowed = ["provider", "apiUrl", "apiKey", "model", "system", "evolution", "contextTurns", "toolVision", "theme", "language"];
   const next = {};
   for (const key of allowed) {
     if (settings[key] != null) next[key] = String(settings[key]);

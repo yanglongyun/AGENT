@@ -1,5 +1,8 @@
 import { createApp } from 'vue';
 import App from './App.vue';
+import { loadAppearance } from './lib/appearance.js';
 import './style.css';
 
-createApp(App).mount('#app');
+loadAppearance().finally(() => {
+  createApp(App).mount('#app');
+});
