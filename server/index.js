@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createApiHandler } from "./api/index.js";
 import { initDb } from "./repository/db.js";
+import { proxyApps } from "./runtime/appsProxy.js";
 import { sendJson, sendStatic } from "./utils/http.js";
 import { attachRealtimeWebSocketServer } from "./ws/index.js";
 
@@ -24,6 +25,10 @@ const server = http.createServer(async (req, res) => {
   }
   if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
     await handleApi(req, res);
+    return;
+  }
+  if (url.pathname === "/apps" || url.pathname.startsWith("/apps/")) {
+    proxyApps(req, res);
     return;
   }
   await sendStatic(req, res, staticRoot);

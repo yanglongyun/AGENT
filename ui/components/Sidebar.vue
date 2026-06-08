@@ -1,9 +1,10 @@
 <script setup>
 import { BookOpen, Clock, MessagesSquare, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
 import { onMounted, onUnmounted, ref } from 'vue';
+import { apps } from '../apps/registry.js';
 import { listConversations } from '../lib/api.js';
 
-const emit = defineEmits(['new-chat', 'open-chat', 'tasks', 'subscriptions', 'growth', 'memories', 'skills', 'settings']);
+const emit = defineEmits(['new-chat', 'open-chat', 'open-app', 'tasks', 'subscriptions', 'growth', 'memories', 'skills', 'settings']);
 
 const chats = ref([]);
 
@@ -65,6 +66,20 @@ onUnmounted(() => {
     </div>
 
     <div class="list">
+      <div class="sec">
+        Apps
+      </div>
+      <button
+        v-for="app in apps"
+        :key="app.id"
+        class="chatitem appitem"
+        type="button"
+        @click="emit('open-app', app.id)"
+      >
+        <span>{{ app.icon }}</span>
+        {{ app.name }}
+      </button>
+
       <div class="sec">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 2.8l2.8 5.7 6.3.9-4.6 4.5 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.4l6.3-.9L12 2.8z" />

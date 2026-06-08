@@ -31,6 +31,16 @@ const memoryBlock = () => {
   return lines.join("\n");
 };
 
+const appsBlock = () => [
+  "## Apps",
+  "- Apps are separate local applications, not built-in AI tools.",
+  "- The main server proxies app requests under http://127.0.0.1:9500/apps/* to the apps service.",
+  "- Apps service health: GET http://127.0.0.1:9500/apps/health.",
+  "- Current app source lives under server/apps/<app>, ui/apps/<app>, and apps/<app>/APP.md.",
+  "- App SQLite databases live under data/apps/.",
+  "- Use shell/curl to inspect or operate app APIs when needed.",
+].join("\n");
+
 const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
   const instruction = String(settings.system || "").trim() || defaultInstruction;
   return [
@@ -59,6 +69,8 @@ const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
     "- Do not create tasks for short answers, lightweight checks, or ordinary conversation.",
     "- To create a task, use shell to POST JSON to http://127.0.0.1:9500/api/tasks.",
     `- If the task result should return to this chat, include {"subscription":{"chatId":"${chatId}"}}.`,
+    "",
+    appsBlock(),
   ].join("\n");
 };
 
