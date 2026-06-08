@@ -12,12 +12,12 @@ let db;
 
 const createSchema = (database) => {
   database.exec(`
-    CREATE TABLE settings (
+    CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
 
-    CREATE TABLE chats (
+    CREATE TABLE IF NOT EXISTS chats (
       id TEXT PRIMARY KEY,
       title TEXT,
       description TEXT NOT NULL DEFAULT '',
@@ -28,13 +28,37 @@ const createSchema = (database) => {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
-    CREATE TABLE messages (
+    CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       chat_id TEXT NOT NULL,
       message TEXT NOT NULL,
       meta TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      prompt TEXT,
+      response TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      error TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      finished_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL,
+      chat_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      fired_at TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status, id);
+    CREATE INDEX IF NOT EXISTS idx_subscriptions_task ON subscriptions(task_id, status, id);
+    CREATE INDEX IF NOT EXISTS idx_subscriptions_chat ON subscriptions(chat_id, status, id);
   `);
 };
 
@@ -49,7 +73,7 @@ const initDb = () => {
   db = new DatabaseSync(DB_PATH);
   db.exec("PRAGMA foreign_keys = ON");
   db.exec("PRAGMA journal_mode = WAL");
-  if (!hasSchema(db)) createSchema(db);
+  createSchema(db);
   return db;
 };
 

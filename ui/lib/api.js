@@ -30,3 +30,19 @@ export const uploadChatFile = async (file) => {
   });
   return data.files?.[0] || null;
 };
+
+export const listTasks = async (limit = 200) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return request(`/api/tasks?${params}`);
+};
+
+export const getTask = async (id) => {
+  const params = new URLSearchParams({ id: String(id) });
+  return request(`/api/tasks?${params}`);
+};
+
+export const abortTask = (id) => request(`/api/tasks?id=${encodeURIComponent(id)}`, {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ status: 'aborted' })
+});

@@ -2,6 +2,7 @@
 import { handleChatApi } from "./chat.js";
 import { handleFsApi } from "./fs.js";
 import { handleSettingsApi } from "./settings.js";
+import { handleTasksApi } from "./tasks.js";
 
 const createApiHandler = ({ sendJson }) => async (req, res) => {
   const url = new URL(req.url || "/", "http://127.0.0.1");
@@ -20,6 +21,10 @@ const createApiHandler = ({ sendJson }) => async (req, res) => {
     }
     if (path.startsWith("/api/settings")) {
       await handleSettingsApi(req, res, deps, path, method, url);
+      return;
+    }
+    if (path.startsWith("/api/tasks")) {
+      await handleTasksApi(req, res, deps, path, method, url);
       return;
     }
     if (path.startsWith("/api/fs")) {

@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, provide, reactive, ref } from 'vue';
 import ChatView from './components/Chat.vue';
 import Sidebar from './components/Sidebar.vue';
+import TasksView from './components/Tasks.vue';
 
 const nav = reactive({
   title: 'Agent Chat',
@@ -10,6 +11,7 @@ const nav = reactive({
   right: null,
 });
 const showSettings = ref(false);
+const activeView = ref('chat');
 const providerGroups = ref([]);
 const providers = ref([]);
 const sidebarOpen = ref(true);
@@ -89,12 +91,19 @@ async function saveSettings() {
 }
 
 function requestNewChat() {
+  activeView.value = 'chat';
   window.dispatchEvent(new CustomEvent('agent:new-chat'));
   closeSidebarOnMobile();
 }
 
 function requestOpenChat(chat) {
+  activeView.value = 'chat';
   window.dispatchEvent(new CustomEvent('agent:open-chat', { detail: { chat } }));
+  closeSidebarOnMobile();
+}
+
+function requestTasks() {
+  activeView.value = 'tasks';
   closeSidebarOnMobile();
 }
 
@@ -128,7 +137,7 @@ onUnmounted(() => {
 <template>
   <div class="app" :class="{ 'sidebar-collapsed': !sidebarOpen, 'sidebar-open': sidebarOpen }">
     <button v-if="isMobile && sidebarOpen" class="sidebar-scrim" type="button" aria-label="Close sidebar" @click="sidebarOpen = false"></button>
-    <Sidebar @new-chat="requestNewChat" @open-chat="requestOpenChat" @settings="openSettings(); closeSidebarOnMobile()" />
+    <Sidebar @new-chat="requestNewChat" @open-chat="requestOpenChat" @tasks="requestTasks" @settings="openSettings(); closeSidebarOnMobile()" />
 
     <main class="main">
       <header class="mhead">
@@ -142,7 +151,8 @@ onUnmounted(() => {
       </header>
 
       <div class="chat-stage">
-        <ChatView />
+        <ChatView v-if="activeView === 'chat'" />
+        <TasksView v-else />
       </div>
     </main>
 

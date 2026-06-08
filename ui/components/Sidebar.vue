@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import { listConversations } from '../lib/api.js';
 
-defineEmits(['new-chat', 'open-chat', 'settings']);
+const emit = defineEmits(['new-chat', 'open-chat', 'tasks', 'settings']);
 
 const chats = ref([]);
 
@@ -35,7 +35,7 @@ onUnmounted(() => {
         <span class="mark"></span>
         <b>Agent Chat</b>
       </div>
-      <button class="newchat" type="button" @click="$emit('new-chat')">
+      <button class="newchat" type="button" @click="emit('new-chat')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
           <path d="M12 5v14M5 12h14" />
         </svg>
@@ -44,12 +44,16 @@ onUnmounted(() => {
     </div>
 
     <div class="list">
+      <button class="nav-action" type="button" @click="emit('tasks')">
+        <span class="nav-action-icon">⏱</span>
+        Tasks
+      </button>
       <button
         v-for="chat in chats"
         :key="chat.id"
         class="chatitem"
         type="button"
-        @click="$emit('open-chat', chat)"
+        @click="emit('open-chat', chat)"
       >
         {{ formatChatTitle(chat) }}
       </button>
@@ -57,7 +61,7 @@ onUnmounted(() => {
     </div>
 
     <div class="nav-footer">
-      <button class="settings-entry" type="button" @click="$emit('settings')">
+      <button class="settings-entry" type="button" @click="emit('settings')">
         <span class="settings-dot"></span>
         <span>
           <b>Settings</b>

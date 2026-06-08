@@ -10,6 +10,12 @@ const sendJson = (ws, payload) => {
   ws.send(JSON.stringify(payload));
 };
 
+const broadcastWebSocketEvent = (payload) => {
+  for (const client of clients) {
+    sendJson(client.ws, payload);
+  }
+};
+
 const bindConnection = (ws) => {
   const client = { ws };
   clients.add(client);
@@ -52,4 +58,4 @@ const attachRealtimeWebSocketServer = (server) => {
   return wss;
 };
 
-export { attachRealtimeWebSocketServer };
+export { attachRealtimeWebSocketServer, broadcastWebSocketEvent };
