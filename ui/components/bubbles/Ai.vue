@@ -11,7 +11,7 @@ const displayContent = computed(() => String(props.content || '').replace(/[\r\n
 
 <template>
   <div class="m ai">
-    <div class="who"><i></i>Agent Chat<span class="vtag">live</span></div>
+    <div class="who"><i></i>Agent</div>
     <div class="txt ai-text" v-html="renderMd(displayContent)"></div>
   </div>
 </template>

@@ -65,7 +65,7 @@ defineExpose({ msgBox, scrollToBottom });
         </template>
 
         <div v-if="busy" class="m ai">
-          <div class="who"><i></i>Agent Chat</div>
+          <div class="who"><i></i>Agent</div>
           <div class="flex gap-[5px] py-[3px]">
             <i class="h-[7px] w-[7px] animate-[blink_1.2s_infinite] rounded-full bg-[var(--accent)] opacity-50"></i>
             <i class="h-[7px] w-[7px] animate-[blink_1.2s_infinite] rounded-full bg-[var(--accent)] opacity-50 [animation-delay:0.2s]"></i>
