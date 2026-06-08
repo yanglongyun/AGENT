@@ -42,17 +42,13 @@ onUnmounted(() => {
           <SquarePen />
           New chat
         </button>
-        <button class="side-primary" type="button" @click="emit('tasks')">
-          <Clock />
-          Tasks
-        </button>
         <button class="side-primary" type="button" @click="emit('subscriptions')">
           <MessagesSquare />
           Subscriptions
         </button>
-        <button class="side-primary" type="button" @click="emit('growth')">
-          <Sprout />
-          Growth
+        <button class="side-primary" type="button" @click="emit('tasks')">
+          <Clock />
+          Tasks
         </button>
         <button class="side-primary" type="button" @click="emit('memories')">
           <BookOpen />
@@ -61,6 +57,10 @@ onUnmounted(() => {
         <button class="side-primary" type="button" @click="emit('skills')">
           <ShieldCheck />
           Skills
+        </button>
+        <button class="side-primary" type="button" @click="emit('growth')">
+          <Sprout />
+          Growth
         </button>
       </div>
     </div>
