@@ -47,6 +47,11 @@ export const abortTask = (id) => request(`/api/tasks?id=${encodeURIComponent(id)
   body: JSON.stringify({ status: 'aborted' })
 });
 
+export const listSubscriptions = async (limit = 200) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return request(`/api/subscriptions?${params}`);
+};
+
 export const listMemories = async () => request('/api/memories?limit=500');
 
 export const createMemory = (memory) => request('/api/memories', {

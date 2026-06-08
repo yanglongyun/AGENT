@@ -1,5 +1,10 @@
 // @ts-nocheck
-import { createSubscriptionRow, listActiveSubscriptionsByTask, markSubscriptionFired } from "../../repository/subscriptions/index.js";
+import {
+  createSubscriptionRow,
+  listActiveSubscriptionsByTask,
+  listSubscriptions as repoListSubscriptions,
+  markSubscriptionFired,
+} from "../../repository/subscriptions/index.js";
 import { sendChatMessage } from "../chat/index.js";
 import { broadcastWebSocketEvent } from "../../ws/index.js";
 
@@ -10,6 +15,8 @@ const createSubscription = ({ taskId, chatId }) => {
   if (!targetChatId) throw new Error("chatId is required");
   return createSubscriptionRow({ taskId: id, chatId: targetChatId });
 };
+
+const listSubscriptions = ({ limit = 200 } = {}) => repoListSubscriptions({ limit });
 
 const buildSubscriptionPrompt = ({ taskId, taskName, status, response = "", error = "" }) => {
   const lines = [
@@ -38,4 +45,4 @@ const fireTaskSubscriptions = async (task) => {
   }
 };
 
-export { createSubscription, fireTaskSubscriptions };
+export { createSubscription, fireTaskSubscriptions, listSubscriptions };

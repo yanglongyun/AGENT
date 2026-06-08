@@ -4,6 +4,7 @@ import ChatView from './components/Chat.vue';
 import MemoriesView from './components/Memories.vue';
 import Sidebar from './components/Sidebar.vue';
 import SkillsView from './components/Skills.vue';
+import SubscriptionsView from './components/Subscriptions.vue';
 import TasksView from './components/Tasks.vue';
 
 const nav = reactive({
@@ -109,6 +110,11 @@ function requestTasks() {
   closeSidebarOnMobile();
 }
 
+function requestSubscriptions() {
+  activeView.value = 'subscriptions';
+  closeSidebarOnMobile();
+}
+
 function requestMemories() {
   activeView.value = 'memories';
   closeSidebarOnMobile();
@@ -153,6 +159,7 @@ onUnmounted(() => {
       @new-chat="requestNewChat"
       @open-chat="requestOpenChat"
       @tasks="requestTasks"
+      @subscriptions="requestSubscriptions"
       @memories="requestMemories"
       @skills="requestSkills"
       @settings="openSettings(); closeSidebarOnMobile()"
@@ -175,6 +182,7 @@ onUnmounted(() => {
       <div class="chat-stage">
         <ChatView v-if="activeView === 'chat'" />
         <TasksView v-else-if="activeView === 'tasks'" />
+        <SubscriptionsView v-else-if="activeView === 'subscriptions'" />
         <MemoriesView v-else-if="activeView === 'memories'" />
         <SkillsView v-else />
       </div>

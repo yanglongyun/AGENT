@@ -4,6 +4,7 @@ import { handleFsApi } from "./fs.js";
 import { handleMemoriesApi } from "./memories.js";
 import { handleSettingsApi } from "./settings.js";
 import { handleSkillsApi } from "./skills.js";
+import { handleSubscriptionsApi } from "./subscriptions.js";
 import { handleTasksApi } from "./tasks.js";
 import { handleUpdatesApi } from "./updates.js";
 
@@ -28,6 +29,10 @@ const createApiHandler = ({ sendJson }) => async (req, res) => {
     }
     if (path.startsWith("/api/tasks")) {
       await handleTasksApi(req, res, deps, path, method, url);
+      return;
+    }
+    if (path.startsWith("/api/subscriptions")) {
+      await handleSubscriptionsApi(req, res, deps, path, method, url);
       return;
     }
     if (path.startsWith("/api/memories")) {

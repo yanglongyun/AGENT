@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import { listConversations } from '../lib/api.js';
 
-const emit = defineEmits(['new-chat', 'open-chat', 'tasks', 'memories', 'skills', 'settings']);
+const emit = defineEmits(['new-chat', 'open-chat', 'tasks', 'subscriptions', 'memories', 'skills', 'settings']);
 
 const chats = ref([]);
 
@@ -48,6 +48,14 @@ onUnmounted(() => {
             <path d="M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9z" />
           </svg>
           Tasks
+        </button>
+        <button class="side-primary" type="button" @click="emit('subscriptions')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 8h10" />
+            <path d="M7 12h6" />
+            <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2z" />
+          </svg>
+          Subscriptions
         </button>
         <button class="side-primary" type="button" @click="emit('memories')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
