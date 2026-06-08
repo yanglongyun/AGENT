@@ -103,7 +103,7 @@ const handleAiEvent = ({ chatId, event, emit }) => {
   }
   if (event.type === "tool_calls") {
     if (event.message) saveChatMessages({ chatId, source: "ai", messages: [event.message] });
-    emit({ type: "tool_calls", chatId, toolCalls: event.message?.tool_calls || [] });
+    emit({ type: "tool_calls", chatId, message: event.message || null, toolCalls: event.message?.tool_calls || [] });
     return;
   }
   if (event.type === "tool_results") {
@@ -132,7 +132,7 @@ const handleAiEvent = ({ chatId, event, emit }) => {
         usage: event.usage || null,
       });
     }
-    emit({ type: "done", chatId });
+    emit({ type: "done", chatId, message: event.message || null, text: event.text || "" });
   }
 };
 

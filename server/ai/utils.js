@@ -59,17 +59,14 @@ const normalizeAgentMessages = (messages = [], { model, apiUrl } = {}) => {
     if (role === "assistant" && Array.isArray(item.tool_calls)) {
       msg.content = item.content == null ? null : String(item.content);
       msg.tool_calls = item.tool_calls;
-      if (replayReasoning) {
+      if (typeof item.reasoning_content === "string") {
+        msg.reasoning_content = item.reasoning_content;
+      } else if (replayReasoning) {
         msg.reasoning_content = typeof item.reasoning_content === "string" ? item.reasoning_content : "";
       }
     } else {
       msg.content = item.content == null ? "" : String(item.content);
-      if (
-        replayReasoning &&
-        role === "assistant" &&
-        typeof item.reasoning_content === "string" &&
-        item.reasoning_content.trim()
-      ) {
+      if (role === "assistant" && typeof item.reasoning_content === "string") {
         msg.reasoning_content = item.reasoning_content;
       }
     }
