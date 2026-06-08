@@ -122,7 +122,12 @@ button {
   letter-spacing: 0.2px;
 }
 
-.newchat {
+.primary-nav {
+  display: grid;
+  gap: 7px;
+}
+
+.side-primary {
   display: flex;
   width: 100%;
   align-items: center;
@@ -136,13 +141,14 @@ button {
   transition: background 0.15s;
 }
 
-.newchat:hover {
+.side-primary:hover {
   background: #f2dace;
 }
 
-.newchat svg {
+.side-primary svg {
   width: 15px;
   height: 15px;
+  flex-shrink: 0;
 }
 
 .nav .list {
@@ -184,30 +190,6 @@ button {
 
 .chatitem:hover {
   background: #f1ece3;
-}
-
-.nav-action {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 8px;
-  border-radius: 9px;
-  color: var(--ink2);
-  font-size: 13px;
-  font-weight: 560;
-  padding: 8px 11px;
-  text-align: left;
-  transition: background 0.14s;
-}
-
-.nav-action:hover {
-  background: #f1ece3;
-}
-
-.nav-action-icon {
-  width: 18px;
-  color: var(--accent);
-  text-align: center;
 }
 
 .nav-empty {

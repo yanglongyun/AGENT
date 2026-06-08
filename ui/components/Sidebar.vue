@@ -35,19 +35,30 @@ onUnmounted(() => {
         <span class="mark"></span>
         <b>Agent Chat</b>
       </div>
-      <button class="newchat" type="button" @click="emit('new-chat')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        New chat
-      </button>
+      <div class="primary-nav">
+        <button class="side-primary" type="button" @click="emit('new-chat')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          New chat
+        </button>
+        <button class="side-primary" type="button" @click="emit('tasks')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 8v5l3 2" />
+            <path d="M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9z" />
+          </svg>
+          Tasks
+        </button>
+      </div>
     </div>
 
     <div class="list">
-      <button class="nav-action" type="button" @click="emit('tasks')">
-        <span class="nav-action-icon">⏱</span>
-        Tasks
-      </button>
+      <div class="sec">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2.8l2.8 5.7 6.3.9-4.6 4.5 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.4l6.3-.9L12 2.8z" />
+        </svg>
+        Recent
+      </div>
       <button
         v-for="chat in chats"
         :key="chat.id"
