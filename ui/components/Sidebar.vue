@@ -1,4 +1,5 @@
 <script setup>
+import { BookOpen, Clock, MessagesSquare, Plus, ShieldCheck, Sprout } from '@lucide/vue';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { listConversations } from '../lib/api.js';
 
@@ -37,49 +38,27 @@ onUnmounted(() => {
       </div>
       <div class="primary-nav">
         <button class="side-primary" type="button" @click="emit('new-chat')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
+          <Plus />
           New chat
         </button>
         <button class="side-primary" type="button" @click="emit('tasks')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 8v5l3 2" />
-            <path d="M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9z" />
-          </svg>
+          <Clock />
           Tasks
         </button>
         <button class="side-primary" type="button" @click="emit('subscriptions')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M7 8h10" />
-            <path d="M7 12h6" />
-            <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2z" />
-          </svg>
+          <MessagesSquare />
           Subscriptions
         </button>
         <button class="side-primary" type="button" @click="emit('growth')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 19c4-1 7-4 8-8" />
-            <path d="M12 11c1-4 4-7 8-8-1 4-4 7-8 8z" />
-            <path d="M12 11c2 1 4 3 5 6" />
-            <path d="M8 15c-2-1-4-3-5-6" />
-          </svg>
+          <Sprout />
           Growth
         </button>
         <button class="side-primary" type="button" @click="emit('memories')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" />
-            <path d="M4 5.5v16" />
-            <path d="M8 7h8" />
-            <path d="M8 11h6" />
-          </svg>
+          <BookOpen />
           Memories
         </button>
         <button class="side-primary" type="button" @click="emit('skills')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3l7 4v6c0 4-3 7-7 8-4-1-7-4-7-8V7z" />
-            <path d="M9 12l2 2 4-5" />
-          </svg>
+          <ShieldCheck />
           Skills
         </button>
       </div>

@@ -12,6 +12,7 @@
     "check": "find server ui -name '*.js' -print0 | xargs -0 -n 1 node --check"
   },
   "dependencies": {
+    "@lucide/vue": "^1.17.0",
     "@tailwindcss/vite": "^4.2.4",
     "@vitejs/plugin-vue": "^6.0.4",
     "marked": "^18.0.4",
@@ -19,6 +20,5 @@
     "vite": "^6.3.5",
     "vue": "^3.5.28",
     "ws": "^8.21.0"
-  },
-  "devDependencies": {}
+  }
 }
