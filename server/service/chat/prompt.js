@@ -1,5 +1,9 @@
 // @ts-nocheck
+import fs from "node:fs";
+import path from "node:path";
 import { getMemoryPromptContext } from "../memories/index.js";
+
+const SKILLS_ROOT = path.resolve(process.cwd(), "skills");
 
 const defaultInstruction = `你是 Agent Chat，一个本地 AI 助手。
 
@@ -53,6 +57,65 @@ const controlsBlock = () => [
   "- Tool Vision 设置控制截图结果是否可以作为视觉上下文发送给模型。",
 ].join("\n");
 
+const parseSkillFrontmatter = (content) => {
+  if (!content.startsWith("---")) return {};
+  const end = content.indexOf("\n---", 3);
+  if (end < 0) return {};
+  const meta = {};
+  for (const line of content.slice(3, end).split(/\r?\n/)) {
+    const index = line.indexOf(":");
+    if (index < 0) continue;
+    const key = line.slice(0, index).trim();
+    const value = line.slice(index + 1).trim();
+    if (key) meta[key] = value;
+  }
+  return meta;
+};
+
+const listLocalSkillSummaries = () => {
+  try {
+    const entries = fs.readdirSync(SKILLS_ROOT, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => {
+        const file = path.join(SKILLS_ROOT, entry.name, "SKILL.md");
+        try {
+          const content = fs.readFileSync(file, "utf8");
+          const meta = parseSkillFrontmatter(content);
+          const [firstLine, ...rest] = content.split(/\r?\n/);
+          const name = meta.name || (firstLine?.startsWith("#") ? firstLine.replace(/^#+\s*/, "").trim() : entry.name);
+          const description = meta.description || rest.find((line) => line.trim() && !line.startsWith("#") && line.trim() !== "---")?.trim() || "";
+          return { id: entry.name, name: name || entry.name, description, path: file };
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
+};
+
+const skillsBlock = () => {
+  const skills = listLocalSkillSummaries();
+  const lines = [
+    "## 技能",
+    "- 技能是存放在 skills/*/SKILL.md 的本地能力说明，和记忆不同。",
+    "- 系统会在这里提供当前可用技能摘要；不要通过 HTTP API 获取技能列表或技能内容。",
+    "- 判断某个技能适用时，先按摘要执行；如果需要完整说明，再用 shell 读取对应 SKILL.md 文件。",
+  ];
+  if (!skills.length) {
+    lines.push("- 当前没有本地技能。");
+    return lines.join("\n");
+  }
+  lines.push("- 当前本地技能：");
+  for (const skill of skills) {
+    lines.push(`  - ${skill.id}：${skill.name}${skill.description ? ` - ${skill.description}` : ""}（${skill.path}）`);
+  }
+  return lines.join("\n");
+};
+
 const evolutionBlock = (settings = {}) => {
   const text = String(settings.evolution || "").trim();
   if (!text) return "";
@@ -77,10 +140,7 @@ const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
     "",
     memoryBlock(),
     "",
-    "## 技能",
-    "- 技能是存放在 skills/*/SKILL.md 的本地能力说明，和记忆不同。",
-    "- 列出技能时，用 shell 发起 GET http://127.0.0.1:9500/api/skills。",
-    "- 读取技能时，用 shell 发起 GET http://127.0.0.1:9500/api/skills?id=SKILL_ID。",
+    skillsBlock(),
     "",
     "## 后台任务",
     "- 任务是后台工作，不是普通聊天消息。",
