@@ -1,7 +1,9 @@
 // @ts-nocheck
 import { handleChatApi } from "./chat.js";
 import { handleFsApi } from "./fs.js";
+import { handleMemoriesApi } from "./memories.js";
 import { handleSettingsApi } from "./settings.js";
+import { handleSkillsApi } from "./skills.js";
 import { handleTasksApi } from "./tasks.js";
 
 const createApiHandler = ({ sendJson }) => async (req, res) => {
@@ -25,6 +27,14 @@ const createApiHandler = ({ sendJson }) => async (req, res) => {
     }
     if (path.startsWith("/api/tasks")) {
       await handleTasksApi(req, res, deps, path, method, url);
+      return;
+    }
+    if (path.startsWith("/api/memories")) {
+      await handleMemoriesApi(req, res, deps, path, method, url);
+      return;
+    }
+    if (path.startsWith("/api/skills")) {
+      await handleSkillsApi(req, res, deps, path, method, url);
       return;
     }
     if (path.startsWith("/api/fs")) {

@@ -619,6 +619,11 @@ button {
   box-shadow: 0 8px 22px -18px rgba(204, 106, 69, 0.6);
 }
 
+.task-row.active {
+  border-color: rgba(204, 106, 69, 0.55);
+  background: #fff8f4;
+}
+
 .task-state {
   width: 9px;
   height: 9px;
@@ -768,6 +773,155 @@ button {
   border: 0;
   border-radius: 0;
   background: #fbfaf8;
+}
+
+.asset-inner {
+  display: grid;
+  max-width: 980px;
+  grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+  gap: 14px;
+  margin: 0 auto;
+}
+
+.asset-panel,
+.asset-editor {
+  min-width: 0;
+  border: 1px solid var(--line2);
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+}
+
+.asset-panel {
+  align-self: start;
+}
+
+.asset-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.asset-head h2 {
+  font-size: 17px;
+  font-weight: 680;
+}
+
+.asset-head button,
+.danger-btn {
+  border-radius: 9px;
+  background: #f1ece3;
+  color: var(--ink2);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 11px;
+}
+
+.asset-head button:hover {
+  background: var(--accent-soft);
+  color: var(--accent-d);
+}
+
+.danger-btn {
+  background: #fff5f1;
+  color: var(--accent-d);
+}
+
+.asset-editor label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+  color: var(--ink2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.asset-editor input,
+.asset-editor select,
+.asset-editor textarea {
+  width: 100%;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  padding: 10px 11px;
+}
+
+.asset-editor input:focus,
+.asset-editor select:focus,
+.asset-editor textarea:focus {
+  border-color: var(--accent);
+}
+
+.asset-editor textarea {
+  resize: vertical;
+  min-height: 160px;
+  line-height: 1.5;
+}
+
+.memory-row {
+  align-items: flex-start;
+}
+
+.memory-badge {
+  min-width: 52px;
+  border-radius: 999px;
+  background: #f1ece3;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 680;
+  padding: 4px 7px;
+  text-align: center;
+}
+
+.memory-badge.must {
+  background: var(--accent-soft);
+  color: var(--accent-d);
+}
+
+.memory-badge.star {
+  background: var(--fix-soft);
+  color: #9d6a17;
+}
+
+.skill-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 8px;
+  background: #f1ece3;
+  color: var(--accent-d);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.skill-reader pre {
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfaf8;
+  color: var(--ink2);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
+.asset-path {
+  overflow: hidden;
+  margin: -3px 0 12px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .modal-backdrop {
@@ -949,5 +1103,17 @@ button {
   .composer {
     padding-left: 14px;
     padding-right: 14px;
+  }
+
+  .tasks-view {
+    padding: 14px;
+  }
+
+  .asset-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .skill-reader pre {
+    max-height: none;
   }
 }

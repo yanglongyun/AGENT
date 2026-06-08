@@ -1,8 +1,35 @@
 // @ts-nocheck
+import { getMemoryPromptContext } from "../memories/index.js";
+
 const defaultInstruction = `You are Agent Chat, a local AI assistant.
 
 You can answer normally and you can use the shell tool when local verification, filesystem inspection, command execution, or development work is needed.
 Use tools only when they are useful. When you use shell, explain the result briefly and keep the final answer clear.`;
+
+const memoryBlock = () => {
+  const { must, star, storedCount } = getMemoryPromptContext();
+  const lines = ["## Memory"];
+  if (must.length) {
+    lines.push("- Must-read memories are included below. Treat them as important user context.");
+    for (const item of must) {
+      lines.push(`### must #${item.id}: ${item.title}`);
+      if (item.description) lines.push(`Description: ${item.description}`);
+      if (item.body) lines.push(item.body);
+    }
+  } else {
+    lines.push("- Must-read memories: none.");
+  }
+  if (star.length) {
+    lines.push("- Starred memory summaries. Full body is not included; use shell to call /api/memories/get?id=ID if needed.");
+    for (const item of star) lines.push(`- star #${item.id}: ${item.title}${item.description ? ` - ${item.description}` : ""}`);
+  } else {
+    lines.push("- Starred memories: none.");
+  }
+  lines.push(`- Stored memories not included in prompt: ${storedCount}.`);
+  lines.push("- To search memories, use shell with GET http://127.0.0.1:9500/api/memories/search?q=QUERY.");
+  lines.push("- To read a full memory, use shell with GET http://127.0.0.1:9500/api/memories/get?id=ID.");
+  return lines.join("\n");
+};
 
 const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
   const instruction = String(settings.system || "").trim() || defaultInstruction;
@@ -18,6 +45,13 @@ const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
     "- shell(command, summary, timeout?, cwd?): execute a shell command and return stdout/stderr.",
     "- Use shell for local files, code, tests, installs, builds, and command-line tasks.",
     "- For pure conversation, answer directly without tools.",
+    "",
+    memoryBlock(),
+    "",
+    "## Skills",
+    "- Skills are local capability instructions stored as skills/*/SKILL.md, separate from memories.",
+    "- To list skills, use shell with GET http://127.0.0.1:9500/api/skills.",
+    "- To read a skill, use shell with GET http://127.0.0.1:9500/api/skills?id=SKILL_ID.",
     "",
     "## Background Tasks",
     "- A task is background work, not a normal chat message.",

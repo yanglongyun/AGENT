@@ -1,7 +1,9 @@
 <script setup>
 import { computed, onMounted, onUnmounted, provide, reactive, ref } from 'vue';
 import ChatView from './components/Chat.vue';
+import MemoriesView from './components/Memories.vue';
 import Sidebar from './components/Sidebar.vue';
+import SkillsView from './components/Skills.vue';
 import TasksView from './components/Tasks.vue';
 
 const nav = reactive({
@@ -107,6 +109,16 @@ function requestTasks() {
   closeSidebarOnMobile();
 }
 
+function requestMemories() {
+  activeView.value = 'memories';
+  closeSidebarOnMobile();
+}
+
+function requestSkills() {
+  activeView.value = 'skills';
+  closeSidebarOnMobile();
+}
+
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value;
 }
@@ -137,7 +149,14 @@ onUnmounted(() => {
 <template>
   <div class="app" :class="{ 'sidebar-collapsed': !sidebarOpen, 'sidebar-open': sidebarOpen }">
     <button v-if="isMobile && sidebarOpen" class="sidebar-scrim" type="button" aria-label="Close sidebar" @click="sidebarOpen = false"></button>
-    <Sidebar @new-chat="requestNewChat" @open-chat="requestOpenChat" @tasks="requestTasks" @settings="openSettings(); closeSidebarOnMobile()" />
+    <Sidebar
+      @new-chat="requestNewChat"
+      @open-chat="requestOpenChat"
+      @tasks="requestTasks"
+      @memories="requestMemories"
+      @skills="requestSkills"
+      @settings="openSettings(); closeSidebarOnMobile()"
+    />
 
     <main class="main">
       <header class="mhead">
@@ -152,7 +171,9 @@ onUnmounted(() => {
 
       <div class="chat-stage">
         <ChatView v-if="activeView === 'chat'" />
-        <TasksView v-else />
+        <TasksView v-else-if="activeView === 'tasks'" />
+        <MemoriesView v-else-if="activeView === 'memories'" />
+        <SkillsView v-else />
       </div>
     </main>
 

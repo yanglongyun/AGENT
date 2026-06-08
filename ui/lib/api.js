@@ -46,3 +46,25 @@ export const abortTask = (id) => request(`/api/tasks?id=${encodeURIComponent(id)
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ status: 'aborted' })
 });
+
+export const listMemories = async () => request('/api/memories?limit=500');
+
+export const createMemory = (memory) => request('/api/memories', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(memory)
+});
+
+export const updateMemory = (id, memory) => request(`/api/memories?id=${encodeURIComponent(id)}`, {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(memory)
+});
+
+export const deleteMemory = (id) => request(`/api/memories?id=${encodeURIComponent(id)}`, {
+  method: 'DELETE'
+});
+
+export const listSkills = async () => request('/api/skills');
+
+export const getSkill = async (id) => request(`/api/skills?id=${encodeURIComponent(id)}`);
