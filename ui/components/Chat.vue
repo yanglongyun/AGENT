@@ -48,6 +48,8 @@ const seenKeys = ref(new Set());
 const messagesRef = ref(null);
 const composerRef = ref(null);
 let unsubs = [];
+let suppressTopLoadTimer = null;
+const suppressTopLoad = ref(false);
 
 const emptyHints = [
   { icon: '🛠️', label: t('chat_hint_app_label', '帮我做个应用'), desc: t('chat_hint_app_desc', '描述需求，AI 自动写代码上线'), text: t('chat_hint_app_text', '帮我做一个旅行清单应用') },
@@ -78,8 +80,7 @@ async function onHistorySelect(c) {
   currentChatId.value = c.id;
   currentTitle.value = c.title || t('chat_title', '对话');
   setDefaultNav();
-  await loadPage(c.id);
-  scrollToBottom(false);
+  await loadInitialPage(c.id);
 }
 
 function onNewChat() {
@@ -129,12 +130,30 @@ async function loadPage(id, offset = 0) {
 }
 
 function scrollToBottom(smooth = true) {
-  messagesRef.value?.scrollToBottom(smooth);
+  return messagesRef.value?.scrollToBottom(smooth);
+}
+
+function releaseTopLoadSoon() {
+  if (suppressTopLoadTimer) clearTimeout(suppressTopLoadTimer);
+  suppressTopLoadTimer = setTimeout(() => {
+    suppressTopLoad.value = false;
+    suppressTopLoadTimer = null;
+  }, 160);
+}
+
+async function loadInitialPage(id) {
+  suppressTopLoad.value = true;
+  try {
+    await loadPage(id);
+    await scrollToBottom(false);
+  } finally {
+    releaseTopLoadSoon();
+  }
 }
 
 async function loadMore(oldHeight) {
   const el = messagesRef.value?.msgBox;
-  if (!el || !hasMore.value || !currentChatId.value) return;
+  if (!el || suppressTopLoad.value || !hasMore.value || !currentChatId.value) return;
   await loadPage(currentChatId.value, loadedOffset.value);
   nextTick(() => { el.scrollTop = el.scrollHeight - oldHeight; });
 }
@@ -218,13 +237,13 @@ onMounted(async () => {
       currentChatId.value = last.id;
       currentTitle.value = last.title || t('chat_title', '对话');
       setDefaultNav();
-      await loadPage(last.id);
-      scrollToBottom(false);
+      await loadInitialPage(last.id);
     }
   } catch {}
 });
 
 onUnmounted(() => {
+  if (suppressTopLoadTimer) clearTimeout(suppressTopLoadTimer);
   window.removeEventListener('aios:send-chat-message', sendExternalMessage);
   window.removeEventListener('agent:new-chat', onNewChat);
   window.removeEventListener('agent:open-chat', onOpenChatEvent);

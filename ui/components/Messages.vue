@@ -18,7 +18,7 @@ const emit = defineEmits(['pick-hint', 'top-reached']);
 const msgBox = ref(null);
 
 const scrollToBottom = (smooth = true) => {
-  nextTick(() => {
+  return nextTick(() => {
     const el = msgBox.value;
     if (!el) return;
     if (smooth) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
