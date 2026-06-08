@@ -24,7 +24,7 @@
   padding: 0 24px;
 }
 
-.hamburger {
+.sidebar-toggle {
   display: flex;
   width: 34px;
   height: 34px;
@@ -38,21 +38,15 @@
   transition: background 0.15s, color 0.15s;
 }
 
-.hamburger:hover {
+.sidebar-toggle:hover {
   background: #f1ece3;
   color: var(--ink2);
 }
 
-.hamburger span {
-  display: block;
-  width: 17px;
-  height: 1.7px;
-  border-radius: 99px;
-  background: currentColor;
-}
-
-.hamburger span + span {
-  margin-top: 0;
+.sidebar-toggle svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 2;
 }
 
 .back-btn {

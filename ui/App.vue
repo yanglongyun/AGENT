@@ -1,4 +1,5 @@
 <script setup>
+import { PanelLeft } from '@lucide/vue';
 import { computed, onMounted, onUnmounted, provide, reactive, ref } from 'vue';
 import ChatView from './components/Chat.vue';
 import GrowthView from './components/Growth.vue';
@@ -174,10 +175,8 @@ onUnmounted(() => {
 
     <main class="main">
       <header class="mhead">
-        <button class="hamburger" type="button" aria-label="Toggle sidebar" :aria-expanded="sidebarOpen" @click="toggleSidebar">
-          <span></span>
-          <span></span>
-          <span></span>
+        <button class="sidebar-toggle" type="button" aria-label="Toggle sidebar" :aria-expanded="sidebarOpen" @click="toggleSidebar">
+          <PanelLeft />
         </button>
         <button v-if="nav.back" class="back-btn" type="button" aria-label="Back" @click="nav.back">
           &lt;
