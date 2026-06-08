@@ -53,10 +53,6 @@
     padding: 14px;
   }
 
-  .asset-inner {
-    grid-template-columns: 1fr;
-  }
-
   .skill-reader pre {
     max-height: none;
   }

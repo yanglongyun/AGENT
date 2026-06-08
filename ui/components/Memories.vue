@@ -5,6 +5,7 @@ import { createMemory, deleteMemory, listMemories, updateMemory } from '../lib/a
 const setPageNav = inject('pageNav');
 const memories = ref([]);
 const selectedId = ref(null);
+const mode = ref('list');
 const loading = ref(false);
 const saving = ref(false);
 const error = ref('');
@@ -17,19 +18,40 @@ const form = reactive({
 
 const selected = computed(() => memories.value.find((item) => item.id === selectedId.value) || null);
 
+function setListNav() {
+  setPageNav('Memories', null, null, null);
+}
+
+function setEditorNav(title) {
+  setPageNav(title, () => {
+    resetForm();
+    setListNav();
+  }, null, null);
+}
+
 function resetForm() {
   selectedId.value = null;
+  mode.value = 'list';
   Object.assign(form, { title: '', description: '', body: '', visibility: 'stored' });
+}
+
+function newMemory() {
+  selectedId.value = null;
+  mode.value = 'new';
+  Object.assign(form, { title: '', description: '', body: '', visibility: 'stored' });
+  setEditorNav('New memory');
 }
 
 function editMemory(memory) {
   selectedId.value = memory.id;
+  mode.value = 'edit';
   Object.assign(form, {
     title: memory.title || '',
     description: memory.description || '',
     body: memory.body || '',
     visibility: memory.visibility || 'stored',
   });
+  setEditorNav(memory.title || 'Memory');
 }
 
 async function refresh() {
@@ -60,6 +82,7 @@ async function save() {
     else await createMemory(payload);
     await refresh();
     resetForm();
+    setListNav();
   } catch (err) {
     error.value = err.message || 'Save failed';
   } finally {
@@ -74,6 +97,7 @@ async function remove() {
     await deleteMemory(selected.value.id);
     await refresh();
     resetForm();
+    setListNav();
   } catch (err) {
     error.value = err.message || 'Delete failed';
   }
@@ -88,18 +112,18 @@ function visibilityText(value) {
 }
 
 onMounted(async () => {
-  setPageNav('Memories', null, null, null);
+  setListNav();
   await refresh();
 });
 </script>
 
 <template>
   <section class="tasks-view asset-view">
-    <div class="asset-inner">
-      <div class="asset-panel">
+    <div class="tasks-inner">
+      <template v-if="mode === 'list'">
         <div class="asset-head">
           <h2>Memories</h2>
-          <button type="button" @click="resetForm">New</button>
+          <button type="button" @click="newMemory">New</button>
         </div>
         <div v-if="error" class="task-error">{{ error }}</div>
         <div v-if="loading && !memories.length" class="task-empty">Loading memories...</div>
@@ -120,9 +144,9 @@ onMounted(async () => {
             </span>
           </button>
         </div>
-      </div>
+      </template>
 
-      <form class="asset-editor" @submit.prevent="save">
+      <form v-else class="asset-editor" @submit.prevent="save">
         <div class="asset-head">
           <h2>{{ selected ? 'Edit memory' : 'New memory' }}</h2>
           <button v-if="selected" class="danger-btn" type="button" @click="remove">Delete</button>
@@ -149,7 +173,7 @@ onMounted(async () => {
         </label>
         <div class="modal-actions">
           <span>{{ selected ? `#${selected.id}` : '' }}</span>
-          <button class="text-btn" type="button" @click="resetForm">Clear</button>
+          <button class="text-btn" type="button" @click="resetForm(); setListNav()">Cancel</button>
           <button class="primary-btn" type="submit" :disabled="saving || !form.title.trim()">
             {{ saving ? 'Saving...' : 'Save' }}
           </button>

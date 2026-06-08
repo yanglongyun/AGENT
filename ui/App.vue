@@ -165,6 +165,9 @@ onUnmounted(() => {
           <span></span>
           <span></span>
         </button>
+        <button v-if="nav.back" class="back-btn" type="button" aria-label="Back" @click="nav.back">
+          &lt;
+        </button>
         <b>{{ nav.title || 'Agent Chat' }}</b>
         <span class="spacer"></span>
       </header>
