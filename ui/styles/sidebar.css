@@ -98,6 +98,10 @@
   opacity: 0.85;
 }
 
+.appitem + .sec {
+  margin-top: 24px;
+}
+
 .chatitem {
   display: block;
   width: 100%;
