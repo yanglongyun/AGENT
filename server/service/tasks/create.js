@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { chat } from "../../ai/index.js";
+import { stripImages } from "../../ai/vision.js";
 import { buildSystemPrompt } from "../chat/prompt.js";
 import { getChatRunConfig } from "../chat/config.js";
 import {
@@ -58,7 +59,7 @@ const saveTaskAiEvent = ({ chatId, event }) => {
   }
   if (event.type === "tool_results") {
     const messages = event.messages || [];
-    if (messages.length) saveChatMessages({ chatId, source: "task", messages });
+    if (messages.length) saveChatMessages({ chatId, source: "task", messages: messages.map(stripImages) });
     return;
   }
   if (event.type === "done" && event.message) {
