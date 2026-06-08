@@ -132,3 +132,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.modal-actions span {
+  flex: 1;
+  color: var(--muted);
+  font-size: 13px;
+}

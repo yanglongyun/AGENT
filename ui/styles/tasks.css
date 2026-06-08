@@ -269,3 +269,95 @@
   font-size: 13px;
   line-height: 1.55;
 }
+
+.settings-page {
+  border: 1px solid var(--line2);
+  border-radius: 14px;
+  background: #fff;
+  padding: 18px;
+}
+
+.settings-page-head {
+  margin-bottom: 16px;
+}
+
+.settings-page-head h2 {
+  font-size: 18px;
+  font-weight: 680;
+}
+
+.settings-page-head p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.settings-page label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 13px;
+  color: var(--ink2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-page input,
+.settings-page select,
+.settings-page textarea {
+  width: 100%;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  padding: 10px 11px;
+}
+
+.settings-page input:focus,
+.settings-page select:focus,
+.settings-page textarea:focus {
+  border-color: var(--accent);
+}
+
+.settings-page select {
+  appearance: auto;
+}
+
+.mono-input {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.settings-actions span {
+  flex: 1;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.text-btn,
+.primary-btn {
+  min-height: 34px;
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0 12px;
+}
+
+.text-btn:hover {
+  background: #f1ece3;
+}
+
+.primary-btn {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}

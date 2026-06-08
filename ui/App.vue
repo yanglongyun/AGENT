@@ -1,10 +1,11 @@
 <script setup>
 import { PanelLeft } from '@lucide/vue';
-import { computed, onMounted, onUnmounted, provide, reactive, ref } from 'vue';
+import { onMounted, onUnmounted, provide, reactive, ref } from 'vue';
 import ChatView from './components/Chat.vue';
 import GrowthView from './components/Growth.vue';
 import MemoriesView from './components/Memories.vue';
 import Sidebar from './components/Sidebar.vue';
+import SettingsView from './components/Settings.vue';
 import SkillsView from './components/Skills.vue';
 import SubscriptionsView from './components/Subscriptions.vue';
 import TasksView from './components/Tasks.vue';
@@ -15,10 +16,7 @@ const nav = reactive({
   left: null,
   right: null,
 });
-const showSettings = ref(false);
 const activeView = ref('chat');
-const providerGroups = ref([]);
-const providers = ref([]);
 const sidebarOpen = ref(true);
 const isMobile = ref(false);
 let viewportInitialized = false;
@@ -29,71 +27,6 @@ provide('pageNav', (title, back, left, right) => {
   nav.left = left || null;
   nav.right = right || null;
 });
-
-const settings = reactive({
-  provider: 'openai',
-  apiUrl: '',
-  apiKey: '',
-  model: '',
-  system: '',
-  contextTurns: '100',
-});
-const settingsStatus = ref('');
-const activeProvider = computed(() => providers.value.find((item) => item.id === settings.provider) || null);
-const groupedProviders = computed(() => {
-  const buckets = new Map(providerGroups.value.map((group) => [group.id, { ...group, providers: [] }]));
-  const other = { id: 'other', name: 'Other', providers: [] };
-  for (const provider of providers.value) {
-    const group = buckets.get(provider.group);
-    if (group) group.providers.push(provider);
-    else other.providers.push(provider);
-  }
-  const list = [...buckets.values()].filter((group) => group.providers.length);
-  if (other.providers.length) list.push(other);
-  return list;
-});
-
-function applyProviderDefaults() {
-  const provider = activeProvider.value;
-  if (!provider) return;
-  settings.apiUrl = provider.apiUrl || '';
-  settings.model = provider.defaultModel || '';
-}
-
-async function openSettings() {
-  showSettings.value = true;
-  settingsStatus.value = '';
-  const [settingsRes, modelsRes] = await Promise.all([
-    fetch('/api/settings'),
-    fetch('/api/settings/models'),
-  ]);
-  const settingsData = await settingsRes.json();
-  const modelsData = await modelsRes.json();
-  providerGroups.value = modelsData.groups || [];
-  providers.value = modelsData.providers || [];
-  Object.assign(settings, settingsData);
-  if (!settings.provider && providers.value.length) {
-    settings.provider = providers.value[0].id;
-  }
-  if (!settings.apiUrl && activeProvider.value?.apiUrl) {
-    settings.apiUrl = activeProvider.value.apiUrl;
-  }
-  if (!settings.model && activeProvider.value?.defaultModel) {
-    settings.model = activeProvider.value.defaultModel;
-  }
-}
-
-async function saveSettings() {
-  settingsStatus.value = 'Saving...';
-  const res = await fetch('/api/settings', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings),
-  });
-  Object.assign(settings, await res.json());
-  settingsStatus.value = 'Saved';
-  setTimeout(() => { settingsStatus.value = ''; }, 1200);
-}
 
 function requestNewChat() {
   activeView.value = 'chat';
@@ -129,6 +62,11 @@ function requestMemories() {
 
 function requestSkills() {
   activeView.value = 'skills';
+  closeSidebarOnMobile();
+}
+
+function requestSettings() {
+  activeView.value = 'settings';
   closeSidebarOnMobile();
 }
 
@@ -170,7 +108,7 @@ onUnmounted(() => {
       @growth="requestGrowth"
       @memories="requestMemories"
       @skills="requestSkills"
-      @settings="openSettings(); closeSidebarOnMobile()"
+      @settings="requestSettings"
     />
 
     <main class="main">
@@ -191,60 +129,9 @@ onUnmounted(() => {
         <SubscriptionsView v-else-if="activeView === 'subscriptions'" />
         <GrowthView v-else-if="activeView === 'growth'" />
         <MemoriesView v-else-if="activeView === 'memories'" />
-        <SkillsView v-else />
+        <SkillsView v-else-if="activeView === 'skills'" />
+        <SettingsView v-else />
       </div>
     </main>
-
-    <div v-if="showSettings" class="modal-backdrop" @click.self="showSettings = false">
-      <form class="settings-modal" @submit.prevent="saveSettings">
-        <div class="modal-head">
-          <div>
-            <h2>Model Settings</h2>
-            <p>OpenAI-compatible chat completions endpoint</p>
-          </div>
-          <button class="icon-btn" type="button" @click="showSettings = false">×</button>
-        </div>
-
-        <label>
-          Provider
-          <select v-model="settings.provider" class="settings-select" @change="applyProviderDefaults">
-            <optgroup v-for="group in groupedProviders" :key="group.id" :label="group.name">
-              <option v-for="provider in group.providers" :key="provider.id" :value="provider.id">
-                {{ provider.name }}
-              </option>
-            </optgroup>
-          </select>
-        </label>
-        <label>
-          Model
-          <select v-if="activeProvider?.models?.length" v-model="settings.model" class="settings-select">
-            <option v-for="model in activeProvider.models" :key="model" :value="model">{{ model }}</option>
-          </select>
-          <input v-else v-model="settings.model" placeholder="model name" />
-        </label>
-        <label>
-          API URL
-          <input v-model="settings.apiUrl" class="mono-input" placeholder="https://api.openai.com/v1/chat/completions" />
-        </label>
-        <label>
-          API Key
-          <input v-model="settings.apiKey" class="mono-input" type="password" placeholder="sk-..." />
-        </label>
-        <label>
-          Context Turns
-          <input v-model="settings.contextTurns" type="number" min="1" max="200" />
-        </label>
-        <label>
-          System Prompt
-          <textarea v-model="settings.system" rows="5" placeholder="Optional custom system prompt"></textarea>
-        </label>
-
-        <div class="modal-actions">
-          <span>{{ settingsStatus }}</span>
-          <button class="text-btn" type="button" @click="showSettings = false">Cancel</button>
-          <button class="primary-btn" type="submit">Save</button>
-        </div>
-      </form>
-    </div>
   </div>
 </template>
