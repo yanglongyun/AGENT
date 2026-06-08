@@ -11,6 +11,7 @@ import {
 } from "../../repository/tasks/index.js";
 import { createSubscription, fireTaskSubscriptions } from "../subscriptions/index.js";
 import { registerTaskExecution, unregisterTaskExecution } from "./execution.js";
+import { appendChatMessage, createChat, getChat, saveChatMessages, setChatState } from "../chat/index.js";
 
 const sanitizeTaskName = (value) => {
   const name = String(value || "").trim();
@@ -35,7 +36,42 @@ const getLastAssistantText = (result = {}) => {
   return String(result.text || "");
 };
 
-const runTaskAi = async ({ taskId, name, prompt, inputOverrides, signal }) => {
+const getTaskChatId = (taskId) => `task:${taskId}`;
+
+const ensureTaskChat = ({ taskId, name }) => {
+  const chatId = getTaskChatId(taskId);
+  if (!getChat(chatId)) {
+    createChat({
+      chatId,
+      title: name,
+      app: "task",
+      meta: { taskId },
+    });
+  }
+  return chatId;
+};
+
+const saveTaskAiEvent = ({ chatId, event }) => {
+  if (event.type === "tool_calls" && event.message) {
+    saveChatMessages({ chatId, source: "task", messages: [event.message] });
+    return;
+  }
+  if (event.type === "tool_results") {
+    const messages = event.messages || [];
+    if (messages.length) saveChatMessages({ chatId, source: "task", messages });
+    return;
+  }
+  if (event.type === "done" && event.message) {
+    saveChatMessages({
+      chatId,
+      source: "task",
+      messages: [event.message],
+      usage: event.usage || null,
+    });
+  }
+};
+
+const runTaskAi = async ({ taskId, taskChatId, name, prompt, inputOverrides, signal }) => {
   const settings = getChatRunConfig(inputOverrides || {});
   const systemMessage = {
     role: "system",
@@ -56,6 +92,7 @@ const runTaskAi = async ({ taskId, name, prompt, inputOverrides, signal }) => {
   ], {
     ...settings,
     signal,
+    onEvent: (event) => saveTaskAiEvent({ chatId: taskChatId, event }),
   });
   return getLastAssistantText(result);
 };
@@ -65,6 +102,12 @@ const createTask = ({ taskName, name, detail, prompt, messages, inputOverrides =
   const taskPrompt = readTaskPrompt(prompt || detail, messages);
   if (!taskPrompt) throw new Error("task prompt is required");
   const taskId = createTaskRow({ name: taskNameValue, prompt: taskPrompt });
+  const taskChatId = ensureTaskChat({ taskId, name: taskNameValue });
+  appendChatMessage({
+    chatId: taskChatId,
+    message: { role: "user", content: taskPrompt },
+    meta: { source: "task" },
+  });
   const subscriptionId = subscription?.chatId
     ? createSubscription({ taskId, chatId: subscription.chatId })
     : null;
@@ -72,11 +115,13 @@ const createTask = ({ taskName, name, detail, prompt, messages, inputOverrides =
   const controller = new AbortController();
   registerTaskExecution(taskId, controller);
   markTaskRunning(taskId);
+  setChatState({ chatId: taskChatId, state: "running" });
 
   const run = async () => {
     try {
       const response = await runTaskAi({
         taskId,
+        taskChatId,
         name: taskNameValue,
         prompt: taskPrompt,
         inputOverrides,
@@ -93,12 +138,13 @@ const createTask = ({ taskName, name, detail, prompt, messages, inputOverrides =
         await fireTaskSubscriptions({ taskId, taskName: taskNameValue, status: "error", error: error.message });
       }
     } finally {
+      setChatState({ chatId: taskChatId, state: "idle" });
       unregisterTaskExecution(taskId);
     }
   };
 
   void run();
-  return { taskId, taskName: taskNameValue, subscriptionId };
+  return { taskId, taskName: taskNameValue, taskChatId, subscriptionId };
 };
 
-export { createTask };
+export { createTask, getTaskChatId };

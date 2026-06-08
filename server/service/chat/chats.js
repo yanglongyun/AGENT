@@ -7,8 +7,8 @@ import {
   updateChatState,
 } from "../../repository/chat/chats/index.js";
 
-const createChat = ({ title = "New chat", app = "chat", meta = null } = {}) =>
-  repoCreateChat(title, app, meta);
+const createChat = ({ title = "New chat", app = "chat", meta = null, chatId = null } = {}) =>
+  repoCreateChat(title, app, meta, chatId);
 
 const deleteChat = ({ chatId }) => repoDeleteChat(chatId);
 

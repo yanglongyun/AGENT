@@ -7,13 +7,13 @@ const asOffset = (value) => Math.max(0, Math.floor(Number(value || 0)));
 
 const handleChatApi = async (req, res, { sendJson }, path, method, url) => {
   if (path === "/api/chat/list" && method === "GET") {
-    sendJson(res, 200, listChats());
+    sendJson(res, 200, listChats({ app: url.searchParams.get("app") || "chat" }));
     return;
   }
 
   if (path === "/api/chat/create" && method === "POST") {
     const body = await readJsonBody(req);
-    const chat = createChat({ title: body.title || "New chat", app: body.app || "chat", meta: body.meta || null });
+    const chat = createChat({ title: body.title || "New chat", app: body.app || "chat", meta: body.meta || null, chatId: body.chatId || null });
     sendJson(res, 200, { chatId: chat.id, chat });
     return;
   }

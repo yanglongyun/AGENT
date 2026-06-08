@@ -7,6 +7,7 @@ const setPageNav = inject('pageNav');
 const tasks = ref([]);
 const currentTaskId = ref(null);
 const currentTask = ref(null);
+const taskMessages = ref([]);
 const loading = ref(false);
 const error = ref('');
 const stopping = ref(false);
@@ -31,6 +32,7 @@ function setDetailNav(task) {
   setPageNav(task?.name || 'Task', () => {
     currentTaskId.value = null;
     currentTask.value = null;
+    taskMessages.value = [];
     setListNav();
   }, null, null);
 }
@@ -54,6 +56,7 @@ async function loadTask(id) {
   try {
     const data = await getTask(id);
     currentTask.value = data.task || null;
+    taskMessages.value = Array.isArray(data.messages) ? data.messages : [];
     setDetailNav(currentTask.value);
   } catch (err) {
     error.value = err.message || 'Load failed';
@@ -86,6 +89,25 @@ async function stopTask() {
 function formatTime(value) {
   if (!value) return '-';
   return String(value).replace('T', ' ').slice(0, 19);
+}
+
+function messageRole(row) {
+  const role = row?.message?.role || 'unknown';
+  const source = row?.meta?.source || '';
+  return source ? `${role} · ${source}` : role;
+}
+
+function messageText(row) {
+  const msg = row?.message || {};
+  if (typeof msg.content === 'string' && msg.content) return msg.content;
+  if (Array.isArray(msg.tool_calls) && msg.tool_calls.length) {
+    return msg.tool_calls.map((call) => {
+      const name = call?.function?.name || 'tool';
+      const args = call?.function?.arguments || '{}';
+      return `${name} ${args}`;
+    }).join('\n');
+  }
+  return JSON.stringify(msg, null, 2);
 }
 
 function startPolling() {
@@ -162,6 +184,16 @@ onUnmounted(() => {
         <section v-if="visibleTask.error">
           <h3>Error</h3>
           <pre class="danger">{{ visibleTask.error }}</pre>
+        </section>
+
+        <section v-if="taskMessages.length">
+          <h3>Chat record</h3>
+          <div class="task-message-list">
+            <div v-for="row in taskMessages" :key="row.id" class="task-message">
+              <div class="task-message-role">{{ messageRole(row) }}</div>
+              <pre>{{ messageText(row) }}</pre>
+            </div>
+          </div>
         </section>
       </article>
     </div>

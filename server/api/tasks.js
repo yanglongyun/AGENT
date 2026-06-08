@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { abortTask, createTask, getTask, listTasks } from "../service/tasks/index.js";
+import { abortTask, createTask, getTask, getTaskChatId, listTasks } from "../service/tasks/index.js";
+import { listChatMessages } from "../service/chat/index.js";
 import { readJsonBody } from "../utils/http.js";
 
 const readLimit = (value) => Math.max(1, Math.min(500, Number.parseInt(value, 10) || 100));
@@ -18,7 +19,9 @@ const handleTasksApi = async (req, res, { sendJson }, path, method, url) => {
         sendJson(res, 404, { error: "task not found" });
         return;
       }
-      sendJson(res, 200, { ok: true, task });
+      const taskChatId = getTaskChatId(task.id);
+      const messages = listChatMessages({ chatId: taskChatId, limit: 200, order: "asc" }).messages;
+      sendJson(res, 200, { ok: true, task: { ...task, chatId: taskChatId }, messages });
       return;
     }
     sendJson(res, 200, { ok: true, tasks: listTasks({ limit: readLimit(url.searchParams.get("limit")) }) });
