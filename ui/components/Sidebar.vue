@@ -80,12 +80,7 @@ onUnmounted(() => {
         {{ app.name }}
       </button>
 
-      <div class="sec">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 2.8l2.8 5.7 6.3.9-4.6 4.5 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.4l6.3-.9L12 2.8z" />
-        </svg>
-        Recent
-      </div>
+      <div class="sec">Chats</div>
       <button
         v-for="chat in chats"
         :key="chat.id"
