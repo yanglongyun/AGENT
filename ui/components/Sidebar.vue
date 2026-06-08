@@ -1,5 +1,5 @@
 <script setup>
-import { BookOpen, Clock, MessagesSquare, Plus, ShieldCheck, Sprout } from '@lucide/vue';
+import { BookOpen, Clock, MessagesSquare, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { listConversations } from '../lib/api.js';
 
@@ -38,7 +38,7 @@ onUnmounted(() => {
       </div>
       <div class="primary-nav">
         <button class="side-primary" type="button" @click="emit('new-chat')">
-          <Plus />
+          <SquarePen />
           New chat
         </button>
         <button class="side-primary" type="button" @click="emit('tasks')">
