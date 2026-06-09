@@ -6,8 +6,6 @@
   "main": "server/index.js",
   "scripts": {
     "dev": "node server/index.js",
-    "dev:all": "node server/apps/index.js & node server/index.js",
-    "apps": "node server/apps/index.js",
     "server": "node server/index.js",
     "ui": "vite --host 127.0.0.1",
     "build": "vite build",
