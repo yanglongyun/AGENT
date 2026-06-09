@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { getServerSettings, updateServerSettings } from "../service/settings/index.js";
-import { listLlmProviderGroups, listLlmProviders } from "../ai/llm/models.js";
+import { listLlmProviderGroups, listLlmProviders } from "../service/models.js";
 import { buildSystemPrompt } from "../service/chat/prompt.js";
 import { readJsonBody } from "../utils/http.js";
 
