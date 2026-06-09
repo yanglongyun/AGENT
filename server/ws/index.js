@@ -1,7 +1,7 @@
 // @ts-nocheck
 import WebSocket, { WebSocketServer } from "ws";
 import { dispatchWebSocketEvent } from "./dispatch.js";
-import { handleFrame as handleBrowserFrame, registerExtension, unregisterExtension } from "./browserBridge.js";
+import { handleFrame as handleBrowserFrame, registerExtension, unregisterExtension } from "../service/controls/browserBridge.js";
 
 const WS_PATH = "/ws";
 const clients = new Set();

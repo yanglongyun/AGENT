@@ -63,8 +63,9 @@ server/
   api/              # REST 路由(chat / tasks / subscriptions / memories / skills / controls / settings / fs …)
   ai/               # LLM 调用、工具(shell)、runner、vision
   service/          # 业务逻辑(chat、growth、skills…)
+    controls/       #   控制连接器:computer-use(进程内)+ browserBridge(浏览器桥)
   repository/       # SQLite 数据访问(db.js 建表)
-  ws/               # WebSocket 实时流
+  ws/               # WebSocket 传输(聊天流 + 扩展连接,转发给 service/controls)
   utils/
 ui/
   App.vue           # 布局:侧栏 + 主区
@@ -72,8 +73,7 @@ ui/
   components/       # 复用构件:Sidebar / Composer / Messages / History / bubbles
   lib/              # api、ws、stream、markdown、locale、appearance
   styles/           # Tailwind 分层样式
-connectors/
-  computer-use/     # 电脑控制连接器
+extension/          # 浏览器控制连接器(Chrome 扩展,WS 连入 AGENT)
 ```
 
 ## ⚠️ 安全提示

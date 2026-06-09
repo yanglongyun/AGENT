@@ -9,7 +9,7 @@ AI(对话) → AGENT 后端(hub) --WS--> 本扩展(执行) → Chrome 标签页
 ## 装上并连接
 
 1. 启动 AGENT 后端:`npm run server`(默认 `http://127.0.0.1:9500`)。
-2. 打开 Chrome → `chrome://extensions` → 右上角开「开发者模式」→「加载已解压的扩展程序」→ 选本目录 `connectors/browser-use`。
+2. 打开 Chrome → `chrome://extensions` → 右上角开「开发者模式」→「加载已解压的扩展程序」→ 选本目录 `extension`。
 3. 默认配置(`config.js`)已指向本地 AGENT,装好即自动连接。打开 AGENT 的「控制」页,Browser 应显示 **Online**。
 
 > 要连别的地址(如远端 AGENT),点扩展图标在 popup 里填 `WS_URL` / `TOKEN`,或改 `config.js`。AGENT 不校验 token,任意非空值即可。
