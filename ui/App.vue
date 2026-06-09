@@ -89,9 +89,12 @@ function requestControls() {
   closeSidebarOnMobile();
 }
 
-function requestSpaces() {
+function requestSpaces(options = {}) {
   activeView.value = 'spaces';
   activeAppId.value = '';
+  if (options?.create) {
+    window.dispatchEvent(new CustomEvent('agent:spaces-create'));
+  }
   closeSidebarOnMobile();
 }
 

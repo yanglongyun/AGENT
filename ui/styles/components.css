@@ -21,6 +21,10 @@
   .side-primary svg { @apply h-4 w-4 shrink-0 text-[var(--accent-d)]; }
   .nav .list { @apply min-h-0 flex-1 overflow-y-auto px-[9px] pb-2.5 pt-3.5; }
   .nav .sec { @apply mx-[7px] mb-[5px] mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.5px] text-[var(--muted)]; }
+  .nav .sec-action { @apply justify-between; }
+  .sec-label { @apply min-w-0 flex-1 overflow-hidden text-left uppercase tracking-[0.5px]; }
+  .sec-plus { @apply grid h-5 w-5 shrink-0 place-items-center rounded-md text-[var(--muted)] hover:bg-[#f1ece3] hover:text-[var(--accent-d)]; }
+  .sec-plus svg { @apply h-3.5 w-3.5; }
   .appitem + .sec { @apply mt-6; }
   .chatitem { @apply block w-full overflow-hidden rounded-[9px] px-[11px] py-2 text-left text-[13px] text-[var(--ink2)] transition-colors hover:bg-[#f1ece3] whitespace-nowrap text-ellipsis; }
   .appitem { @apply flex items-center gap-2; }

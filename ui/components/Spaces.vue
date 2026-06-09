@@ -1,5 +1,5 @@
 <script setup>
-import { computed, inject, onMounted, reactive, ref } from 'vue';
+import { computed, inject, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { createSpace, createSpaceChat, listSpaceChats, listSpaces, listSpaceTree } from '../lib/api.js';
 import { t } from '../lib/locale.js';
 
@@ -13,6 +13,7 @@ const activeSpaceId = ref('');
 const activePath = ref('.');
 const loading = ref(false);
 const error = ref('');
+const showCreate = ref(false);
 const form = reactive({ name: '', path: '' });
 
 const activeSpace = computed(() => spaces.value.find((space) => space.id === activeSpaceId.value) || null);
@@ -75,6 +76,7 @@ async function addSpace() {
     const data = await createSpace({ name: form.name, path: form.path });
     form.name = '';
     form.path = '';
+    showCreate.value = false;
     await refreshSpaces();
     activeSpaceId.value = data.space?.id || activeSpaceId.value;
     activePath.value = '.';
@@ -82,6 +84,10 @@ async function addSpace() {
   } catch (err) {
     error.value = err.message || t('spaces_create_failed', 'Create space failed');
   }
+}
+
+function openCreate() {
+  showCreate.value = true;
 }
 
 async function selectSpace(id) {
@@ -120,16 +126,24 @@ function openChat(chat) {
 
 onMounted(async () => {
   setNav();
+  window.addEventListener('agent:spaces-create', openCreate);
   await loadAll();
+});
+
+onUnmounted(() => {
+  window.removeEventListener('agent:spaces-create', openCreate);
 });
 </script>
 
 <template>
   <section class="tasks-view asset-view">
     <div class="tasks-inner">
-      <p class="page-intro">{{ t('page_desc_spaces', 'Spaces map local project folders so chats can be organized by project and directory.') }}</p>
+      <div class="asset-head">
+        <p class="page-intro">{{ t('page_desc_spaces', 'Spaces map local project folders so chats can be organized by project and directory.') }}</p>
+        <button type="button" @click="openCreate">{{ t('spaces_add', 'Add') }}</button>
+      </div>
 
-      <form class="space-form" @submit.prevent="addSpace">
+      <form v-if="showCreate || !spaces.length" class="space-form" @submit.prevent="addSpace">
         <input v-model="form.name" :placeholder="t('spaces_name', 'Name')" />
         <input v-model="form.path" class="mono-input" placeholder="/Users/me/project" />
         <button class="primary-btn" type="submit">{{ t('spaces_add', 'Add') }}</button>

@@ -1,5 +1,5 @@
 <script setup>
-import { BookOpen, Boxes, Clock, MessagesSquare, MonitorSmartphone, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
+import { BookOpen, Clock, MessagesSquare, MonitorSmartphone, Plus, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { apps } from '../apps/registry.js';
 import { listConversations } from '../lib/api.js';
@@ -19,6 +19,10 @@ async function refresh() {
 
 function formatChatTitle(chat) {
   return chat?.title || t('nav_new_chat', 'New chat');
+}
+
+function openSpaces(create = false) {
+  emit('spaces', { create });
 }
 
 onMounted(() => {
@@ -63,10 +67,6 @@ onUnmounted(() => {
           <MonitorSmartphone />
           {{ t('nav_controls', 'Controls') }}
         </button>
-        <button class="side-primary" type="button" @click="emit('spaces')">
-          <Boxes />
-          {{ t('nav_spaces', 'Spaces') }}
-        </button>
         <button class="side-primary" type="button" @click="emit('growth')">
           <Sprout />
           {{ t('nav_growth', 'Growth') }}
@@ -88,6 +88,13 @@ onUnmounted(() => {
         <span>{{ app.icon }}</span>
         {{ app.name }}
       </button>
+
+      <div class="sec sec-action">
+        <button class="sec-label" type="button" @click="openSpaces(false)">{{ t('nav_spaces', 'Spaces') }}</button>
+        <button class="sec-plus" type="button" :aria-label="t('spaces_add', 'Add')" @click.stop="openSpaces(true)">
+          <Plus />
+        </button>
+      </div>
 
       <div class="sec">{{ t('nav_chats', 'Chats') }}</div>
       <button
