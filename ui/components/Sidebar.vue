@@ -1,11 +1,10 @@
 <script setup>
-import { BookOpen, Clock, MessagesSquare, MonitorSmartphone, Plus, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
+import { BookOpen, Clock, MessagesSquare, MonitorSmartphone, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
 import { onMounted, onUnmounted, ref } from 'vue';
-import { apps } from '../apps/registry.js';
 import { listConversations } from '../lib/api.js';
 import { t } from '../lib/locale.js';
 
-const emit = defineEmits(['new-chat', 'open-chat', 'open-app', 'tasks', 'subscriptions', 'growth', 'memories', 'skills', 'controls', 'spaces', 'settings']);
+const emit = defineEmits(['new-chat', 'open-chat', 'tasks', 'subscriptions', 'growth', 'memories', 'skills', 'controls', 'settings']);
 
 const chats = ref([]);
 
@@ -19,10 +18,6 @@ async function refresh() {
 
 function formatChatTitle(chat) {
   return chat?.title || t('nav_new_chat', 'New chat');
-}
-
-function openSpaces(create = false) {
-  emit('spaces', { create });
 }
 
 onMounted(() => {
@@ -75,27 +70,6 @@ onUnmounted(() => {
     </div>
 
     <div class="list">
-      <div class="sec sec-action">
-        <button class="sec-label" type="button" @click="openSpaces(false)">{{ t('nav_spaces', 'Spaces') }}</button>
-        <button class="sec-plus" type="button" :aria-label="t('spaces_add', 'Add')" @click.stop="openSpaces(true)">
-          <Plus />
-        </button>
-      </div>
-
-      <div class="sec">
-        {{ t('nav_apps', 'Apps') }}
-      </div>
-      <button
-        v-for="app in apps"
-        :key="app.id"
-        class="chatitem appitem"
-        type="button"
-        @click="emit('open-app', app.id)"
-      >
-        <span>{{ app.icon }}</span>
-        {{ app.name }}
-      </button>
-
       <div class="sec">{{ t('nav_chats', 'Chats') }}</div>
       <button
         v-for="chat in chats"

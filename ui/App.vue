@@ -1,7 +1,6 @@
 <script setup>
 import { PanelLeft } from '@lucide/vue';
 import { onMounted, onUnmounted, provide, reactive, ref } from 'vue';
-import AppsView from './components/Apps.vue';
 import ChatView from './components/Chat.vue';
 import ControlsView from './components/Controls.vue';
 import GrowthView from './components/Growth.vue';
@@ -9,7 +8,6 @@ import MemoriesView from './components/Memories.vue';
 import Sidebar from './components/Sidebar.vue';
 import SettingsView from './components/Settings.vue';
 import SkillsView from './components/Skills.vue';
-import SpacesView from './components/Spaces.vue';
 import SubscriptionsView from './components/Subscriptions.vue';
 import TasksView from './components/Tasks.vue';
 import { t } from './lib/locale.js';
@@ -21,7 +19,6 @@ const nav = reactive({
   right: null,
 });
 const activeView = ref('chat');
-const activeAppId = ref('');
 const sidebarOpen = ref(true);
 const isMobile = ref(false);
 let viewportInitialized = false;
@@ -35,72 +32,48 @@ provide('pageNav', (title, back, left, right) => {
 
 function requestNewChat() {
   activeView.value = 'chat';
-  activeAppId.value = '';
   window.dispatchEvent(new CustomEvent('agent:new-chat'));
   closeSidebarOnMobile();
 }
 
 function requestOpenChat(chat) {
   activeView.value = 'chat';
-  activeAppId.value = '';
   window.dispatchEvent(new CustomEvent('agent:open-chat', { detail: { chat } }));
-  closeSidebarOnMobile();
-}
-
-function requestOpenApp(appId) {
-  activeAppId.value = appId;
-  activeView.value = 'app';
   closeSidebarOnMobile();
 }
 
 function requestTasks() {
   activeView.value = 'tasks';
-  activeAppId.value = '';
   closeSidebarOnMobile();
 }
 
 function requestSubscriptions() {
   activeView.value = 'subscriptions';
-  activeAppId.value = '';
   closeSidebarOnMobile();
 }
 
 function requestGrowth() {
   activeView.value = 'growth';
-  activeAppId.value = '';
   closeSidebarOnMobile();
 }
 
 function requestMemories() {
   activeView.value = 'memories';
-  activeAppId.value = '';
   closeSidebarOnMobile();
 }
 
 function requestSkills() {
   activeView.value = 'skills';
-  activeAppId.value = '';
   closeSidebarOnMobile();
 }
 
 function requestControls() {
   activeView.value = 'controls';
-  activeAppId.value = '';
-  closeSidebarOnMobile();
-}
-
-function requestSpaces(options = {}) {
-  activeView.value = 'spaces';
-  activeAppId.value = '';
-  if (options?.create) {
-    window.dispatchEvent(new CustomEvent('agent:spaces-create'));
-  }
   closeSidebarOnMobile();
 }
 
 function requestSettings() {
   activeView.value = 'settings';
-  activeAppId.value = '';
   closeSidebarOnMobile();
 }
 
@@ -137,14 +110,12 @@ onUnmounted(() => {
     <Sidebar
       @new-chat="requestNewChat"
       @open-chat="requestOpenChat"
-      @open-app="requestOpenApp"
       @tasks="requestTasks"
       @subscriptions="requestSubscriptions"
       @growth="requestGrowth"
       @memories="requestMemories"
       @skills="requestSkills"
       @controls="requestControls"
-      @spaces="requestSpaces"
       @settings="requestSettings"
     />
 
@@ -162,14 +133,12 @@ onUnmounted(() => {
 
       <div class="chat-stage">
         <ChatView v-if="activeView === 'chat'" />
-        <AppsView v-else-if="activeView === 'app'" :app-id="activeAppId" @open-app="requestOpenApp" />
         <TasksView v-else-if="activeView === 'tasks'" />
         <SubscriptionsView v-else-if="activeView === 'subscriptions'" />
         <GrowthView v-else-if="activeView === 'growth'" />
         <MemoriesView v-else-if="activeView === 'memories'" />
         <SkillsView v-else-if="activeView === 'skills'" />
         <ControlsView v-else-if="activeView === 'controls'" />
-        <SpacesView v-else-if="activeView === 'spaces'" @open-chat="requestOpenChat" />
         <SettingsView v-else />
       </div>
     </main>

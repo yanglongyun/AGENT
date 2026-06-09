@@ -9,7 +9,6 @@ import { getChatRunConfig } from "./config.js";
 import { chatControllers } from "./controllers.js";
 import { normalizeAttachments } from "./attachments.js";
 import { enqueueGrowthTask } from "../growth/index.js";
-import { getSpaceChatContext } from "../spaces/index.js";
 
 const limitMessagesByTurns = (messages, contextTurns) => {
   const turns = Math.max(0, Number.parseInt(contextTurns, 10) || 0);
@@ -67,7 +66,6 @@ const waitForChatIdle = async (chatId) => {
 
 const prepareChatInput = ({ chatId, input = {} }) => {
   const settings = getChatRunConfig(input.config || input);
-  const spaceContext = getSpaceChatContext(chatId);
   const history = Array.isArray(input.messages)
     ? input.messages
     : listChatMessages({ chatId, limit: 200, order: "asc" }).messages;
@@ -82,7 +80,7 @@ const prepareChatInput = ({ chatId, input = {} }) => {
     : null;
   const systemMessage = {
     role: "system",
-    content: buildSystemPrompt(chatId, contextMessages, { ...settings, spaceContext }),
+    content: buildSystemPrompt(chatId, contextMessages, settings),
   };
 
   return {

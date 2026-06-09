@@ -35,16 +35,6 @@ const memoryBlock = () => {
   return lines.join("\n");
 };
 
-const appsBlock = () => [
-  "## 应用",
-  "- 应用是独立的本地应用，不是内置 AI 工具。",
-  "- 主服务会把 http://127.0.0.1:9500/apps/* 下的应用请求代理到 apps 服务。",
-  "- 应用服务健康检查：GET http://127.0.0.1:9500/apps/health。",
-  "- 当前应用源码位于 server/apps/<app>、ui/apps/<app> 和 apps/<app>/APP.md。",
-  "- 应用 SQLite 数据库位于 data/apps/。",
-  "- 需要检查或操作应用 API 时，使用 shell/curl。",
-].join("\n");
-
 const controlsBlock = () => [
   "## 控制",
   "- 控制是连接器状态资源，不是额外的 AI 工具。",
@@ -116,20 +106,6 @@ const skillsBlock = () => {
   return lines.join("\n");
 };
 
-const spaceBlock = (spaceContext = null) => {
-  if (!spaceContext) return "";
-  const lines = [
-    "## 空间",
-    `- 当前空间：${spaceContext.space_name || spaceContext.space_id}`,
-    `- 空间根目录：${spaceContext.root_path}`,
-    `- 当前目录：${spaceContext.relative_path || "."}`,
-    `- 当前目录绝对路径：${spaceContext.cwd}`,
-    "- 这个空间用于组织和隔离不同本地项目；当前 chat 属于这个空间目录。",
-    "- 需要在当前空间内执行本地操作时，shell 可使用上面的当前目录作为 cwd。",
-  ];
-  return lines.join("\n");
-};
-
 const evolutionBlock = (settings = {}) => {
   const text = String(settings.evolution || "").trim();
   if (!text) return "";
@@ -146,7 +122,6 @@ const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
     `- 当前 chatId：${chatId}`,
     `- 工作目录：${process.cwd()}`,
     `- 模型：${settings.model || ""}`,
-    spaceBlock(settings.spaceContext),
     "",
     "## 工具",
     "- shell(command, summary, timeout?, cwd?)：执行 shell 命令并返回 stdout/stderr。",
@@ -163,8 +138,6 @@ const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
     "- 短回答、轻量检查或普通对话不要创建任务。",
     "- 创建任务时，用 shell 向 http://127.0.0.1:9500/api/tasks POST JSON。",
     `- 如果任务结果需要回到当前聊天，请包含 {"subscription":{"chatId":"${chatId}"}}。`,
-    "",
-    appsBlock(),
     "",
     controlsBlock(),
   ].filter((part) => String(part ?? "").trim()).join("\n\n");
