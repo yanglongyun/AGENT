@@ -1,7 +1,7 @@
 <template>
   <History v-if="showHistory" class="absolute inset-0" @open="onHistorySelect" @new="onNewChat" />
 
-  <div v-else class="absolute inset-0 flex flex-col overflow-hidden bg-[var(--bg)]">
+  <div v-else class="absolute inset-0 flex flex-col overflow-hidden bg-bg">
     <Messages
       ref="messagesRef"
       :messages="messages"

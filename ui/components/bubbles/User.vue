@@ -25,11 +25,11 @@ const formatSize = (size) => {
         <div
           v-for="(f, fi) in attachments"
           :key="fi"
-          class="flex max-w-[220px] items-center gap-[7px] rounded-[10px] border border-[var(--line2)] bg-white px-2 py-[5px] text-[var(--ink2)]"
+          class="flex max-w-[220px] items-center gap-[7px] rounded-[10px] border border-line2 bg-white px-2 py-[5px] text-ink2"
         >
-          <span class="h-[15px] w-[13px] rounded-sm border border-[var(--line2)] bg-gradient-to-b from-[#fff8ef] to-[#f0dfd3]"></span>
+          <span class="h-[15px] w-[13px] rounded-sm border border-line2 bg-gradient-to-b from-[#fff8ef] to-[#f0dfd3]"></span>
           <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] font-semibold">{{ f.name }}</span>
-          <span v-if="formatSize(f.size)" class="shrink-0 font-mono text-[9px] text-[var(--muted)]">{{ formatSize(f.size) }}</span>
+          <span v-if="formatSize(f.size)" class="shrink-0 font-mono text-[9px] text-muted">{{ formatSize(f.size) }}</span>
         </div>
       </div>
       <p v-if="displayContent">{{ displayContent }}</p>

@@ -107,16 +107,16 @@ defineExpose({ pendingFiles, clearFiles, resetTextarea, appendFiles });
       <div
         v-for="(f, idx) in pendingFiles"
         :key="pendingFileKey(f)"
-        class="relative flex h-[52px] w-[168px] shrink-0 items-center gap-2.5 rounded-xl border border-[var(--line2)] bg-white px-2.5"
+        class="relative flex h-[52px] w-[168px] shrink-0 items-center gap-2.5 rounded-xl border border-line2 bg-white px-2.5"
       >
-        <div class="h-8 w-[27px] shrink-0 rounded-[5px] border border-[var(--line2)] bg-gradient-to-b from-[#fff8ef] to-[#f0dfd3]"></div>
+        <div class="h-8 w-[27px] shrink-0 rounded-[5px] border border-line2 bg-gradient-to-b from-[#fff8ef] to-[#f0dfd3]"></div>
         <div class="min-w-0 flex-1">
-          <div class="overflow-hidden text-ellipsis whitespace-nowrap text-xs font-semibold leading-tight text-[var(--ink)]">{{ f.name }}</div>
-          <div class="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[9.5px] text-[var(--muted)]" :title="f.path">{{ f.path || formatSize(f.size) || f.type || t('server_attachment_file', 'file') }}</div>
+          <div class="overflow-hidden text-ellipsis whitespace-nowrap text-xs font-semibold leading-tight text-ink">{{ f.name }}</div>
+          <div class="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[9.5px] text-muted" :title="f.path">{{ f.path || formatSize(f.size) || f.type || t('server_attachment_file', 'file') }}</div>
         </div>
         <button
           type="button"
-          class="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[var(--ink)] text-xs font-bold text-white"
+          class="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-xs font-bold text-white"
           @click="pendingFiles.splice(idx,1)"
         >×</button>
       </div>
