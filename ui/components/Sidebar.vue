@@ -75,6 +75,13 @@ onUnmounted(() => {
     </div>
 
     <div class="list">
+      <div class="sec sec-action">
+        <button class="sec-label" type="button" @click="openSpaces(false)">{{ t('nav_spaces', 'Spaces') }}</button>
+        <button class="sec-plus" type="button" :aria-label="t('spaces_add', 'Add')" @click.stop="openSpaces(true)">
+          <Plus />
+        </button>
+      </div>
+
       <div class="sec">
         {{ t('nav_apps', 'Apps') }}
       </div>
@@ -88,13 +95,6 @@ onUnmounted(() => {
         <span>{{ app.icon }}</span>
         {{ app.name }}
       </button>
-
-      <div class="sec sec-action">
-        <button class="sec-label" type="button" @click="openSpaces(false)">{{ t('nav_spaces', 'Spaces') }}</button>
-        <button class="sec-plus" type="button" :aria-label="t('spaces_add', 'Add')" @click.stop="openSpaces(true)">
-          <Plus />
-        </button>
-      </div>
 
       <div class="sec">{{ t('nav_chats', 'Chats') }}</div>
       <button
