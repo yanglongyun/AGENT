@@ -84,12 +84,27 @@ const browserStatus = () => ({
   tools: BROWSER_TOOLS,
 });
 
+// 扩展连接的传输处理(ws/index.js 在握手 ?client=extension 时调用):
+// 登记连接、ping→pong、把 tool.result/error 转给桥;断开时注销。
+const bindExtension = (ws) => {
+  registerExtension(ws);
+  ws.on("message", (raw) => {
+    let frame;
+    try { frame = JSON.parse(String(raw || "{}")); } catch { return; }
+    if (frame.type === "ping") {
+      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "pong" }));
+      return;
+    }
+    if (frame.type === "tool.result" || frame.type === "tool.error") handleFrame(frame);
+  });
+  ws.on("close", () => unregisterExtension(ws));
+  ws.on("error", () => unregisterExtension(ws));
+};
+
 export {
   BROWSER_TOOLS,
+  bindExtension,
   browserStatus,
   callTool,
-  handleFrame,
   isConnected,
-  registerExtension,
-  unregisterExtension,
 };

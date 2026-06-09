@@ -61,11 +61,11 @@ npm run server      # 访问 http://127.0.0.1:9500
 server/
   index.js          # HTTP + 静态托管入口
   api/              # REST 路由(chat / tasks / subscriptions / memories / skills / controls / settings / fs …)
-  ai/               # LLM 调用、工具(shell)、runner、vision
-  service/          # 业务逻辑(chat、growth、skills…)
-    controls/       #   控制连接器:computer-use(进程内)+ browserBridge(浏览器桥)
+  ai/               # LLM 调用(llm.js)、工具(shell)、runner、vision
+  service/          # 业务逻辑(chat、growth、skills、models…)
+    controls/computer-use/  #   电脑控制(进程内执行)
   repository/       # SQLite 数据访问(db.js 建表)
-  ws/               # WebSocket 传输(聊天流 + 扩展连接,转发给 service/controls)
+  ws/               # 所有 socket 业务:chat(聊天流)+ extension(浏览器扩展桥)
   utils/
 ui/
   App.vue           # 布局:侧栏 + 主区

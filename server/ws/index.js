@@ -1,7 +1,7 @@
 // @ts-nocheck
 import WebSocket, { WebSocketServer } from "ws";
 import { dispatchWebSocketEvent } from "./dispatch.js";
-import { handleFrame as handleBrowserFrame, registerExtension, unregisterExtension } from "../service/controls/browserBridge.js";
+import { bindExtension } from "./extension/index.js";
 
 const WS_PATH = "/ws";
 const clients = new Set();
@@ -15,19 +15,6 @@ const broadcastWebSocketEvent = (payload) => {
   for (const client of clients) {
     sendJson(client.ws, payload);
   }
-};
-
-// Chrome 扩展(浏览器控制执行端)的连接:不参与聊天分发,只走 tool 桥。
-const bindExtension = (ws) => {
-  registerExtension(ws);
-  ws.on("message", (raw) => {
-    let frame;
-    try { frame = JSON.parse(String(raw || "{}")); } catch { return; }
-    if (frame.type === "ping") { sendJson(ws, { type: "pong" }); return; }
-    if (frame.type === "tool.result" || frame.type === "tool.error") handleBrowserFrame(frame);
-  });
-  ws.on("close", () => unregisterExtension(ws));
-  ws.on("error", () => unregisterExtension(ws));
 };
 
 const bindConnection = (ws, req) => {

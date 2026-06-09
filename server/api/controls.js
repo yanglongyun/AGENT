@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { callTool } from "../service/controls/computer-use/src/tools.js";
 import { toolSchemas } from "../service/controls/computer-use/src/schemas.js";
-import { browserStatus, callTool as callBrowserTool } from "../service/controls/browserBridge.js";
+import { browserStatus, callTool as callBrowserTool } from "../ws/extension/index.js";
 import { readJsonBody } from "../utils/http.js";
 
 const now = () => new Date().toISOString();
