@@ -25,9 +25,9 @@
 <script setup>
 import { inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { connect, ensureConnected, send, wsStatus } from '../lib/ws.js';
-import Composer from './Composer.vue';
-import History from './History.vue';
-import Messages from './Messages.vue';
+import Composer from '../components/Composer.vue';
+import History from '../components/History.vue';
+import Messages from '../components/Messages.vue';
 import { createConversation, listConversations, loadMessages } from '../lib/api.js';
 import { parseMessages } from '../lib/messages.js';
 import { setupChatStream } from '../lib/stream.js';

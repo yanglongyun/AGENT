@@ -1,15 +1,15 @@
 <script setup>
 import { PanelLeft } from '@lucide/vue';
 import { onMounted, onUnmounted, provide, reactive, ref } from 'vue';
-import ChatView from './components/Chat.vue';
-import ControlsView from './components/Controls.vue';
-import GrowthView from './components/Growth.vue';
-import MemoriesView from './components/Memories.vue';
 import Sidebar from './components/Sidebar.vue';
-import SettingsView from './components/Settings.vue';
-import SkillsView from './components/Skills.vue';
-import SubscriptionsView from './components/Subscriptions.vue';
-import TasksView from './components/Tasks.vue';
+import ChatView from './views/Chat.vue';
+import ControlsView from './views/Controls.vue';
+import GrowthView from './views/Growth.vue';
+import MemoriesView from './views/Memories.vue';
+import SettingsView from './views/Settings.vue';
+import SkillsView from './views/Skills.vue';
+import SubscriptionsView from './views/Subscriptions.vue';
+import TasksView from './views/Tasks.vue';
 import { t } from './lib/locale.js';
 
 const nav = reactive({
