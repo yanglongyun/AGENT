@@ -1,5 +1,5 @@
 // @ts-nocheck
-// 1-core 的数据库:只有一张 messages 表,单对话,不需要 chat_id。
+// 1-agent 的数据库:只有一张 messages 表,单对话,不需要 chat_id。
 import fs from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
