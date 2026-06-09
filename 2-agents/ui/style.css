@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@import "./styles/base.css";
+@import "./styles/components.css";
+
+/* 主题 token:映射到 base.css 的 CSS 变量(:root / [data-theme=dark])。
+   用 inline,使 bg-bg / text-ink 等工具直接引用 var(--bg),暗色覆盖变量时自动跟随。 */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  --color-accent: var(--accent);
+  --color-accent-d: var(--accent-d);
+  --color-accent-soft: var(--accent-soft);
+  --color-win: var(--win);
+  --color-win-soft: var(--win-soft);
+  --color-fix: var(--fix);
+  --color-fix-soft: var(--fix-soft);
+}
