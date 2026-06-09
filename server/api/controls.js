@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { callTool } from "../../connectors/computer-use/src/tools.js";
 import { toolSchemas } from "../../connectors/computer-use/src/schemas.js";
+import { browserStatus, callTool as callBrowserTool } from "../ws/browserBridge.js";
 import { readJsonBody } from "../utils/http.js";
 
 const now = () => new Date().toISOString();
@@ -61,8 +62,21 @@ const computerStatus = async () => {
   }
 };
 
+const browserState = () => {
+  const s = browserStatus();
+  return {
+    ...state.browser,
+    connected: s.connected,
+    status: s.connected ? "online" : "disconnected",
+    detail: s.connected ? "browser-use 扩展已连接" : "browser-use connector is not connected",
+    tools: s.tools,
+    connectedAt: s.connectedAt,
+    updatedAt: now(),
+  };
+};
+
 const publicState = async () => ({
-  browser: { ...state.browser },
+  browser: browserState(),
   computer: await computerStatus(),
 });
 
@@ -87,7 +101,7 @@ const handleControlsApi = async (req, res, { sendJson }, path, method, url) => {
       const controls = type === "computer"
         ? { computer: await computerStatus() }
         : type === "browser"
-          ? { browser: { ...state.browser } }
+          ? { browser: browserState() }
           : await publicState();
       sendJson(res, 200, { ok: true, controls });
       return;
@@ -118,6 +132,26 @@ const handleControlsApi = async (req, res, { sendJson }, path, method, url) => {
     }
     const result = await callTool(tool, body.args || {});
     sendJson(res, 200, { ok: true, tool, result });
+    return;
+  }
+
+  if (path === "/api/controls/browser/call") {
+    if (method !== "POST") {
+      sendJson(res, 405, { error: "Method not allowed" });
+      return;
+    }
+    const body = await readJsonBody(req);
+    const tool = String(body.tool || body.name || "").trim();
+    if (!tool) {
+      sendJson(res, 400, { ok: false, error: "missing browser-use tool" });
+      return;
+    }
+    try {
+      const result = await callBrowserTool(tool, body.args || {});
+      sendJson(res, 200, { ok: true, tool, result });
+    } catch (error) {
+      sendJson(res, 200, { ok: false, tool, error: error.message || "browser tool failed" });
+    }
     return;
   }
 

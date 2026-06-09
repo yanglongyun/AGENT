@@ -43,7 +43,9 @@ const controlsBlock = () => [
   "- 只能通过 shell 工具访问 HTTP API 来检查控制状态。",
   "- 控制状态：GET http://127.0.0.1:9500/api/controls。",
   "- 调用 computer-use：向 http://127.0.0.1:9500/api/controls/computer/call POST JSON，包含 tool 和 args。",
-  "- 可用的 computer-use 能力由 GET /api/controls 返回。不要把 computer-use 当作 shell 执行。",
+  "- 调用 browser-use：向 http://127.0.0.1:9500/api/controls/browser/call POST JSON，包含 tool 和 args（如 browser_open / browser_read / browser_click / browser_fill / browser_screenshot）。",
+  "- browser-use 由 Chrome 扩展执行；未连接时调用会返回错误，请先用 GET /api/controls 确认 browser.connected。",
+  "- 可用的 computer-use / browser-use 能力由 GET /api/controls 返回。不要把它们当作 shell 执行。",
   "- Tool Vision 设置控制截图结果是否可以作为视觉上下文发送给模型。",
 ].join("\n");
 

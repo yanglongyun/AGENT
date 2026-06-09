@@ -45,6 +45,7 @@ onMounted(async () => {
           <div class="control-main">
             <h3>{{ t('controls_browser', 'Browser') }}</h3>
             <p>{{ controls.browser.detail || t('controls_browser_disconnected', 'browser-use connector is not connected') }}</p>
+            <small v-if="controls.browser.connected && controls.browser.tools?.length">{{ t('controls_actions_available', '{n} actions available', { n: controls.browser.tools.length }) }}</small>
           </div>
           <span class="control-status"><i></i>{{ controls.browser.connected ? t('common_online', 'Online') : t('common_not_connected', 'Not connected') }}</span>
         </article>
