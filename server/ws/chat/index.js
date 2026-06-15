@@ -18,10 +18,12 @@ const handleChatMessage = async ({ payload, emit }) => {
     emit({ type: "socket.error", content: "Missing chatId" });
     return;
   }
-  await sendChatMessage(chatId, { ...payload, source: "user" }, { emit, throwOnError: false });
+  const prompt = payload.prompt ?? payload.text ?? payload.content ?? payload.message?.content ?? "";
+  await sendChatMessage(chatId, { ...payload, prompt, source: payload.source || "user" }, { emit, throwOnError: false });
 };
 
 const chatWebSocketHandlers = {
+  send: handleChatMessage,
   "chat.message": handleChatMessage,
   "chat.abort": handleChatAbort,
 };

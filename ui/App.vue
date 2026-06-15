@@ -1,5 +1,5 @@
 <script setup>
-import { PanelLeft } from '@lucide/vue';
+import { PanelLeft, Plus, Settings } from '@lucide/vue';
 import { onMounted, onUnmounted, provide, reactive, ref } from 'vue';
 import Sidebar from './components/Sidebar.vue';
 import ChatView from './views/Chat.vue';
@@ -8,7 +8,6 @@ import GrowthView from './views/Growth.vue';
 import MemoriesView from './views/Memories.vue';
 import SettingsView from './views/Settings.vue';
 import SkillsView from './views/Skills.vue';
-import SubscriptionsView from './views/Subscriptions.vue';
 import TasksView from './views/Tasks.vue';
 import { t } from './lib/locale.js';
 
@@ -44,11 +43,6 @@ function requestOpenChat(chat) {
 
 function requestTasks() {
   activeView.value = 'tasks';
-  closeSidebarOnMobile();
-}
-
-function requestSubscriptions() {
-  activeView.value = 'subscriptions';
   closeSidebarOnMobile();
 }
 
@@ -94,6 +88,8 @@ function syncViewport() {
   }
 }
 
+const iconMap = { add: Plus, settings: Settings };
+
 onMounted(() => {
   syncViewport();
   window.addEventListener('resize', syncViewport);
@@ -111,7 +107,6 @@ onUnmounted(() => {
       @new-chat="requestNewChat"
       @open-chat="requestOpenChat"
       @tasks="requestTasks"
-      @subscriptions="requestSubscriptions"
       @growth="requestGrowth"
       @memories="requestMemories"
       @skills="requestSkills"
@@ -129,12 +124,14 @@ onUnmounted(() => {
         </button>
         <b>{{ nav.title || t('chat_title', 'Agent Chat') }}</b>
         <span class="spacer"></span>
+        <button v-if="nav.right" class="back-btn" type="button" :title="nav.right.title" @click="nav.right.fn">
+          <component :is="iconMap[nav.right.icon] || Settings" />
+        </button>
       </header>
 
       <div class="chat-stage">
         <ChatView v-if="activeView === 'chat'" />
         <TasksView v-else-if="activeView === 'tasks'" />
-        <SubscriptionsView v-else-if="activeView === 'subscriptions'" />
         <GrowthView v-else-if="activeView === 'growth'" />
         <MemoriesView v-else-if="activeView === 'memories'" />
         <SkillsView v-else-if="activeView === 'skills'" />

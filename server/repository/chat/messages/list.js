@@ -10,7 +10,7 @@ const listMessages = (options = {}) => {
   const db = getDb();
   const total = Number(db.prepare("SELECT COUNT(*) AS count FROM messages WHERE chat_id = ?").get(chatId)?.count) || 0;
   const rows = db.prepare(`
-    SELECT id, chat_id, message, meta, created_at
+    SELECT id, chat_id, message, meta, usage, created_at
     FROM messages
     WHERE chat_id = ?
     ORDER BY id ${normalizedOrder}
@@ -21,6 +21,7 @@ const listMessages = (options = {}) => {
     chat_id: row.chat_id,
     message: JSON.parse(row.message),
     meta: row.meta ? JSON.parse(row.meta) : null,
+    usage: row.usage ? JSON.parse(row.usage) : null,
     created_at: row.created_at,
   }));
   if (recent) messages.reverse();

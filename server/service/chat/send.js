@@ -4,29 +4,17 @@ import { stripImages } from "../../ai/vision.js";
 import { buildSystemPrompt } from "./prompt.js";
 import { getChat, setChatState } from "./chats.js";
 import { appendChatMessage, listChatMessages, saveChatMessages } from "./messages.js";
+import { maybeCompactBeforeRun } from "./compactions.js";
+import { getLatestCompaction } from "../../repository/chat/compactions/index.js";
 import { abortChat } from "./abort.js";
 import { getChatRunConfig } from "./config.js";
 import { chatControllers } from "./controllers.js";
 import { normalizeAttachments } from "./attachments.js";
 import { enqueueGrowthTask } from "../growth/index.js";
 
-const limitMessagesByTurns = (messages, contextTurns) => {
-  const turns = Math.max(0, Number.parseInt(contextTurns, 10) || 0);
-  if (!Array.isArray(messages) || turns === 0) return Array.isArray(messages) ? messages : [];
-  let remaining = turns;
-  let startIndex = 0;
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === "user") {
-      remaining -= 1;
-      startIndex = index;
-      if (remaining === 0) break;
-    }
-  }
-  return remaining > 0 ? messages : messages.slice(startIndex);
-};
-
 const readUserContent = (input = {}) => String(input.prompt ?? "");
 const readUserSource = (input = {}) => String(input.source || "").trim();
+const readUserKind = (source) => (source === "subscription" || source === "task" ? "task" : "message");
 const readAttachments = (input = {}) => normalizeAttachments(input.attachments);
 
 const appendAttachmentInstruction = (content, attachments = []) => {
@@ -58,24 +46,42 @@ const readModelMessage = (item) => {
 
 const readModelMessages = (items = []) => (Array.isArray(items) ? items.map(readModelMessage) : []);
 
+const unreadCompactedRows = (chatId, rows = []) => {
+  const latest = getLatestCompaction(chatId);
+  const latestEnd = Number(latest?.end_message_id || 0);
+  return rows.filter((row) => Number(row?.id || 0) > latestEnd);
+};
+
 const waitForChatIdle = async (chatId) => {
   while (chatControllers.has(chatId)) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 };
 
-const prepareChatInput = ({ chatId, input = {} }) => {
+const readLatestUsage = (rows = []) => {
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const row = rows[index];
+    if (row?.message?.role !== "assistant") continue;
+    const usage = row?.usage;
+    if (usage && Number(usage.total_tokens || 0) > 0) return usage;
+  }
+  return null;
+};
+
+const prepareChatInput = ({ chatId, input = {}, includePendingUser = true }) => {
   const settings = getChatRunConfig(input.config || input);
   const history = Array.isArray(input.messages)
     ? input.messages
     : listChatMessages({ chatId, limit: 200, order: "asc" }).messages;
-  const contextMessages = limitMessagesByTurns(readModelMessages(history), settings.contextTurns);
+  const rawContextRows = Array.isArray(input.messages) ? history : unreadCompactedRows(chatId, history);
+  const contextMessages = readModelMessages(rawContextRows);
   const userContent = readUserContent(input);
   const attachments = readAttachments(input);
   const userMessage = userContent || attachments.length ? { role: "user", content: userContent } : null;
   const userSource = userMessage ? readUserSource(input) : "";
-  const userMeta = userMessage ? { ...(readMessageMeta(input) || {}), source: userSource } : null;
-  const modelUserMessage = userMessage
+  const userKind = userMessage ? readUserKind(userSource) : "";
+  const userMeta = userMessage ? { ...(readMessageMeta(input) || {}), kind: userKind, source: userSource } : null;
+  const modelUserMessage = includePendingUser && userMessage
     ? { role: "user", content: appendAttachmentInstruction(userContent, attachments) }
     : null;
   const systemMessage = {
@@ -87,7 +93,9 @@ const prepareChatInput = ({ chatId, input = {} }) => {
     settings,
     userMessage,
     userSource,
+    userKind,
     userMeta,
+    latestUsage: readLatestUsage(history),
     modelMessages: [
       systemMessage,
       ...contextMessages,
@@ -96,13 +104,13 @@ const prepareChatInput = ({ chatId, input = {} }) => {
   };
 };
 
-const handleAiEvent = ({ chatId, event, emit }) => {
+const handleAiEvent = ({ chatId, event, emit, runState }) => {
   if (event.type === "message") {
     emit({ type: "message", chatId, content: event.content || "" });
     return;
   }
   if (event.type === "tool_calls") {
-    if (event.message) saveChatMessages({ chatId, source: "ai", messages: [event.message] });
+    if (event.message) saveChatMessages({ chatId, source: "ai", messages: [event.message], usage: event.usage || null });
     emit({ type: "tool_calls", chatId, toolCalls: event.message?.tool_calls || [] });
     return;
   }
@@ -132,7 +140,7 @@ const handleAiEvent = ({ chatId, event, emit }) => {
         usage: event.usage || null,
       });
     }
-    emit({ type: "done", chatId });
+    if (runState) runState.done = true;
   }
 };
 
@@ -147,36 +155,49 @@ const sendChatMessage = async (chatId, input = {}, options = {}) => {
 
   const emit = options.emit || (() => {});
   const throwOnError = options.throwOnError !== false;
+  const runState = { done: false };
   let controller = null;
 
   try {
-    const prepared = prepareChatInput({ chatId: id, input });
+    const initial = prepareChatInput({ chatId: id, input, includePendingUser: false });
     controller = new AbortController();
     const signal = options.signal || controller.signal;
     chatControllers.set(id, controller);
     setChatState({ chatId: id, state: "running" });
 
-    if (prepared.userMessage) {
+    await maybeCompactBeforeRun({ chatId: id, usage: initial.latestUsage, settings: initial.settings, emit, signal });
+
+    if (initial.userMessage) {
       const messageId = appendChatMessage({
         chatId: id,
-        message: prepared.userMessage,
-        meta: prepared.userMeta,
+        message: initial.userMessage,
+        meta: initial.userMeta,
       });
       emit({
         type: "input",
         chatId: id,
         id: messageId,
-        message: prepared.userMessage,
-        meta: prepared.userMeta,
+        kind: initial.userKind || "message",
+        message: initial.userMessage,
+        meta: initial.userMeta,
       });
     }
+
+    const prepared = prepareChatInput({ chatId: id, input, includePendingUser: false });
     emit({ type: "start", chatId: id });
 
     const result = await chat(prepared.modelMessages, {
       ...prepared.settings,
       signal,
-      onEvent: (event) => handleAiEvent({ chatId: id, event, emit }),
+      beforeModelCall: async ({ lastUsage, round }) => {
+        if (!lastUsage || round <= 1) return null;
+        const compacted = await maybeCompactBeforeRun({ chatId: id, usage: lastUsage, settings: initial.settings, emit, signal });
+        if (!compacted) return null;
+        return prepareChatInput({ chatId: id, input, includePendingUser: false }).modelMessages;
+      },
+      onEvent: (event) => handleAiEvent({ chatId: id, event, emit, runState }),
     });
+    emit({ type: "done", chatId: id });
     try {
       enqueueGrowthTask({ chatId: id, input, result });
     } catch {

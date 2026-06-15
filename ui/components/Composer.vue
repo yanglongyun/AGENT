@@ -5,7 +5,8 @@ import { t } from '../lib/locale.js';
 
 defineProps({
   modelValue: { type: String, default: '' },
-  busy: { type: Boolean, default: false }
+  busy: { type: Boolean, default: false },
+  compacting: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['update:modelValue', 'send', 'abort']);
@@ -137,7 +138,7 @@ defineExpose({ pendingFiles, clearFiles, resetTextarea, appendFiles });
         @keydown.enter.exact="onEnter"
         @compositionstart="composing = true"
         @compositionend="composing = false"
-        :placeholder="busy ? t('chat_placeholder_busy', '进行中...') : t('chat_placeholder_input', '输入消息...')"
+        :placeholder="compacting ? t('chat_placeholder_compacting', '上下文压缩中...') : (busy ? t('chat_placeholder_busy', '运行中...') : t('chat_placeholder_input', '输入消息...'))"
         rows="1"
         :disabled="busy"
       />

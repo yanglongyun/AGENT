@@ -26,7 +26,6 @@ const parseBoundedInt = (name, value, min, max) => {
 
 const normalizeChatOptions = (options = {}) => {
   return {
-    maxRounds: parseBoundedInt("maxRounds", options.maxRounds, 1, 100000),
     enableToolResultTruncate: options.enableToolResultTruncate !== false,
     toolResultMaxChars: parseBoundedInt("toolResultMaxChars", options.toolResultMaxChars, 1000, 50000)
   };
@@ -118,6 +117,8 @@ const normalizeAgentMessages = (messages = [], { model, apiUrl } = {}) => {
   return out;
 };
 
+const normalizeMessagesForModel = normalizeAgentMessages;
+
 const extractLastTag = (text, tag) => {
   if (typeof text !== "string" || !text) return null;
   const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "g");
@@ -131,6 +132,7 @@ const extractSummary = (text) => extractLastTag(text, "summary");
 export {
   extractSummary,
   normalizeAgentMessages,
+  normalizeMessagesForModel,
   normalizeChatOptions,
   shouldReplayReasoning,
   truncateToolResult,

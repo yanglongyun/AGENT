@@ -33,6 +33,17 @@ const createSchema = (database) => {
       chat_id TEXT NOT NULL,
       message TEXT NOT NULL,
       meta TEXT,
+      usage TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS compactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_id TEXT NOT NULL,
+      start_message_id INTEGER NOT NULL,
+      end_message_id INTEGER NOT NULL,
+      summary TEXT NOT NULL,
+      tokens INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -76,6 +87,7 @@ const createSchema = (database) => {
     );
 
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status, id);
+    CREATE INDEX IF NOT EXISTS idx_compactions_chat ON compactions(chat_id, id);
     CREATE INDEX IF NOT EXISTS idx_subscriptions_task ON subscriptions(task_id, status, id);
     CREATE INDEX IF NOT EXISTS idx_subscriptions_chat ON subscriptions(chat_id, status, id);
     CREATE INDEX IF NOT EXISTS idx_memories_user_visibility ON memories(user_id, visibility, id);

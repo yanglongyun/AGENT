@@ -1,10 +1,10 @@
 <script setup>
-import { BookOpen, Clock, MessagesSquare, MonitorSmartphone, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
+import { BookOpen, Clock, MonitorSmartphone, ShieldCheck, Sprout, SquarePen } from '@lucide/vue';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { listConversations } from '../lib/api.js';
 import { t } from '../lib/locale.js';
 
-const emit = defineEmits(['new-chat', 'open-chat', 'tasks', 'subscriptions', 'growth', 'memories', 'skills', 'controls', 'settings']);
+const emit = defineEmits(['new-chat', 'open-chat', 'tasks', 'growth', 'memories', 'skills', 'controls', 'settings']);
 
 const chats = ref([]);
 
@@ -41,10 +41,6 @@ onUnmounted(() => {
         <button class="side-primary" type="button" @click="emit('new-chat')">
           <SquarePen />
           {{ t('nav_new_chat', 'New chat') }}
-        </button>
-        <button class="side-primary" type="button" @click="emit('subscriptions')">
-          <MessagesSquare />
-          {{ t('nav_subscriptions', 'Subscriptions') }}
         </button>
         <button class="side-primary" type="button" @click="emit('tasks')">
           <Clock />

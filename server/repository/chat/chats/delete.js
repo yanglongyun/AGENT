@@ -7,6 +7,7 @@ const deleteChat = (chatId) => {
   db.exec("BEGIN");
   try {
     db.prepare("DELETE FROM messages WHERE chat_id = ?").run(id);
+    db.prepare("DELETE FROM compactions WHERE chat_id = ?").run(id);
     db.prepare("DELETE FROM chats WHERE id = ?").run(id);
     db.exec("COMMIT");
   } catch (error) {

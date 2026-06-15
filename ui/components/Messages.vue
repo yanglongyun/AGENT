@@ -1,7 +1,7 @@
 <script setup>
 import { nextTick, ref } from 'vue';
 import BubbleAi from './bubbles/Ai.vue';
-import BubbleSubscription from './bubbles/Subscription.vue';
+import InputBlock from './bubbles/InputBlock.vue';
 import BubbleUser from './bubbles/User.vue';
 import ToolCall from './bubbles/ToolCall.vue';
 import ToolResult from './bubbles/ToolResult.vue';
@@ -58,7 +58,8 @@ defineExpose({ msgBox, scrollToBottom });
 
         <template v-for="(m, i) in messages" :key="m._key || i">
           <BubbleUser v-if="m.role === 'user'" :content="m.content" :attachments="m.attachments" />
-          <BubbleSubscription v-else-if="m.role === 'subscription'" :content="m.content" />
+          <InputBlock v-else-if="m.role === 'task'" :msg="m" label="Task" />
+          <InputBlock v-else-if="m.role === 'compaction'" :msg="m" label="Compaction" />
           <BubbleAi v-else-if="m.role === 'assistant'" :content="m.content" />
           <ToolCall v-else-if="m.type === 'tool_call'" :msg="m" />
           <ToolResult v-else-if="m.type === 'tool_result'" :content="m.content" />

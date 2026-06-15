@@ -3,6 +3,7 @@ import { chat } from "../../ai/index.js";
 import { stripImages } from "../../ai/vision.js";
 import { buildSystemPrompt } from "../chat/prompt.js";
 import { getChatRunConfig } from "../chat/config.js";
+import { maybeCompactBeforeRun } from "../chat/compactions.js";
 import {
   createTaskRow,
   markTaskDone,
@@ -12,7 +13,7 @@ import {
 } from "../../repository/tasks/index.js";
 import { createSubscription, fireTaskSubscriptions } from "../subscriptions/index.js";
 import { registerTaskExecution, unregisterTaskExecution } from "./execution.js";
-import { appendChatMessage, createChat, getChat, saveChatMessages, setChatState } from "../chat/index.js";
+import { appendChatMessage, createChat, getChat, listChatMessages, saveChatMessages, setChatState } from "../chat/index.js";
 
 const sanitizeTaskName = (value) => {
   const name = String(value || "").trim();
@@ -54,7 +55,7 @@ const ensureTaskChat = ({ taskId, name }) => {
 
 const saveTaskAiEvent = ({ chatId, event }) => {
   if (event.type === "tool_calls" && event.message) {
-    saveChatMessages({ chatId, source: "task", messages: [event.message] });
+    saveChatMessages({ chatId, source: "task", messages: [event.message], usage: event.usage || null });
     return;
   }
   if (event.type === "tool_results") {
@@ -93,6 +94,21 @@ const runTaskAi = async ({ taskId, taskChatId, name, prompt, inputOverrides, sig
   ], {
     ...settings,
     signal,
+    beforeModelCall: async ({ lastUsage, round }) => {
+      if (!lastUsage || round <= 1) return null;
+      const compacted = await maybeCompactBeforeRun({
+        chatId: taskChatId,
+        usage: lastUsage,
+        settings,
+        signal,
+      });
+      if (!compacted) return null;
+      const latestEnd = Number(compacted.end_message_id || 0);
+      const rows = listChatMessages({ chatId: taskChatId, limit: 10000, order: "asc" }).messages
+        .filter((row) => Number(row.id || 0) > latestEnd)
+        .map((row) => row.message);
+      return [systemMessage, ...rows];
+    },
     onEvent: (event) => saveTaskAiEvent({ chatId: taskChatId, event }),
   });
   return getLastAssistantText(result);

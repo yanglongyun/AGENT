@@ -10,7 +10,9 @@ const getChatRunConfig = (input = {}) => {
     provider: input.provider || settings.provider || "",
     system: input.system || settings.system || "",
     evolution: input.evolution ?? settings.evolution ?? "",
-    contextTurns: input.contextTurns ?? settings.contextTurns ?? 100,
+    compressThreshold: input.compressThreshold ?? settings.compressThreshold ?? 12000,
+    compactPrompt: input.compactPrompt ?? settings.compactPrompt ?? "",
+    toolResultMaxChars: input.toolResultMaxChars ?? settings.toolResultMaxChars ?? 12000,
     toolVision: input.toolVision ?? settings.toolVision ?? "0",
   };
   const missing = [];

@@ -4,7 +4,8 @@
   .mhead { @apply flex h-[57px] shrink-0 items-center gap-[11px] border-b border-[var(--line)] px-6; }
   .sidebar-toggle,
   .back-btn { @apply grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] text-[var(--muted)] transition-colors hover:bg-[#f1ece3] hover:text-[var(--ink2)]; }
-  .sidebar-toggle svg { @apply h-[19px] w-[19px] stroke-2; }
+  .sidebar-toggle svg,
+  .back-btn svg { @apply h-[19px] w-[19px] stroke-2; }
   .back-btn { @apply text-xl leading-none; }
   .mhead b { @apply text-[14.5px] font-semibold; }
   .mhead .spacer { @apply flex-1; }

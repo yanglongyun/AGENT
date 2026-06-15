@@ -1,24 +1,27 @@
 <template>
   <History v-if="showHistory" class="absolute inset-0" @open="onHistorySelect" @new="onNewChat" />
 
-  <div v-else class="absolute inset-0 flex flex-col overflow-hidden bg-[var(--bg)]">
-    <Messages
-      ref="messagesRef"
-      :messages="messages"
-      :busy="busy"
-      :has-more="hasMore"
-      :empty-hints="emptyHints"
-      @pick-hint="sendHint"
-      @top-reached="loadMore"
-    />
+  <div v-else class="absolute inset-0 flex min-w-0 overflow-hidden bg-[var(--bg)]">
+    <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <Messages
+        ref="messagesRef"
+        :messages="messages"
+        :busy="busy"
+        :has-more="hasMore"
+        :empty-hints="emptyHints"
+        @pick-hint="sendHint"
+        @top-reached="loadMore"
+      />
 
-    <Composer
-      ref="composerRef"
-      v-model="input"
-      :busy="busy"
-      @send="handleSend"
-      @abort="stopBusy"
-    />
+      <Composer
+        ref="composerRef"
+        v-model="input"
+        :busy="busy"
+        :compacting="compacting"
+        @send="handleSend"
+        @abort="stopBusy"
+      />
+    </div>
   </div>
 </template>
 
@@ -40,6 +43,7 @@ const currentChatId = ref(null);
 const currentTitle = ref(t('chat_title', 'Agent Chat'));
 const messages = ref([]);
 const busy = ref(false);
+const compacting = ref(false);
 const hasMore = ref(false);
 const loadedOffset = ref(0);
 const input = ref('');
@@ -60,8 +64,8 @@ const emptyHints = [
 
 function setDefaultNav() {
   setPageNav(currentTitle.value, null,
-    { icon: 'history', title: t('chat_history_title', '对话历史'), fn: openHistory },
-    currentChatId.value ? { icon: 'add', title: t('chat_new_title', '新对话'), fn: onNewChat } : null
+    null,
+    null
   );
 }
 
@@ -91,6 +95,7 @@ function onNewChat() {
   seenKeys.value = new Set();
   streamingKey.value = '';
   busy.value = false;
+  compacting.value = false;
   hasMore.value = false;
   loadedOffset.value = 0;
   composerRef.value?.clearFiles();
@@ -169,7 +174,7 @@ watch(() => messages.value.length, (n, o) => {
 
 async function ensureConversation(text, files) {
   if (currentChatId.value) return;
-  const title = (text || files[0]?.name || t('chat_file_title', 'File')).slice(0, 32);
+  const title = (text || files[0]?.name || t('chat_file_title', 'File')).slice(0, 20);
   const data = await createConversation(title);
   currentChatId.value = data.chatId || data.chat?.id;
   currentTitle.value = title;
@@ -195,7 +200,7 @@ async function handleSend() {
 
   const attachments = files.map((f) => ({ type: 'file', name: f.name, path: f.path, size: f.size }));
   const content = text || t('chat_attachment_default_prompt', '请先阅读附件并总结关键信息');
-  send({ type: 'chat.message', chatId: currentChatId.value, prompt: content, source: 'user', attachments });
+  send({ type: 'send', chatId: currentChatId.value, text: content, source: 'user', attachments });
   input.value = '';
   composerRef.value?.clearFiles();
   composerRef.value?.resetTextarea();
@@ -220,6 +225,7 @@ async function sendExternalMessage(event) {
 function stopBusy() {
   if (currentChatId.value) send({ type: 'chat.abort', chatId: currentChatId.value });
   busy.value = false;
+  compacting.value = false;
 }
 
 onMounted(async () => {
@@ -228,7 +234,7 @@ onMounted(async () => {
   window.addEventListener('aios:send-chat-message', sendExternalMessage);
   window.addEventListener('agent:new-chat', onNewChat);
   window.addEventListener('agent:open-chat', onOpenChatEvent);
-  unsubs = setupChatStream({ messages, currentChatId, busy, streamingKey, seenKeys, scrollToBottom });
+  unsubs = setupChatStream({ messages, currentChatId, busy, compacting, streamingKey, seenKeys, scrollToBottom });
 
   try {
     const list = await listConversations();

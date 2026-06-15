@@ -8,9 +8,8 @@ const saveChatMessages = ({ chatId, source = "", messages = [], usage = null, me
   const nextMeta = {
     ...(meta || {}),
     ...(source ? { source } : {}),
-    ...(usage ? { usage } : {}),
   };
-  saveMessageBatch(chatId, Array.isArray(messages) ? messages : [], Object.keys(nextMeta).length ? nextMeta : null);
+  saveMessageBatch(chatId, Array.isArray(messages) ? messages : [], Object.keys(nextMeta).length ? nextMeta : null, usage);
 };
 
 const listChatMessages = (options = {}) => {

@@ -1,11 +1,12 @@
 <script setup>
 import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
-import { abortTask, getTask, listTasks } from '../lib/api.js';
+import { abortTask, getTask, listSubscriptions, listTasks } from '../lib/api.js';
 import { t } from '../lib/locale.js';
 
 const setPageNav = inject('pageNav');
 
 const tasks = ref([]);
+const subscriptions = ref([]);
 const currentTaskId = ref(null);
 const currentTask = ref(null);
 const taskMessages = ref([]);
@@ -24,6 +25,16 @@ const statusText = (status) => ({
 
 const isActive = (task) => ['pending', 'running'].includes(task?.status);
 const visibleTask = computed(() => currentTask.value || tasks.value.find((task) => task.id === currentTaskId.value) || null);
+const subscriptionsByTask = computed(() => {
+  const map = new Map();
+  for (const item of subscriptions.value) {
+    const key = Number(item.task_id);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(item);
+  }
+  return map;
+});
+const visibleSubscriptions = computed(() => subscriptionsByTask.value.get(Number(currentTaskId.value)) || []);
 
 function setListNav() {
   setPageNav(t('nav_tasks', 'Tasks'), null, null, null);
@@ -44,8 +55,12 @@ async function loadTasks() {
   loading.value = true;
   error.value = '';
   try {
-    const data = await listTasks(200);
+    const [data, subscriptionData] = await Promise.all([
+      listTasks(200),
+      listSubscriptions(500),
+    ]);
     tasks.value = data.tasks || [];
+    subscriptions.value = subscriptionData.subscriptions || [];
   } catch (err) {
     error.value = err.message || t('common_load_failed', 'Load failed');
   } finally {
@@ -92,6 +107,14 @@ async function stopTask() {
 function formatTime(value) {
   if (!value) return '-';
   return String(value).replace('T', ' ').slice(0, 19);
+}
+
+function taskSubscriptionText(taskId) {
+  const items = subscriptionsByTask.value.get(Number(taskId)) || [];
+  if (!items.length) return '';
+  const active = items.filter((item) => item.status === 'active').length;
+  const fired = items.filter((item) => item.status === 'fired' || item.fired_at).length;
+  return `通知 ${items.length}${active ? ` · 活跃 ${active}` : ''}${fired ? ` · 已触发 ${fired}` : ''}`;
 }
 
 function messageRole(row) {
@@ -151,6 +174,7 @@ onUnmounted(() => {
           <span class="task-main">
             <b>{{ task.name }}</b>
             <small>{{ task.prompt }}</small>
+            <small v-if="taskSubscriptionText(task.id)">{{ taskSubscriptionText(task.id) }}</small>
           </span>
           <span class="task-status">{{ statusText(task.status) }}</span>
         </button>
@@ -190,6 +214,18 @@ onUnmounted(() => {
         <section v-if="visibleTask.error">
           <h3>Error</h3>
           <pre class="danger">{{ visibleTask.error }}</pre>
+        </section>
+
+        <section v-if="visibleSubscriptions.length">
+          <h3>通知</h3>
+          <div class="task-message-list">
+            <div v-for="subscription in visibleSubscriptions" :key="subscription.id" class="task-message">
+              <div class="task-message-role">subscription #{{ subscription.id }} · {{ subscription.status }}</div>
+              <pre>chat: {{ subscription.chat_id }}
+created: {{ formatTime(subscription.created_at) }}
+fired: {{ formatTime(subscription.fired_at) }}</pre>
+            </div>
+          </div>
         </section>
 
         <section v-if="taskMessages.length">

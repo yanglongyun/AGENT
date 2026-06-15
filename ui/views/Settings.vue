@@ -20,7 +20,9 @@ const settings = reactive({
   model: '',
   system: '',
   evolution: '',
-  contextTurns: '100',
+  compressThreshold: '12000',
+  compactPrompt: '',
+  toolResultMaxChars: '12000',
   toolVision: '0',
   theme: 'light',
   language: 'zh',
@@ -131,7 +133,7 @@ onMounted(async () => {
 });
 
 watch(
-  () => [settings.system, settings.evolution, settings.model, settings.toolVision],
+  () => [settings.system, settings.evolution, settings.model, settings.toolVision, settings.compressThreshold, settings.compactPrompt, settings.toolResultMaxChars],
   schedulePromptPreview,
 );
 </script>
@@ -147,6 +149,7 @@ watch(
         <div class="settings-tabs" role="tablist" aria-label="Settings sections">
           <button type="button" :class="{ active: activeTab === 'model' }" @click="activeTab = 'model'">{{ t('settings_tab_model', 'Model') }}</button>
           <button type="button" :class="{ active: activeTab === 'prompt' }" @click="activeTab = 'prompt'">{{ t('settings_tab_prompt', 'Prompt') }}</button>
+          <button type="button" :class="{ active: activeTab === 'compaction' }" @click="activeTab = 'compaction'">{{ t('settings_tab_compaction', 'Compaction') }}</button>
           <button type="button" :class="{ active: activeTab === 'display' }" @click="activeTab = 'display'">{{ t('settings_tab_display', 'Display') }}</button>
           <button type="button" :class="{ active: activeTab === 'about' }" @click="activeTab = 'about'">{{ t('settings_tab_about', 'About') }}</button>
         </div>
@@ -181,10 +184,6 @@ watch(
               {{ t('settings_api_key', 'API Key') }}
               <input v-model="settings.apiKey" class="mono-input" type="password" placeholder="sk-..." />
             </label>
-            <label>
-              {{ t('settings_context_turns', 'Context Turns') }}
-              <input v-model="settings.contextTurns" type="number" min="1" max="200" />
-            </label>
             <label class="settings-toggle">
               <span>
                 <b>{{ t('settings_tool_vision', 'Tool Vision') }}</b>
@@ -195,6 +194,10 @@ watch(
                 :checked="settings.toolVision === '1'"
                 @change="settings.toolVision = $event.target.checked ? '1' : '0'"
               />
+            </label>
+            <label>
+              {{ t('settings_tool_result_max_chars', 'Tool result limit') }}
+              <input v-model="settings.toolResultMaxChars" type="number" min="1000" max="50000" step="1000" />
             </label>
           </div>
 
@@ -210,6 +213,17 @@ watch(
             <label>
               {{ t('settings_full_prompt', 'Full Prompt') }}
               <textarea class="mono-input prompt-preview" :value="promptPreview.full" rows="16" readonly></textarea>
+            </label>
+          </div>
+
+          <div v-else-if="activeTab === 'compaction'" class="settings-panel prompt-panel">
+            <label>
+              {{ t('settings_compress_threshold', 'Trigger total_tokens') }}
+              <input v-model="settings.compressThreshold" type="number" min="0" step="100" />
+            </label>
+            <label>
+              {{ t('settings_compact_prompt', 'Compaction Prompt') }}
+              <textarea v-model="settings.compactPrompt" rows="10" :placeholder="t('settings_compact_prompt_placeholder', 'Prompt used to compress old messages into future context')"></textarea>
             </label>
           </div>
 

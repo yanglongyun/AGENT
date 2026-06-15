@@ -1,7 +1,7 @@
 import { on } from './ws.js';
-import { mapToolCall, mkKey } from './messages.js';
+import { fillToolCallResult, mapToolCall, mkKey } from './messages.js';
 
-export function setupChatStream({ messages, currentChatId, busy, streamingKey, seenKeys, scrollToBottom }) {
+export function setupChatStream({ messages, currentChatId, busy, compacting, streamingKey, seenKeys, scrollToBottom }) {
   const isCurrent = (data) => data.chatId === currentChatId.value;
 
   const closeStreaming = (finalText) => {
@@ -17,27 +17,40 @@ export function setupChatStream({ messages, currentChatId, busy, streamingKey, s
   };
 
   return [
-    on('input', (data) => {
-      if (!isCurrent(data)) return;
-      const msg = data.message || {};
-      const _key = `input:${data.id || Date.now()}`;
-      if (!seenKeys.value.has(_key)) {
-        seenKeys.value.add(_key);
-        const source = data.meta?.source || '';
-        messages.value.push({
-          role: source === 'subscription' ? 'subscription' : 'user',
-          content: msg.content || '',
-          attachments: data.meta?.attachments || [],
-          source,
-          _key
-        });
-        scrollToBottom?.(true);
-      }
-    }),
-
     on('start', (data) => {
       if (!isCurrent(data)) return;
       busy.value = true;
+      if (compacting) compacting.value = false;
+    }),
+
+    on('compact_start', (data) => {
+      if (!isCurrent(data)) return;
+      if (compacting) compacting.value = true;
+    }),
+
+    on('compact_done', (data) => {
+      if (!isCurrent(data)) return;
+      if (compacting) compacting.value = false;
+    }),
+
+    on('input', (data) => {
+      if (!isCurrent(data)) return;
+      const msg = data.message || {};
+      const kind = data.kind || data.meta?.kind || 'message';
+      const _key = `input:${kind}:${data.id || Date.now()}`;
+      if (seenKeys.value.has(_key)) return;
+      seenKeys.value.add(_key);
+      const role = kind === 'task' ? 'task' : (kind === 'compaction' ? 'compaction' : 'user');
+      messages.value.push({
+        role,
+        kind,
+        content: msg.content || '',
+        attachments: data.meta?.attachments || [],
+        meta: data.meta || null,
+        expanded: false,
+        _key
+      });
+      scrollToBottom?.(true);
     }),
 
     on('message', (data) => {
@@ -59,6 +72,7 @@ export function setupChatStream({ messages, currentChatId, busy, streamingKey, s
     on('done', (data) => {
       if (!isCurrent(data)) return;
       closeStreaming();
+      if (compacting) compacting.value = false;
       busy.value = false;
       scrollToBottom?.(true);
     }),
@@ -77,13 +91,7 @@ export function setupChatStream({ messages, currentChatId, busy, streamingKey, s
     on('tool_results', (data) => {
       if (!isCurrent(data)) return;
       for (const result of data.results || []) {
-        for (let i = messages.value.length - 1; i >= 0; i--) {
-          const msg = messages.value[i];
-          if (msg.type === 'tool_call' && !msg.result) {
-            msg.result = result.content;
-            break;
-          }
-        }
+        fillToolCallResult(messages.value, result);
       }
       scrollToBottom?.(true);
     }),
@@ -92,6 +100,7 @@ export function setupChatStream({ messages, currentChatId, busy, streamingKey, s
       if (data.chatId && !isCurrent(data)) return;
       closeStreaming();
       messages.value.push({ role: 'assistant', content: `错误: ${data.content || ''}`, _key: mkKey('error') });
+      if (compacting) compacting.value = false;
       busy.value = false;
       scrollToBottom?.(true);
     }),
@@ -99,6 +108,7 @@ export function setupChatStream({ messages, currentChatId, busy, streamingKey, s
     on('aborted', (data) => {
       if (!isCurrent(data)) return;
       closeStreaming();
+      if (compacting) compacting.value = false;
       busy.value = false;
     })
   ];

@@ -10,9 +10,11 @@ const parseToolArgs = (raw) => {
 export const mapToolCall = (toolCall, _key) => {
   const name = toolCall?.function?.name || '';
   const args = parseToolArgs(toolCall?.function?.arguments);
+  const toolCallId = String(toolCall?.id || '');
   if (name === 'shell' && args) {
     return {
       type: 'tool_call',
+      toolCallId,
       shell: true,
       toolCall,
       title: args.summary || args.reason || 'shell',
@@ -23,12 +25,21 @@ export const mapToolCall = (toolCall, _key) => {
   }
   return {
     type: 'tool_call',
+    toolCallId,
     toolCall,
     title: name || t('chat_tool_call', '工具调用'),
     detail: args ? JSON.stringify(args, null, 2) : '',
     expanded: false,
     _key
   };
+};
+
+export const fillToolCallResult = (list, result) => {
+  const id = String(result?.toolCallId || result?.tool_call_id || '');
+  const content = result?.content ?? '';
+  const item = [...list].reverse().find((entry) => entry.type === 'tool_call' && entry.toolCallId && entry.toolCallId === id)
+    || [...list].reverse().find((entry) => entry.type === 'tool_call' && !entry.result);
+  if (item) item.result = typeof content === 'string' ? content : JSON.stringify(content);
 };
 
 export const parseMessages = (raw = []) => {
@@ -52,12 +63,7 @@ export const parseMessages = (raw = []) => {
     }
 
     if (m.role === 'tool') {
-      for (let i = list.length - 1; i >= 0; i--) {
-        if (list[i].type === 'tool_call' && !list[i].result) {
-          list[i].result = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-          break;
-        }
-      }
+      fillToolCallResult(list, { toolCallId: m.tool_call_id, content: m.content });
       continue;
     }
 
@@ -66,14 +72,19 @@ export const parseMessages = (raw = []) => {
       continue;
     }
 
-    const source = row?.meta?.source || '';
-    if (source === 'subscription' && (m.content || attachments.length)) {
-      list.push({ role: 'subscription', content: m.content || '', attachments, source, _key: base ? `${base}:subscription` : undefined });
+    const kind = row?.meta?.kind || (row?.meta?.source === 'subscription' ? 'task' : 'message');
+    if (kind === 'task' && (m.content || attachments.length)) {
+      list.push({ role: 'task', kind, content: m.content || '', attachments, meta: row?.meta || null, expanded: false, _key: base ? `${base}:task` : undefined });
+      continue;
+    }
+
+    if (kind === 'compaction' && (m.content || attachments.length)) {
+      list.push({ role: 'compaction', kind, content: m.content || '', attachments, meta: row?.meta || null, expanded: false, _key: base ? `${base}:compaction` : undefined });
       continue;
     }
 
     if (m.role === 'user' && (m.content || attachments.length)) {
-      list.push({ role: 'user', content: m.content || '', attachments, source, _key: base ? `${base}:user` : undefined });
+      list.push({ role: 'user', kind, content: m.content || '', attachments, meta: row?.meta || null, _key: base ? `${base}:user` : undefined });
     }
   }
   return list;
