@@ -1,6 +1,7 @@
 // @ts-nocheck
 import fs from "node:fs";
 import path from "node:path";
+import { WORKSPACE_ROOT } from "../../runtime/index.js";
 
 const existsFile = (value) => {
   try {
@@ -14,7 +15,7 @@ const resolveAttachmentPath = (item = {}) => {
   const raw = String(item.path || "").trim();
   if (!raw) return "";
   if (path.isAbsolute(raw)) return raw;
-  const cached = path.resolve(process.cwd(), raw);
+  const cached = path.resolve(WORKSPACE_ROOT, raw);
   return existsFile(cached) ? cached : raw;
 };
 

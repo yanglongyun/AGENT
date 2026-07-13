@@ -30,7 +30,8 @@
     "server": "node server/index.js",
     "ui": "vite --host 127.0.0.1",
     "build": "vite build",
-    "check": "find server ui -name '*.js' -print0 | xargs -0 -n 1 node --check"
+    "build:release": "node scripts/build-release.mjs",
+    "check": "find server ui scripts \\( -name '*.js' -o -name '*.mjs' \\) -print0 | xargs -0 -n 1 node --check"
   },
   "dependencies": {
     "@lucide/vue": "^1.17.0",
@@ -42,5 +43,9 @@
     "vite": "^6.3.5",
     "vue": "^3.5.28",
     "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "postject": "^1.0.0-alpha.6"
   }
 }

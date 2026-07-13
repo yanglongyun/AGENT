@@ -3,8 +3,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { readBody } from "../utils/http.js";
+import { UPLOADS_ROOT } from "../runtime/index.js";
 
-const UPLOAD_DIR = path.resolve("uploads");
+const UPLOAD_DIR = UPLOADS_ROOT;
 
 const parseMultipart = (body, contentType) => {
   const match = String(contentType || "").match(/boundary=([^;]+)/);

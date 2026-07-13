@@ -29,9 +29,15 @@ const contentType = (file) => {
   return "application/octet-stream";
 };
 
-const sendStatic = async (req, res, root) => {
+const sendStatic = async (req, res, root, readAsset) => {
   const url = new URL(req.url || "/", "http://127.0.0.1");
   const rawPath = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname);
+  if (readAsset) {
+    const bytes = await readAsset(rawPath);
+    res.writeHead(200, { "Content-Type": contentType(rawPath) });
+    res.end(bytes);
+    return;
+  }
   const target = path.normalize(path.join(root, rawPath));
   if (!target.startsWith(root)) {
     sendJson(res, 403, { error: "Forbidden" });

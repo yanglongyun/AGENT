@@ -2,10 +2,9 @@
 import fs from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { DATABASE_PATH } from "../runtime/index.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, "../../data/agent.db");
+const DB_PATH = DATABASE_PATH;
 const DB_DIR = path.dirname(DB_PATH);
 
 let db;

@@ -1,5 +1,7 @@
 node_modules/
 dist/
+.release-build/
+.release-cache/
 data/
 uploads/
 

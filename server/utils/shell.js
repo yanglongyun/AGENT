@@ -2,6 +2,7 @@
 import { spawn } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
+import { WORKSPACE_ROOT } from "../runtime/index.js";
 
 const clampTimeout = (timeout) => {
   const seconds = Number(timeout || 30);
@@ -11,7 +12,7 @@ const clampTimeout = (timeout) => {
 
 const normalizeCwd = (cwd) => {
   const value = String(cwd || "").trim();
-  if (!value) return process.cwd();
+  if (!value) return WORKSPACE_ROOT;
   if (value.startsWith("~")) return path.join(os.homedir(), value.slice(1));
   return path.resolve(value);
 };

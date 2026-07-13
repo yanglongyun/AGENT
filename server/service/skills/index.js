@@ -1,10 +1,9 @@
 // @ts-nocheck
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { SKILLS_ROOT } from "../../runtime/index.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "../../../skills");
+const ROOT = SKILLS_ROOT;
 
 const parseFrontmatter = (content) => {
   if (!content.startsWith("---")) return {};

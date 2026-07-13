@@ -2,8 +2,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getMemoryPromptContext } from "../memories/index.js";
+import { SKILLS_ROOT, WORKSPACE_ROOT } from "../../runtime/index.js";
 
-const SKILLS_ROOT = path.resolve(process.cwd(), "skills");
 
 const defaultInstruction = `你是 Agent Chat，一个本地 AI 助手。
 
@@ -122,7 +122,7 @@ const buildSystemPrompt = (chatId, _contextMessages = [], settings = {}) => {
     "",
     "## 运行环境",
     `- 当前 chatId：${chatId}`,
-    `- 工作目录：${process.cwd()}`,
+    `- 工作目录：${WORKSPACE_ROOT}`,
     `- 模型：${settings.model || ""}`,
     "",
     "## 工具",
