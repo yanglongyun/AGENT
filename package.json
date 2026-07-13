@@ -1,7 +1,28 @@
 {
   "name": "agent-chat",
   "version": "1.0.0",
+  "description": "A local-first AI agent workspace with streaming chat, tools, tasks, memory, and browser control.",
   "private": true,
+  "license": "MIT",
+  "author": "realuckyang",
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitee.com/realuckyang/agent.git"
+  },
+  "bugs": {
+    "url": "https://gitee.com/realuckyang/agent/issues"
+  },
+  "homepage": "https://gitee.com/realuckyang/agent",
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "agent",
+    "ai",
+    "local-first",
+    "vue",
+    "websocket"
+  ],
   "type": "module",
   "main": "server/index.js",
   "scripts": {

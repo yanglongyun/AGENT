@@ -79,3 +79,13 @@ extension/          # 浏览器控制连接器(Chrome 扩展,WS 连入 AGENT)
 ## ⚠️ 安全提示
 
 `shell` 工具在**你本机**执行任意命令,**无沙箱** —— 这是本地 agent 工具的常态。只在你信任的机器、对你信任的模型使用。
+
+浏览器扩展使用 `debugger`、`tabs`、`scripting` 和 `<all_urls>` 等高权限来读取、操作当前浏览器会话。它默认只连接本机 AGENT 服务；不要将未经身份验证的服务暴露到公网，也不要在含敏感账号会话的浏览器中使用不可信模型。更多报告方式见 [SECURITY.md](SECURITY.md)。
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request。开始之前请阅读 [贡献指南](CONTRIBUTING.md) 和 [行为准则](CODE_OF_CONDUCT.md)。项目变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+
+## 许可证
+
+本项目使用 [MIT License](LICENSE) 开源。
