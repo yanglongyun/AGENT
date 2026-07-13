@@ -2,9 +2,9 @@
 
 `v1.0.0/` 包含不要求用户安装 Node.js 的可运行版本：
 
-- `AgentChat-windows-x64.zip`：Windows 10/11 x64，解压后双击 `AgentChat.exe`。
-- `AgentChat-macos-arm64.zip`：macOS 11+ Apple Silicon，解压后打开 `Agent Chat.app`。
-- `SHA256SUMS.txt`：发布包 SHA-256 校验值。
+- [AgentChat-windows-x64.zip](https://gitee.com/realuckyang/agent/releases/download/v1.0.0/AgentChat-windows-x64.zip)：Windows 10/11 x64，解压后双击 `AgentChat.exe`。
+- [AgentChat-macos-arm64.zip](https://gitee.com/realuckyang/agent/releases/download/v1.0.0/AgentChat-macos-arm64.zip)：macOS 11+ Apple Silicon，解压后打开 `Agent Chat.app`。
+- [SHA256SUMS.txt](https://gitee.com/realuckyang/agent/releases/download/v1.0.0/SHA256SUMS.txt)：发布包 SHA-256 校验值。
 
 校验示例：
 

@@ -27,12 +27,12 @@
 
 | 系统 | 下载 | 使用方式 |
 |---|---|---|
-| Windows 10/11 x64 | [AgentChat-windows-x64.zip](releases/v1.0.0/AgentChat-windows-x64.zip) | 解压后双击 `AgentChat.exe`，使用期间保持命令窗口打开 |
-| macOS 11+ Apple Silicon | [AgentChat-macos-arm64.zip](releases/v1.0.0/AgentChat-macos-arm64.zip) | 解压后将 `Agent Chat.app` 拖入“应用程序”并打开 |
+| Windows 10/11 x64 | [AgentChat-windows-x64.zip](https://gitee.com/realuckyang/agent/releases/download/v1.0.0/AgentChat-windows-x64.zip) | 解压后双击 `AgentChat.exe`，使用期间保持命令窗口打开 |
+| macOS 11+ Apple Silicon | [AgentChat-macos-arm64.zip](https://gitee.com/realuckyang/agent/releases/download/v1.0.0/AgentChat-macos-arm64.zip) | 解压后将 `Agent Chat.app` 拖入“应用程序”并打开 |
 
 程序启动后会在本机 `127.0.0.1:9500` 运行服务并自动打开浏览器。首次使用请在“设置”中填写模型 API Key。重复双击会打开已在运行的实例，不会创建第二份数据。
 
-> 发布包尚未使用商业代码签名证书。Windows SmartScreen 可能显示“未知发布者”；macOS 首次打开可能需要右键应用并选择“打开”。可使用 [SHA256SUMS.txt](releases/v1.0.0/SHA256SUMS.txt) 校验下载文件。
+> 发布包尚未使用商业代码签名证书。Windows SmartScreen 可能显示“未知发布者”；macOS 首次打开可能需要右键应用并选择“打开”。可使用 [SHA256SUMS.txt](https://gitee.com/realuckyang/agent/releases/download/v1.0.0/SHA256SUMS.txt) 校验下载文件。
 
 打包版数据存储位置：
 
