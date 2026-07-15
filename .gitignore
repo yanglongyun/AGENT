@@ -4,6 +4,8 @@ dist/
 .release-cache/
 data/
 uploads/
+cli/target/
+cli/data/
 
 .env
 .env.*
