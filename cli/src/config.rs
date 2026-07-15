@@ -71,15 +71,31 @@ impl Config {
 }
 
 pub fn load_dotenv() {
-    let mut cursor = env::current_dir().ok();
+    if env::current_dir()
+        .ok()
+        .as_deref()
+        .is_some_and(load_from_ancestors)
+    {
+        return;
+    }
+    if let Ok(executable) = env::current_exe() {
+        if let Some(directory) = executable.parent() {
+            load_from_ancestors(directory);
+        }
+    }
+}
+
+fn load_from_ancestors(start: &Path) -> bool {
+    let mut cursor = Some(start.to_path_buf());
     while let Some(dir) = cursor {
         let candidate = dir.join(".env");
         if candidate.is_file() {
             let _ = dotenvy::from_path(candidate);
-            break;
+            return true;
         }
         cursor = dir.parent().map(Path::to_path_buf);
     }
+    false
 }
 
 fn env_u64(key: &str) -> Option<u64> {
