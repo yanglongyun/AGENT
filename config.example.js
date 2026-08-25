@@ -30,7 +30,7 @@ export default {
     },
     web: {
         host: '127.0.0.1',
-        port: 9510,
+        port: 9500,
         dataFile: './.data/agent.db',
     },
     images: {

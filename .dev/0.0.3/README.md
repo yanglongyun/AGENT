@@ -77,7 +77,7 @@ web/
 ```bash
 npm run check       # 服务端各模块语法检查
 npm run web:build   # 前端类型检查 + 构建
-npm run web         # http://127.0.0.1:9510
+npm run web         # http://127.0.0.1:9500
 ```
 
 已在真实模型端到端实测:发送/流式/思考/工具直播、轮收纳与时长、停止与恢复、
