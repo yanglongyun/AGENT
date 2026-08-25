@@ -58,6 +58,10 @@ export function createApi({ config, store, runs, files, channel, meta }) {
                 const attachment = await files.upload(await readBody(request));
                 json(response, 201, { attachment }); return true;
             }
+            if (method === 'POST' && url.pathname === '/api/local-files') {
+                const attachments = files.register((await readBody(request)).paths);
+                json(response, 201, { attachments }); return true;
+            }
 
             if (method === 'GET' && url.pathname === '/api/conversations') {
                 json(response, 200, { conversations: store.listConversations() });

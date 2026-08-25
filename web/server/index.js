@@ -21,10 +21,6 @@ const files = createFiles(config);
 const runs = createRuns({ config, store, files, broadcast: channel.broadcast });
 const api = createApi({ config, store, runs, files, channel, meta });
 
-if (!config.apiKey || !config.model) {
-    console.warn('[web] config.js 缺少 apiKey 或 model:界面可用,但无法运行 Agent。');
-}
-
 const server = http.createServer(async (request, response) => {
     const url = new URL(request.url || '/', 'http://127.0.0.1');
     try {

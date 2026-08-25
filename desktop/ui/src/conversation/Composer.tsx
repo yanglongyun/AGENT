@@ -73,6 +73,10 @@ function WorkdirChip() {
                     <div className="sheet-note">Agent 的命令和文件操作都发生在这个目录里。</div>
                     {error && <div className="sheet-error">{error}</div>}
                     <div className="sheet-foot">
+                        {window.desktop && <button className="btn btn-quiet" onClick={async () => {
+                            const selected = await window.desktop!.selectDirectory();
+                            if (selected) setValue(selected);
+                        }}>选择文件夹</button>}
                         <button className="btn btn-quiet" onClick={() => setEditing(false)}>取消</button>
                         <button className="btn btn-accent" onClick={() => void save()}>保存</button>
                     </div>
@@ -126,6 +130,21 @@ export function Composer() {
         finally { setUploading(false); if (fileRef.current) fileRef.current.value = ''; }
     };
 
+    const attachLocal = async (paths: string[]) => {
+        if (!paths.length) return;
+        setUploading(true);
+        try {
+            const result = await api.post<{ attachments: Attachment[] }>('/api/local-files', { paths });
+            setAttachments((current) => [...current, ...result.attachments].slice(0, 10));
+        } catch (error) { toast(error instanceof Error ? error.message : '无法添加本地文件'); }
+        finally { setUploading(false); }
+    };
+
+    const chooseFiles = async () => {
+        if (!window.desktop) { fileRef.current?.click(); return; }
+        await attachLocal(await window.desktop.selectFiles());
+    };
+
     const autosize = (element: HTMLTextAreaElement) => {
         element.style.height = 'auto';
         element.style.height = `${Math.min(element.scrollHeight, 200)}px`;
@@ -156,7 +175,13 @@ export function Composer() {
 
     return (
         <div className="composer-wrap">
-            <div className="composer" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); void upload(event.dataTransfer.files); }}>
+            <div className="composer" onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
+                event.preventDefault();
+                const dropped = Array.from(event.dataTransfer.files);
+                const paths = window.desktop ? dropped.map((file) => window.desktop!.pathForFile(file)).filter(Boolean) : [];
+                if (paths.length) void attachLocal(paths);
+                else void upload(dropped);
+            }}>
                 <input ref={fileRef} hidden type="file" multiple onChange={(event) => { if (event.target.files) void upload(event.target.files); }} />
                 {attachments.length > 0 && <div className="attach-tray">{attachments.map((file) => (
                     <div className="attach-chip" key={file.id}>
@@ -191,7 +216,7 @@ export function Composer() {
                 />
                 <div className="composer-bar">
                     <div className="composer-left">
-                        <button className="tool-chip attach-button" title="添加图片或文件" disabled={busy || uploading} onClick={() => fileRef.current?.click()}>
+                        <button className="tool-chip attach-button" title="添加图片或文件" disabled={busy || uploading} onClick={() => void chooseFiles()}>
                             <Icon name="plus" size={14} />{uploading && <span>上传中</span>}
                         </button>
                         <WorkdirChip />

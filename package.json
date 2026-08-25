@@ -1,8 +1,9 @@
 {
   "name": "agent",
-    "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
   "type": "module",
+  "main": "desktop/main/index.js",
   "bin": {
     "agent": "./agent/cli.js"
   },
@@ -11,6 +12,37 @@
     "check": "node --check ./ai/index.js && node --check ./agent/cli.js && node --check ./web/server/index.js && node --check ./web/server/api.js && node --check ./web/server/runs.js && node --check ./web/server/store.js && node --check ./web/server/sse.js && node --check ./web/shared/events.js",
     "web": "node ./web/server/index.js",
     "web:ui": "npm --prefix web/ui run dev",
-    "web:build": "npm --prefix web/ui run build"
+    "web:build": "npm --prefix web/ui run build",
+    "desktop": "npm run desktop:build-ui && electron .",
+    "desktop:build-ui": "npm --prefix desktop/ui run build",
+    "desktop:pack": "npm run desktop:build-ui && electron-builder --dir",
+    "desktop:dist": "npm run desktop:build-ui && electron-builder"
+  },
+  "build": {
+    "appId": "dev.agent.desktop",
+    "productName": "AGENT",
+    "files": [
+      "ai/**/*",
+      "agent/**/*",
+      "desktop/main/**/*",
+      "desktop/server/**/*",
+      "desktop/shared/**/*",
+      "desktop/ui/dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "config.example.js",
+        "to": "config.example.js"
+      }
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.developer-tools"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3"
   }
 }

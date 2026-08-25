@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { statSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 
 const IMAGE_TYPES = new Map([
@@ -22,11 +23,23 @@ export function createFiles(config) {
     const root = resolve(policy.directory || join(dirname(resolve(config.web.dataFile)), 'files'));
 
     const normalize = (input) => {
+        if (input?.source === 'local' || String(input?.id || '').startsWith('local-')) {
+            try {
+                const encoded = String(input?.id || '').replace(/^local-/, '');
+                const path = encoded ? Buffer.from(encoded, 'base64url').toString('utf8') : resolve(String(input.path));
+                const info = statSync(path);
+                if (!info.isFile()) return null;
+                const extension = extname(path).toLowerCase();
+                const id = `local-${Buffer.from(path).toString('base64url')}`;
+                return { source: 'local', id, name: safeName(input?.name || basename(path)), path, mimeType: IMAGE_TYPES.get(extension) || String(input?.mimeType || 'application/octet-stream'), size: info.size, url: `/api/files/${encodeURIComponent(id)}` };
+            } catch { return null; }
+        }
         const file = basename(String(input?.file || input?.id || ''));
         if (!file) return null;
         const path = join(root, file);
         if (!path.startsWith(`${root}/`)) return null;
         return {
+            source: 'managed',
             id: file,
             name: safeName(input?.name || file),
             path,
@@ -37,6 +50,10 @@ export function createFiles(config) {
     };
 
     return {
+        register(paths) {
+            if (!Array.isArray(paths) || paths.length > maxPerMessage) throw Object.assign(new Error(`一次最多选择 ${maxPerMessage} 个文件`), { status: 400 });
+            return paths.map((path) => normalize({ source: 'local', path })).filter(Boolean);
+        },
         maxBytes,
         maxPerMessage,
         root,
@@ -61,7 +78,7 @@ export function createFiles(config) {
             return values.map(normalize).filter(Boolean);
         },
         async serve(id, response) {
-            const file = normalize({ file: id });
+            const file = normalize(String(id).startsWith('local-') ? { source: 'local', id } : { file: id });
             if (!file) return false;
             try {
                 const info = await stat(file.path);

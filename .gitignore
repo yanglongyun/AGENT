@@ -2,3 +2,8 @@ config.js
 .data/
 web/ui/dist/
 web/ui/node_modules/
+.DS_Store
+node_modules/
+desktop/ui/node_modules/
+desktop/ui/dist/
+dist/
