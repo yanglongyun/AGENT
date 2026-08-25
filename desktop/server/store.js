@@ -32,8 +32,20 @@ export function openDatabase(file) {
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS compactions (
+            conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+            start_seq INTEGER NOT NULL CHECK (start_seq > 0),
+            end_seq INTEGER NOT NULL CHECK (end_seq >= start_seq),
+            summary TEXT NOT NULL,
+            kind TEXT NOT NULL CHECK (kind IN ('summary', 'mechanical')),
+            tokens INTEGER NOT NULL DEFAULT 0,
+            at TEXT NOT NULL,
+            PRIMARY KEY (conversation_id, end_seq)
+        );
         CREATE INDEX IF NOT EXISTS idx_messages_conversation_seq
         ON messages(conversation_id, seq);
+        CREATE INDEX IF NOT EXISTS idx_compactions_conversation
+        ON compactions(conversation_id, end_seq);
     `);
     ensureColumn(db, 'conversations', 'pinned', 'INTEGER NOT NULL DEFAULT 0');
     db.exec('PRAGMA optimize;');
@@ -70,6 +82,10 @@ export function createStore(db) {
     const listSettings = db.prepare('SELECT key, value FROM settings');
     const upsertSetting = db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?)
         ON CONFLICT(key) DO UPDATE SET value = excluded.value`);
+    const latestMessageSeq = db.prepare('SELECT COALESCE(MAX(seq), 0) AS seq FROM messages WHERE conversation_id = ?');
+    const lastCompaction = db.prepare('SELECT end_seq FROM compactions WHERE conversation_id = ? ORDER BY end_seq DESC LIMIT 1');
+    const addCompaction = db.prepare(`INSERT INTO compactions
+        (conversation_id, start_seq, end_seq, summary, kind, tokens, at) VALUES (?, ?, ?, ?, ?, ?, ?)`);
 
     const now = () => new Date().toISOString();
     const parseConversation = (row) => row && ({
@@ -87,6 +103,11 @@ export function createStore(db) {
                 db.exec('COMMIT');
             } catch (error) { db.exec('ROLLBACK'); throw error; }
             return Object.fromEntries(listSettings.all().map((row) => [row.key, row.value]));
+        },
+        latestMessageSeq: (id) => Number(latestMessageSeq.get(id).seq) || 0,
+        lastCompactionEnd: (id) => Number(lastCompaction.get(id)?.end_seq) || 0,
+        appendCompaction(id, { startSeq, endSeq, summary, kind, tokens = 0 }) {
+            addCompaction.run(id, startSeq, endSeq, summary, kind, tokens, now());
         },
         listConversations: () => list.all(),
         getConversation: (id) => parseConversation(get.get(id)),

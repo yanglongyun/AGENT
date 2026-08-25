@@ -60,6 +60,8 @@ export async function compact({
 
     const early = history.slice(0, at);
     let summary = '';
+    let kind = 'summary';
+    let tokens = 0;
     try {
         const result = await complete({
             responsesUrl,
@@ -70,12 +72,21 @@ export async function compact({
             errorMaxChars,
             signal,
         });
+        tokens = (Number(result.usage?.input_tokens) || 0) + (Number(result.usage?.output_tokens) || 0);
         if (String(result.text).trim().length >= compaction.summaryMinChars) summary = String(result.text).trim();
     } catch { /* 摘要失败时使用确定性索引 */ }
-    if (!summary) summary = mechanical(early, compaction);
+    if (!summary) {
+        summary = mechanical(early, compaction);
+        kind = 'mechanical';
+    }
 
     return {
         compacted: true,
+        summary,
+        kind,
+        tokens,
+        sourceCount: early.length,
+        tailCount: history.length - at,
         history: [
             { role: 'system', content: `[早前对话的摘要]\n${summary}` },
             ...history.slice(at),

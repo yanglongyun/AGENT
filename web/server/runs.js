@@ -79,7 +79,21 @@ export function createRuns({ config, store, files, broadcast }) {
             usage: conversation.usage,
             signal: controller.signal,
         });
-        if (folded.compacted) broadcast(EVENTS.COMPACT_DONE, { conversationId });
+        if (folded.compacted) {
+            const previousEnd = store.lastCompactionEnd(conversationId);
+            const endSeq = store.latestMessageSeq(conversationId) - 1 - folded.tailCount;
+            const startSeq = previousEnd + 1;
+            if (endSeq >= startSeq) {
+                store.appendCompaction(conversationId, {
+                    startSeq,
+                    endSeq,
+                    summary: folded.summary,
+                    kind: folded.kind,
+                    tokens: folded.tokens,
+                });
+            }
+            broadcast(EVENTS.COMPACT_DONE, { conversationId });
+        }
 
         const emit = (type, data) => {
             if (type === 'message' && data.delta) {
