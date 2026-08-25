@@ -1,0 +1,13 @@
+{
+  "name": "agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "agent": "./agent/cli.js"
+  },
+  "scripts": {
+    "start": "node ./agent/cli.js",
+    "check": "node --check ./ai/index.js && node --check ./agent/cli.js"
+  }
+}

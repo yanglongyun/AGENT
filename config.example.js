@@ -1,0 +1,31 @@
+export default {
+    responsesUrl: 'https://api.openai.com/v1/responses',
+    apiKey: '',
+    model: '',
+    instructions: '你是一个编程 Agent。调用工具前用 summary 简短说明目的。',
+    workdir: process.cwd(),
+    maxRounds: 32,
+    errorMaxChars: 4000,
+    compaction: {
+        contextWindowTokens: 128_000,
+        foldRatio: 0.8,
+        tailKeepChars: 40_000,
+        summaryMinChars: 80,
+        callArgsMaxChars: 2_000,
+        callOutputMaxChars: 4_000,
+        mechanicalItemMaxChars: 160,
+        prompt: [
+            '你在压缩一段对话，让 Agent 能无缝继续工作。',
+            '保留用户目标与约束、已完成的事、关键事实、路径、命令、错误、未完成部分和下一步。',
+            '只输出连续的中文摘要正文，不要工具调用、标签或代码围栏。',
+        ].join('\n'),
+    },
+    bash: {
+        executable: '/bin/zsh',
+        args: ['-lc'],
+        minTimeoutMs: 100,
+        defaultTimeoutMs: 120_000,
+        maxTimeoutMs: 600_000,
+        maxOutputChars: 40_000,
+    },
+};
