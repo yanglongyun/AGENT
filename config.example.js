@@ -33,4 +33,10 @@ export default {
         port: 9510,
         dataFile: './.data/agent.db',
     },
+    images: {
+        maxBytes: 8 * 1024 * 1024,
+        maxPerMessage: 10,
+        maxLiveToolImages: 2,
+        directory: './.data/files',
+    },
 };

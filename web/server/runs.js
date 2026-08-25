@@ -23,7 +23,7 @@ const parseArgs = (value) => {
     try { return JSON.parse(String(value || '{}')); } catch { return {}; }
 };
 
-export function createRuns({ config, store, broadcast }) {
+export function createRuns({ config, store, files, broadcast }) {
     const active = new Map();
 
     /** 停止 / 出错后,给没等到结果的 function_call 补一条输出,落库并进上下文。 */
@@ -111,6 +111,7 @@ export function createRuns({ config, store, broadcast }) {
                 env: process.env,
                 signal: controller.signal,
                 emit,
+                prepareInput: files.prepareInput,
             });
             store.saveContext(conversationId, [...folded.history, user, ...result.items], result.usage);
             broadcast(EVENTS.DONE, { conversationId, usage: result.usage });
@@ -147,15 +148,15 @@ export function createRuns({ config, store, broadcast }) {
         },
 
         /** 落库用户消息、点亮标题、把轮子丢进后台,立即返回已存的那条消息。 */
-        start(conversation, content, clientId = '') {
+        start(conversation, content, attachments = [], clientId = '') {
             if (active.has(conversation.id)) throw Object.assign(new Error('该对话正在运行'), { status: 409 });
             const controller = new AbortController();
             active.set(conversation.id, controller);
 
-            const user = { role: 'user', content };
+            const user = { role: 'user', content, attachments };
             const saved = store.append(conversation.id, user);
             if (conversation.title === DEFAULT_TITLE) {
-                store.setTitle(conversation.id, mechanicalTitle(content));
+                store.setTitle(conversation.id, mechanicalTitle(content || attachments[0]?.name));
             }
             broadcast(EVENTS.START, { conversationId: conversation.id, clientId, content });
             broadcast(EVENTS.CONVERSATIONS_CHANGED, {});

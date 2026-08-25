@@ -5,6 +5,9 @@ import { useChannel } from '../lib/channel';
 import { Sheet } from '../overlay/Sheet';
 import { currentWorkdir, send, setWorkdir, stopRun, useConversation } from './store';
 import { useDraftSeed } from './draft';
+import { api } from '../lib/api';
+import { toast } from '../overlay/toast';
+import type { Attachment } from './thread';
 
 /** 拼音确认的那个 Enter 不是发送。组字中看 isComposing;Safari 在
     compositionend 之后才派发那次 keydown,所以刚结束的 50ms 内也拦。
@@ -81,7 +84,10 @@ function WorkdirChip() {
 
 export function Composer() {
     const [text, setText] = useState('');
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const [uploading, setUploading] = useState(false);
     const areaRef = useRef<HTMLTextAreaElement>(null);
+    const fileRef = useRef<HTMLInputElement>(null);
     const connected = useChannel((state) => state.connected);
     const { busy, stopping, currentId, meta } = useConversation();
     const seed = useDraftSeed();
@@ -99,7 +105,26 @@ export function Composer() {
     };
 
     const guard = useComposingGuard();
-    const canSend = connected && !busy && text.trim().length > 0;
+    const canSend = connected && !busy && !uploading && (text.trim().length > 0 || attachments.length > 0);
+
+    const upload = async (files: FileList | File[]) => {
+        setUploading(true);
+        try {
+            const next: Attachment[] = [];
+            for (const file of Array.from(files)) {
+                const dataBase64 = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(reader.error);
+                    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+                    reader.readAsDataURL(file);
+                });
+                const result = await api.post<{ attachment: Attachment }>('/api/files', { name: file.name, mimeType: file.type, dataBase64 });
+                next.push(result.attachment);
+            }
+            setAttachments((current) => [...current, ...next].slice(0, 10));
+        } catch (error) { toast(error instanceof Error ? error.message : '文件上传失败'); }
+        finally { setUploading(false); if (fileRef.current) fileRef.current.value = ''; }
+    };
 
     const autosize = (element: HTMLTextAreaElement) => {
         element.style.height = 'auto';
@@ -121,15 +146,25 @@ export function Composer() {
     const submit = () => {
         if (!canSend) return;
         const content = text;
+        const files = attachments;
         setText('');
+        setAttachments([]);
         persistDraft('');
         if (areaRef.current) areaRef.current.style.height = 'auto';
-        void send(content);
+        void send(content, files);
     };
 
     return (
         <div className="composer-wrap">
-            <div className="composer">
+            <div className="composer" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); void upload(event.dataTransfer.files); }}>
+                <input ref={fileRef} hidden type="file" multiple onChange={(event) => { if (event.target.files) void upload(event.target.files); }} />
+                {attachments.length > 0 && <div className="attach-tray">{attachments.map((file) => (
+                    <div className="attach-chip" key={file.id}>
+                        {file.mimeType.startsWith('image/') ? <img src={file.url} alt="" /> : <Icon name="doc" size={15} />}
+                        <span>{file.name}</span>
+                        <button title="移除" onClick={() => setAttachments((items) => items.filter((item) => item.id !== file.id))}><Icon name="x" size={12} /></button>
+                    </div>
+                ))}</div>}
                 <textarea
                     ref={areaRef}
                     rows={2}
@@ -150,6 +185,9 @@ export function Composer() {
                 />
                 <div className="composer-bar">
                     <div className="composer-left">
+                        <button className="tool-chip attach-button" title="添加图片或文件" disabled={busy || uploading} onClick={() => fileRef.current?.click()}>
+                            <Icon name="plus" size={14} />{uploading && <span>上传中</span>}
+                        </button>
                         <WorkdirChip />
                     </div>
                     <div className="composer-right">

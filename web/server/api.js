@@ -19,7 +19,7 @@ const isDirectory = (path) => {
     try { return statSync(path).isDirectory(); } catch { return false; }
 };
 
-export function createApi({ config, store, runs, channel, meta }) {
+export function createApi({ config, store, runs, files, channel, meta }) {
     /** 校验并归一工作目录;非法时返回 null。 */
     const normalizeWorkdir = (value) => {
         const path = resolve(String(value || '').trim() || config.workdir);
@@ -40,6 +40,14 @@ export function createApi({ config, store, runs, channel, meta }) {
             }
             if (method === 'GET' && url.pathname === '/api/events') { channel.handle(request, response); return true; }
             if (method === 'GET' && url.pathname === '/api/runs') { json(response, 200, { ids: runs.ids() }); return true; }
+            if (method === 'GET' && segments[1] === 'files' && segments[2]) {
+                if (await files.serve(segments[2], response)) return true;
+                json(response, 404, { error: '文件不存在' }); return true;
+            }
+            if (method === 'POST' && url.pathname === '/api/files') {
+                const attachment = await files.upload(await readBody(request));
+                json(response, 201, { attachment }); return true;
+            }
 
             if (method === 'GET' && url.pathname === '/api/conversations') {
                 json(response, 200, { conversations: store.listConversations() });
@@ -98,8 +106,9 @@ export function createApi({ config, store, runs, channel, meta }) {
                 if (method === 'POST' && segments[3] === 'messages') {
                     const input = await readBody(request);
                     const content = String(input.content || '').trim();
-                    if (!content) { json(response, 400, { error: '消息不能为空' }); return true; }
-                    const message = runs.start(conversation, content, String(input.clientId || ''));
+                    const attachments = files.normalizeMany(input.attachments);
+                    if (!content && !attachments.length) { json(response, 400, { error: '消息不能为空' }); return true; }
+                    const message = runs.start(conversation, content, attachments, String(input.clientId || ''));
                     json(response, 202, { message });
                     return true;
                 }

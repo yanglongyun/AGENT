@@ -223,7 +223,14 @@ export function MessageStream() {
                     if (row.kind === 'user') {
                         return (
                             <div key={block.key} className="msg mine float-in">
-                                <div className="bubble">{row.content}</div>
+                                <div className="bubble">
+                                    {!!row.attachments?.length && <div className="message-files">{row.attachments.map((file) => (
+                                        file.mimeType.startsWith('image/')
+                                            ? <a key={file.id} href={file.url} target="_blank" rel="noreferrer"><img src={file.url} alt={file.name} /></a>
+                                            : <a key={file.id} className="message-file" href={file.url} target="_blank" rel="noreferrer"><Icon name="doc" size={14} />{file.name}</a>
+                                    ))}</div>}
+                                    {row.content}
+                                </div>
                                 {row.sending && <div className="send-state">发送中…</div>}
                                 {!row.sending && row.failed && (
                                     <button className="send-retry" onClick={() => void retrySend(row)}>发送失败,点击重试</button>

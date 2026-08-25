@@ -20,6 +20,7 @@ export async function runAgent({
     env,
     signal,
     emit = () => {},
+    prepareInput = async (items) => items,
 }) {
     if (!runId || !Array.isArray(input)) throw new Error('runId 和 input 必填');
     if (!Number.isInteger(maxRounds) || maxRounds <= 0) throw new Error('maxRounds 必须是正整数');
@@ -33,7 +34,7 @@ export async function runAgent({
                 url: responsesUrl,
                 apiKey,
                 model,
-                input: [...input, ...generated],
+                input: await prepareInput([...input, ...generated]),
                 instructions: String(instructions),
                 tools,
                 signal,

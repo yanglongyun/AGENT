@@ -8,7 +8,7 @@ import { EVENTS } from '@shared/events';
 import { api, ApiError } from '../lib/api';
 import { connectChannel, onChannel, useChannel, type ChannelEvent } from '../lib/channel';
 import { toast } from '../overlay/toast';
-import { mkKey, renderMessages, type RawMessage, type Row } from './thread';
+import { mkKey, renderMessages, type Attachment, type RawMessage, type Row } from './thread';
 import { setupStream } from './stream';
 
 export interface Conversation {
@@ -267,13 +267,13 @@ export async function setWorkdir(workdir: string) {
     await loadConversations();
 }
 
-export async function send(text: string, retryRow: Row | null = null) {
+export async function send(text: string, attachments: Attachment[] = [], retryRow: Row | null = null) {
     const content = text.trim();
-    if (!content || get().busy) return;
+    if ((!content && !attachments.length) || get().busy) return;
 
     const row = retryRow || pushRow({
         key: mkKey('u'), kind: 'user', content,
-        clientId: crypto.randomUUID(), sending: true, failed: false, at: Date.now(),
+        attachments, clientId: crypto.randomUUID(), sending: true, failed: false, at: Date.now(),
     });
     row.clientId ||= crypto.randomUUID();
     row.sending = true;
@@ -305,7 +305,7 @@ export async function send(text: string, retryRow: Row | null = null) {
 
     const id = get().currentId;
     try {
-        await api.post(`/api/conversations/${id}/messages`, { content, clientId: row.clientId });
+        await api.post(`/api/conversations/${id}/messages`, { content, attachments: row.attachments, clientId: row.clientId });
         row.sending = false;
         if (!get().liveIds.includes(id)) set((state) => ({ liveIds: [...state.liveIds, id] }));
         bump();
@@ -315,7 +315,7 @@ export async function send(text: string, retryRow: Row | null = null) {
     }
 }
 
-export const retrySend = (row: Row) => (row.failed ? send(row.content || '', row) : undefined);
+export const retrySend = (row: Row) => (row.failed ? send(row.content || '', row.attachments || [], row) : undefined);
 
 export function stopRun() {
     const { busy, stopping, currentId } = get();

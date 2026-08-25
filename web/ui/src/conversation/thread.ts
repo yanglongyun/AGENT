@@ -21,7 +21,10 @@ export interface StoredItem {
     name?: string;
     arguments?: string;
     output?: string;
+    attachments?: Attachment[];
 }
+
+export interface Attachment { id: string; name: string; path: string; mimeType: string; size: number; url: string; }
 
 export interface Row {
     key: string;
@@ -34,6 +37,7 @@ export interface Row {
     clientId?: string;
     sending?: boolean;
     failed?: boolean;
+    attachments?: Attachment[];
 
     // assistant:思考与正文同一行(思考先流,正文后到)
     reasoning?: string;
@@ -133,7 +137,7 @@ export function renderMessages(raw: RawMessage[]): Row[] {
         }
         if (item.role === 'user') {
             flushReasoning(at);
-            rows.push({ key: mkKey('u'), kind: 'user', content: itemText(item), at });
+            rows.push({ key: mkKey('u'), kind: 'user', content: itemText(item), attachments: item.attachments || [], at });
             continue;
         }
         if (item.role === 'system') {

@@ -8,6 +8,7 @@ import { createChannel } from './sse.js';
 import { createRuns } from './runs.js';
 import { createApi } from './api.js';
 import { serveStatic } from './static.js';
+import { createFiles } from './files.js';
 
 const meta = {
     version: JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version,
@@ -16,8 +17,9 @@ const uiRoot = fileURLToPath(new URL('../ui/dist', import.meta.url));
 
 const store = createStore(openDatabase(config.web.dataFile));
 const channel = createChannel();
-const runs = createRuns({ config, store, broadcast: channel.broadcast });
-const api = createApi({ config, store, runs, channel, meta });
+const files = createFiles(config);
+const runs = createRuns({ config, store, files, broadcast: channel.broadcast });
+const api = createApi({ config, store, runs, files, channel, meta });
 
 if (!config.apiKey || !config.model) {
     console.warn('[web] config.js 缺少 apiKey 或 model:界面可用,但无法运行 Agent。');
