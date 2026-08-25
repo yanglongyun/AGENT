@@ -28,4 +28,9 @@ export default {
         maxTimeoutMs: 600_000,
         maxOutputChars: 40_000,
     },
+    web: {
+        host: '127.0.0.1',
+        port: 9510,
+        dataFile: './.data/agent.db',
+    },
 };

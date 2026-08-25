@@ -1,1 +1,4 @@
 config.js
+.data/
+web/ui/dist/
+web/ui/node_modules/

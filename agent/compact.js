@@ -36,6 +36,13 @@ const mechanical = (items, config) => [
     ...items.map((item, index) => `#${index + 1} ${item.role || item.type || 'unknown'} ${text(item, config).replace(/\s+/g, ' ').slice(0, config.mechanicalItemMaxChars)}`),
 ].join('\n');
 
+/** 用量是否已到压缩水位。单独导出给调用方预判(如 Web 端提前广播「正在压缩」)。 */
+export function shouldCompact({ usage, compaction }) {
+    if (!compaction || typeof compaction !== 'object') throw new Error('compaction 配置必填');
+    const used = (Number(usage?.input_tokens) || 0) + (Number(usage?.output_tokens) || 0);
+    return Boolean(compaction.contextWindowTokens) && used >= compaction.contextWindowTokens * compaction.foldRatio;
+}
+
 export async function compact({
     history,
     usage,
@@ -46,11 +53,7 @@ export async function compact({
     errorMaxChars,
     signal,
 }) {
-    if (!compaction || typeof compaction !== 'object') throw new Error('compaction 配置必填');
-    const used = (Number(usage?.input_tokens) || 0) + (Number(usage?.output_tokens) || 0);
-    if (!compaction.contextWindowTokens || used < compaction.contextWindowTokens * compaction.foldRatio) {
-        return { history, compacted: false };
-    }
+    if (!shouldCompact({ usage, compaction })) return { history, compacted: false };
 
     const at = splitAt(history, compaction.tailKeepChars);
     if (at < 2) return { history, compacted: false };

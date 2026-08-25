@@ -1,6 +1,6 @@
 {
   "name": "agent",
-  "version": "0.1.0",
+  "version": "0.0.3",
   "private": true,
   "type": "module",
   "bin": {
@@ -8,6 +8,9 @@
   },
   "scripts": {
     "start": "node ./agent/cli.js",
-    "check": "node --check ./ai/index.js && node --check ./agent/cli.js"
+    "check": "node --check ./ai/index.js && node --check ./agent/cli.js && node --check ./web/server/index.js && node --check ./web/server/api.js && node --check ./web/server/runs.js && node --check ./web/server/store.js && node --check ./web/server/sse.js && node --check ./web/shared/events.js",
+    "web": "node ./web/server/index.js",
+    "web:ui": "npm --prefix web/ui run dev",
+    "web:build": "npm --prefix web/ui run build"
   }
 }
