@@ -7,14 +7,30 @@ import { useShell } from './layout';
 import { cycleTheme, useTheme } from '../lib/theme';
 import { loadMeta } from '../conversation/store';
 
+type DriverId = 'responses' | 'chat';
+
 interface SettingsValue {
+    driver: DriverId;
     responsesUrl: string;
     apiKey: string;
     model: string;
     instructions: string;
 }
 
-const EMPTY: SettingsValue = { responsesUrl: '', apiKey: '', model: '', instructions: '' };
+/** 和 ai/drivers/ 里的两个驱动一一对应。placeholder 直接给出各自的典型地址,
+ *  免得选了 chat 还照着 Responses 的样子填。 */
+const DRIVERS: { id: DriverId; label: string; hint: string; urlLabel: string; placeholder: string }[] = [
+    {
+        id: 'responses', label: 'Responses API', hint: 'OpenAI 的 Responses 协议',
+        urlLabel: 'Responses 地址', placeholder: 'https://api.openai.com/v1/responses',
+    },
+    {
+        id: 'chat', label: 'Chat Completions', hint: '只有 /chat/completions 的服务，例如 GLM',
+        urlLabel: 'Chat Completions 地址', placeholder: 'https://api.z.ai/api/paas/v4/chat/completions',
+    },
+];
+
+const EMPTY: SettingsValue = { driver: 'responses', responsesUrl: '', apiKey: '', model: '', instructions: '' };
 
 export function Settings() {
     const [value, setValue] = useState(EMPTY);
@@ -32,9 +48,10 @@ export function Settings() {
     }, []);
 
     const field = (key: keyof SettingsValue, next: string) => setValue((current) => ({ ...current, [key]: next }));
+    const driver = DRIVERS.find((item) => item.id === value.driver) ?? DRIVERS[0];
     const save = async () => {
         if (!value.responsesUrl.trim() || !value.apiKey.trim() || !value.model.trim()) {
-            toast('Responses 地址、API Key 和模型不能为空'); return;
+            toast(`${driver.urlLabel}、API Key 和模型不能为空`); return;
         }
         setSaving(true);
         try {
@@ -55,7 +72,22 @@ export function Settings() {
                 <div className="settings-heading"><h1>设置</h1><p>模型连接与 Agent 行为保存在当前产品的本地数据库中。</p></div>
                 {loading ? <div className="sheet-note">正在读取设置…</div> : <>
                 <section className="settings-section"><div className="settings-section-title">模型</div><div className="settings-form">
-                <label><span>Responses 地址</span><input className="field-input mono" value={value.responsesUrl} placeholder="https://api.openai.com/v1/responses" onChange={(event) => field('responsesUrl', event.target.value)} /></label>
+                <label><span>驱动</span><div className="driver-choice" role="radiogroup" aria-label="接口协议">
+                    {DRIVERS.map((item) => (
+                        <button
+                            key={item.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={item.id === value.driver}
+                            className={`driver-option${item.id === value.driver ? ' on' : ''}`}
+                            onClick={() => field('driver', item.id)}
+                        >
+                            <span className="driver-name">{item.label}</span>
+                            <span className="driver-hint">{item.hint}</span>
+                        </button>
+                    ))}
+                </div></label>
+                <label><span>{driver.urlLabel}</span><input className="field-input mono" value={value.responsesUrl} placeholder={driver.placeholder} onChange={(event) => field('responsesUrl', event.target.value)} /></label>
                 <label><span>API Key</span><div className="secret-field"><input className="field-input mono" type={showKey ? 'text' : 'password'} value={value.apiKey} placeholder="仅保存在本地数据库" onChange={(event) => field('apiKey', event.target.value)} /><button type="button" onClick={() => setShowKey((show) => !show)}>{showKey ? '隐藏' : '显示'}</button></div></label>
                 <label><span>模型</span><input className="field-input mono" value={value.model} placeholder="模型 ID" onChange={(event) => field('model', event.target.value)} /></label>
                 </div></section>

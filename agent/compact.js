@@ -47,6 +47,7 @@ export async function compact({
     history,
     usage,
     compaction,
+    driver,
     responsesUrl,
     apiKey,
     model,
@@ -64,6 +65,7 @@ export async function compact({
     let tokens = 0;
     try {
         const result = await complete({
+            driver,
             responsesUrl,
             apiKey,
             model,

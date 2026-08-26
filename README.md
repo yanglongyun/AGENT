@@ -20,12 +20,32 @@ Electron Main
 
 ```text
 AGENT/
-├── ai/          无状态 Responses 循环和工具调用调度
+├── ai/          无状态循环和工具调用调度
+│   └── drivers/ 协议驱动:responses / chat,彼此独立
 ├── agent/       bash、read、write、edit 及上下文压缩
 ├── web/         可独立部署的 Node.js + React Web 产品
 ├── desktop/     Electron 本地产品（main、server、ui）
 └── .dev/        各版本设计与变更说明
 ```
+
+### 协议驱动
+
+`ai/` 下只有 `drivers/` 认识具体协议，其余（循环、重试、工具执行、事件契约）全是协议无关的。
+
+| 驱动 | 用于 |
+|---|---|
+| `responses` | OpenAI Responses API（默认） |
+| `chat` | 只有 `/chat/completions` 的服务，例如 GLM |
+
+两个驱动之间零依赖，各自消化自己协议的怪癖；**工具循环只有一份**。
+驱动接口就是 `attempt()`：进去是统一的 `{ input, instructions, tools }`，出来是统一的
+`{ items, usage, status, stopReason }`，沿途用 `onEvent` 吐增量。
+
+item 词表（`message` / `reasoning` / `function_call` / `function_call_output`）沿用 Responses 那套 ——
+它早已是仓库的内部契约：数据库、UI 渲染、上下文压缩全按它来，`ai/` 之外有 40 多处依赖它。
+所以 `chat` 驱动负责把 Chat 的形状翻译成它，而不是另立一套。
+
+在 `config.js` 用 `driver` 字段选，或在 Web / Desktop 设置页顶部选。
 
 依赖方向始终是宿主调用 `agent`，`agent` 再调用 `ai`。Web 和 Desktop 拥有各自的服务、UI 和数据库，可以独立演进；`ai` 与 `agent` 在仓库中始终只有一份。
 
@@ -41,7 +61,7 @@ AGENT/
 - 上下文水位压缩和可追踪的压缩记录
 - 图片、普通文件、选择、拖拽和剪贴板粘贴
 - 图片在请求模型时临时转换为 `input_image`
-- GUI 设置模型、API Key、Responses 地址和系统提示词
+- GUI 选择驱动，设置模型、API Key、接口地址和系统提示词
 - Electron 原生文件与目录选择
 - macOS、Windows、Linux 原生窗口标题栏
 
@@ -64,7 +84,7 @@ cp config.example.js config.js
 
 `config.js` 被 Git 忽略。它保存工作目录、端口、工具超时、压缩阈值等程序级参数。
 
-Web 和 Desktop 的模型、API Key、Responses 地址及系统提示词不读取环境变量或 `config.js`，必须在各自 GUI 的设置页面填写。CLI 仍从 `config.js` 读取这些值。
+Web 和 Desktop 的驱动、模型、API Key、接口地址及系统提示词不读取环境变量或 `config.js`，必须在各自 GUI 的设置页面填写。CLI 仍从 `config.js` 读取这些值。
 
 ## Web
 

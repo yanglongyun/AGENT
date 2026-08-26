@@ -1,7 +1,7 @@
 // 流解析、截断判定与重试编排。用桩 fetch 驱动，不发真实请求。
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { request } from '../ai/responses.js';
+import { request } from '../ai/request.js';
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; });

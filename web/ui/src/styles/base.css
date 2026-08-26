@@ -107,6 +107,22 @@ header, aside, button { -webkit-user-select: none; user-select: none; }
 .secret-field { position: relative; }
 .secret-field .field-input { padding-right: 54px; }
 .secret-field button { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-3); }
+/* 驱动选择:两张并排的卡片,选中的描边高亮。比下拉框直观 ——
+   选错协议是这里最容易犯的错,它值得占这点面积。 */
+.driver-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.driver-option {
+    display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+    padding: 10px 12px; text-align: left;
+    border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2);
+    transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.driver-option:hover { border-color: var(--line-strong, var(--line)); }
+.driver-option.on { border-color: var(--accent); background: var(--surface-1); box-shadow: 0 0 0 3px var(--accent-ring); }
+.driver-name { font-size: 12.5px; font-weight: 600; color: var(--text-1); }
+.driver-option.on .driver-name { color: var(--accent); }
+.driver-hint { font-size: 11px; line-height: 1.45; color: var(--text-3); }
+@media (max-width: 560px) { .driver-choice { grid-template-columns: 1fr; } }
+
 .settings-theme { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-2); }
 @keyframes fade { from { opacity: 0; } }
 @keyframes sheet-in { from { opacity: 0; transform: scale(.96) translateY(-4px); } }

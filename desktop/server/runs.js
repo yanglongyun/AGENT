@@ -52,6 +52,7 @@ export function createRuns({ config, store, files, broadcast }) {
         const reply = items.filter((item) => item?.type === 'message').map(itemText).join('\n').slice(0, 1200);
         try {
             const result = await complete({
+                driver: runtime.driver,
                 responsesUrl: runtime.responsesUrl,
                 apiKey: runtime.apiKey,
                 model: runtime.model,
@@ -171,13 +172,14 @@ export function createRuns({ config, store, files, broadcast }) {
             const savedSettings = store.getSettings();
             const runtime = {
                 ...config,
+                driver: savedSettings.driver || config.driver || 'responses',
                 responsesUrl: savedSettings.responsesUrl || '',
                 apiKey: savedSettings.apiKey || '',
                 model: savedSettings.model || '',
                 instructions: savedSettings.instructions || '',
             };
             if (!runtime.responsesUrl || !runtime.apiKey || !runtime.model) {
-                throw Object.assign(new Error('请先在设置中填写 Responses 地址、API Key 和模型'), { status: 400 });
+                throw Object.assign(new Error('请先在设置中选择驱动并填写接口地址、API Key 和模型'), { status: 400 });
             }
             const controller = new AbortController();
             active.set(conversation.id, controller);
