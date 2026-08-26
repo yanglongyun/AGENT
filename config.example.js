@@ -1,3 +1,6 @@
+// Windows 上没有 /bin/zsh，用 cmd.exe;其余平台保持原样。
+const WINDOWS = process.platform === 'win32';
+
 export default {
     responsesUrl: 'https://api.openai.com/v1/responses',
     apiKey: '',
@@ -6,6 +9,19 @@ export default {
     workdir: process.cwd(),
     maxRounds: 32,
     errorMaxChars: 4000,
+    // 上游抖动时的重试。判定顺序:额度/账单(终态) → HTTP 状态码 → 错误文本兜底。
+    retry: {
+        enabled: true,
+        maxRetries: 3,
+        baseDelayMs: 1_000,
+        maxDelayMs: 30_000,
+        // 流已吐出内容后再断,重试会重复一遍正文。默认关。
+        retryAfterStream: false,
+    },
+    // 透传给 Responses 请求体的模型参数。这里留空表示完全交给服务端默认值。
+    // 常用:reasoning: { effort: 'medium' }、max_output_tokens: 8_000。
+    // store / service_tier / prompt_cache_key 是 OpenAI 专有,第三方网关可能忽略或报 400。
+    modelOptions: {},
     compaction: {
         contextWindowTokens: 128_000,
         foldRatio: 0.8,
@@ -21,8 +37,8 @@ export default {
         ].join('\n'),
     },
     bash: {
-        executable: '/bin/zsh',
-        args: ['-lc'],
+        executable: WINDOWS ? 'cmd.exe' : '/bin/zsh',
+        args: WINDOWS ? ['/d', '/s', '/c'] : ['-lc'],
         minTimeoutMs: 100,
         defaultTimeoutMs: 120_000,
         maxTimeoutMs: 600_000,

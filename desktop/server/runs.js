@@ -127,8 +127,12 @@ export function createRuns({ config, store, files, broadcast }) {
                 emit,
                 prepareInput: files.prepareInput,
             });
-            store.saveContext(conversationId, [...folded.history, user, ...result.items], result.usage);
-            broadcast(EVENTS.DONE, { conversationId, usage: result.usage });
+            const tail = result.stopReason
+                ? [{ role: 'system', content: `[incomplete] 上一条回复未完整结束:${result.stopReason}` }]
+                : [];
+            for (const marker of tail) store.append(conversationId, marker);
+            store.saveContext(conversationId, [...folded.history, user, ...result.items, ...tail], result.usage);
+            broadcast(EVENTS.DONE, { conversationId, usage: result.usage, stopReason: result.stopReason || '' });
             if (conversation.title === DEFAULT_TITLE) void autoTitle(conversationId, user.content, result.items, runtime);
         } catch (error) {
             const aborted = controller.signal.aborted;

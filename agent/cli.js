@@ -52,6 +52,9 @@ while (true) {
                     process.stdout.write(data.delta);
                 } else if (type === 'reasoning' && data.delta) {
                     process.stdout.write(data.delta);
+                } else if (type === 'retry') {
+                    console.log(`\n[重试 ${data.attempt}/${data.maxRetries}] ${Math.round(data.delayMs / 100) / 10}s 后重试:${data.error}`);
+                    started = false;
                 } else if (type === 'function_call' && data.phase === 'completed') {
                     try {
                         const args = JSON.parse(data.item.arguments || '{}');
@@ -63,6 +66,7 @@ while (true) {
         history.push(user, ...result.items);
         usage = result.usage;
         if (started) process.stdout.write('\n');
+        if (result.stopReason) console.log(`[回复未完整:${result.stopReason}]`);
     } catch (error) {
         if (error?.name !== 'AbortError') console.error(`\n错误: ${error?.message || error}`);
     } finally {
