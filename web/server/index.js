@@ -38,12 +38,58 @@ const server = http.createServer(async (request, response) => {
     }
 });
 
+// 监听失败的提示要放在 listen 前,EADDRINUSE 才不会以未捕获异常的形式炸出来。
+server.on('error', (error) => {
+    if (error?.code === 'EADDRINUSE') {
+        console.error(`[web] 端口 ${config.web.port} 被占用:先 \`npm run webctl -- stop\` 停掉旧进程再启动。`);
+        process.exit(1);
+    }
+    throw error;
+});
+
 server.listen(config.web.port, config.web.host, () => {
     console.log(`AGENT Web: http://${config.web.host}:${config.web.port} (v${meta.version})`);
 });
 
-process.on('SIGINT', () => {
-    channel.close();
+// ---- 平滑退出(SIGTERM / SIGINT 同一条路):消息不丢、状态不悬 ----
+// 次序是有讲究的:
+// 1) 先不再接新请求,顺手掐掉空闲的 keep-alive 连接;
+// 2) 对还在跑的轮子发中止 —— work 的 catch 分支会补齐悬空 function_call、写停机留痕、保存上下文;
+// 3) 全部收尾完才关 SSE 和残余连接。浏览器 EventSource 按 retry 自动重连新进程;
+//    ngrok 只盯着 9500 这个端口,自始至终不动,隧道和公网地址因此保持不变。
+const GRACE_MS = 8_000;
+let shuttingDown = false;
+
+async function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[web] 收到 ${signal}:开始平滑退出`);
+
     server.close();
+    server.closeIdleConnections?.();
+
+    const running = runs.ids();
+    if (running.length) {
+        console.log(`[web] 有 ${running.length} 个轮子在跑,等待收尾(最长 ${GRACE_MS / 1000} 秒)`);
+        for (const id of running) runs.stop(id);
+        const deadline = Date.now() + GRACE_MS;
+        while (runs.ids().length > 0 && Date.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        const left = runs.ids().length;
+        console.log(left ? `[web] 仍有 ${left} 个未收尾,强制退出` : '[web] 所有轮子已收尾入库');
+    }
+
+    // 剩下挂着的多为 SSE 长连接,掐断正合适 —— 客户端会带着状态回来
+    server.closeAllConnections?.();
+    channel.close();
     process.exit(0);
-});
+}
+
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));
+
+// 常驻服务要有活着的底气:异常打日志继续跑,别让一次边界 bug 把整个服务带走。
+// 数据层全部同步落库(SQLite),带病运行的窗口期也不会写坏任何东西。
+process.on('uncaughtException', (error) => console.error('[web] 未捕获异常:', error));
+process.on('unhandledRejection', (reason) => console.error('[web] 未处理的 Promise 拒绝:', reason));
