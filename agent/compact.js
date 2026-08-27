@@ -14,10 +14,15 @@ const text = (item, config) => {
     return '';
 };
 
+// 尾部保留量自适应:min(tailChars, 总量的 40%) —— 水位既然已经越线,这次压缩就必须
+// 真的压掉大头;固定留 40k 时,历史刚超 40k 会把「早期部分」切得只剩一两条,
+// 摘要模型如实总结出「什么都没发生」的假事实,而且水位不降,每一轮再来一次。
 const splitAt = (history, tailChars) => {
+    const total = history.reduce((sum, item) => sum + chars(item), 0);
+    const tailKeep = Math.min(tailChars, Math.floor(total * 0.4));
     let at = history.length;
     let size = 0;
-    while (at > 0 && (size < tailChars || history.length - at < 2)) {
+    while (at > 0 && (size < tailKeep || history.length - at < 2)) {
         at -= 1;
         size += chars(history[at]);
     }
@@ -25,6 +30,9 @@ const splitAt = (history, tailChars) => {
     while (at > 0 && history[at - 1]?.type === 'function_call') at -= 1;
     return at;
 };
+
+/** 交给摘要的材料至少要有这么多字符 —— 只切出零头时压了也白压,还会生成误导性摘要。 */
+const MATERIAL_MIN_CHARS = 1500;
 
 const material = (items, config) => items
     .filter((item) => item?.type !== 'reasoning')
@@ -60,6 +68,9 @@ export async function compact({
     if (at < 2) return { history, compacted: false };
 
     const early = history.slice(0, at);
+    // 材料太薄(比如只有首条用户消息,reasoning 被滤掉后一片空白)就不压:
+    // 折叠不了多少上下文,却会往历史里塞一份「什么都没发生」的假事实
+    if (material(early, compaction).length < MATERIAL_MIN_CHARS) return { history, compacted: false };
     let summary = '';
     let kind = 'summary';
     let tokens = 0;
