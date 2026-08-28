@@ -7,3 +7,8 @@ node_modules/
 desktop/ui/node_modules/
 desktop/ui/dist/
 dist/
+os/ui/node_modules/
+os/ui/dist/
+os/apps/*/node_modules/
+# app 的 dist 是宿主唯一认的东西 —— 宿主不负责构建,不提交则换台机器全打不开
+!os/apps/*/dist/

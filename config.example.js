@@ -58,4 +58,25 @@ export default {
         maxLiveToolImages: 2,
         directory: './.data/files',
     },
+    // os:应用宿主。app 代码在 appsDir、数据在 appDataDir,两者刻意分开 ——
+    // 重建或重装 app 不会误删用户数据,备份也只备一个目录。
+    os: {
+        host: '127.0.0.1',
+        port: 9600,
+        dataFile: './.data/os.db',
+        appsDir: './os/apps',
+        appDataDir: './.data/os/apps',
+        appStartTimeoutMs: 10_000,
+        appIdleTimeoutMs: 600_000,
+        // iframe 的 sandbox 策略。默认不给 allow-same-origin —— app 拿到不透明源,
+        // 碰不到宿主 DOM 和 cookie,代价是它用不了 localStorage(状态本来就该在它自己的库里)。
+        // 少数带注入的浏览器扩展/预览器会拦截不透明源的子框架,那时才放宽这里。
+        appSandbox: 'allow-scripts allow-forms',
+        images: {
+            maxBytes: 8 * 1024 * 1024,
+            maxPerMessage: 10,
+            maxLiveToolImages: 2,
+            directory: './.data/os/files',
+        },
+    },
 };
