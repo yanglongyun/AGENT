@@ -1,226 +1,175 @@
 # AGENT
 
-一个以 OpenAI Responses 消息协议为核心、从无状态 AI 循环逐层组合出的本地 Agent。
+一个以 OpenAI Responses 消息协议为核心、从无状态 AI 循环逐层组合出的本地 Web Agent。
 
-同一份内核可以运行成 CLI、独立 Web 服务或 Electron 桌面客户端。AI 层不感知工具、数据库和界面；宿主按需向上叠加能力。
+浏览器里的对话界面,加上一套可授权的工具执行、一套用大白话立规则的权限系统,
+以及一个能装第三方应用的侧边栏。全部跑在本地,也可以整个部署到服务器上。
 
 ## 架构
 
 ```text
-CLI ───────────────────┐
-                      │
-Web UI → Web Server ───┼→ agent → ai → Responses API
-                      │
-Desktop UI             │
-    ↓                  │
-Desktop Server ────────┘
-    ↑
-Electron Main
+浏览器 → server → agent → ai → Responses API
+                    ↑
+                  apps(独立进程)
 ```
+
+依赖方向始终单向:`server` 调 `agent`,`agent` 调 `ai`。
+`ai` 不知道有工具,`agent` 不知道有 HTTP。
 
 ```text
 AGENT/
-├── ai/          无状态循环和工具调用调度
-│   └── drivers/ 协议驱动:responses / chat,彼此独立
-├── agent/       bash、read、write、edit 及上下文压缩
-├── web/         可独立部署的 Node.js + React Web 产品
-├── desktop/     Electron 本地产品（main、server、ui）
-└── .dev/        各版本设计与变更说明
+├── ai/       无状态循环 + 协议驱动(responses / chat)
+├── agent/    bash / read / write / edit / consult、上下文压缩、权限引擎
+├── server/   HTTP · SQLite · SSE · 轮次编排 · 问询通道 · 应用宿主
+├── shared/   服务端与界面共用的事件名契约
+├── ui/       React 客户端
+├── apps/     用户的应用,各自是独立工程
+└── .dev/     各版本设计与变更说明
 ```
 
 ### 协议驱动
 
-`ai/` 下只有 `drivers/` 认识具体协议，其余（循环、重试、工具执行、事件契约）全是协议无关的。
+`ai/` 下只有 `drivers/` 认识具体协议,其余(循环、重试、工具执行、事件契约)全是协议无关的。
 
 | 驱动 | 用于 |
 |---|---|
-| `responses` | OpenAI Responses API（默认） |
-| `chat` | 只有 `/chat/completions` 的服务，例如 GLM |
+| `responses` | OpenAI Responses API(默认) |
+| `chat` | 只有 `/chat/completions` 的服务,例如 GLM |
 
-两个驱动之间零依赖，各自消化自己协议的怪癖；**工具循环只有一份**。
-驱动接口就是 `attempt()`：进去是统一的 `{ input, instructions, tools }`，出来是统一的
-`{ items, usage, status, stopReason }`，沿途用 `onEvent` 吐增量。
+两个驱动之间零依赖,各自消化自己协议的怪癖;**工具循环只有一份**。
+驱动接口就是 `attempt()`:进去是统一的 `{ input, instructions, tools }`,
+出来是统一的 `{ items, usage, status, stopReason }`,沿途用 `onEvent` 吐增量。
 
-item 词表（`message` / `reasoning` / `function_call` / `function_call_output`）沿用 Responses 那套 ——
-它早已是仓库的内部契约：数据库、UI 渲染、上下文压缩全按它来，`ai/` 之外有 40 多处依赖它。
-所以 `chat` 驱动负责把 Chat 的形状翻译成它，而不是另立一套。
+item 词表(`message` / `reasoning` / `function_call` / `function_call_output`)沿用 Responses 那套 ——
+它早已是仓库的内部契约:数据库、UI 渲染、上下文压缩全按它来。
 
-在 `config.js` 用 `driver` 字段选，或在 Web / Desktop 设置页顶部选。
+## 权限
 
-依赖方向始终是宿主调用 `agent`，`agent` 再调用 `ai`。Web 和 Desktop 拥有各自的服务、UI 和数据库，可以独立演进；`ai` 与 `agent` 在仓库中始终只有一份。
+三档,每次发消息前现场决定,和工作目录并列摆在输入框上:
 
-## 当前能力
+| 用户看到 | 行为 |
+|---|---|
+| 逐步确认 | 每次工具调用都停下来问 |
+| 按照规则 | 命中任意一条规则就问;都没命中就放行 |
+| 完全跳过 | 不问不拦 |
 
-- OpenAI Responses 流式消息与 reasoning
-- 多轮函数调用
-- `bash`、`read`、`write`、`edit` 四个工具
-- 每次工具调用必须提供 `summary`
-- CLI 中断式交互
-- Web 与 Desktop 对话、历史记录、置顶、重命名和停止运行
-- SQLite 持久化
-- 上下文水位压缩和可追踪的压缩记录
-- 图片、普通文件、选择、拖拽和剪贴板粘贴
-- 图片在请求模型时临时转换为 `input_image`
-- GUI 选择驱动，设置模型、API Key、接口地址和系统提示词
-- Electron 原生文件与目录选择
-- macOS、Windows、Linux 原生窗口标题栏
+**一条规则 = 一个触发条件。** 用一句大白话写下来,系统把它变成两样东西:
+
+```text
+提示词   永远有,靠模型自觉
+拦截条件 编译得出才有,由闸保证
+```
+
+编译的词汇表是闭集(9 个危险动作 + 4 个工具 + 路径 glob),
+所以「这句话能不能落地成闸」**保存那一刻就知道**。编译不出来时界面照实标
+「没有拦截条件,只写进提示词」,不许画成拦得住。
+
+审批门挂在**工具调用**上 —— 模型自己写的脚本内部干了什么,它看不见,除非上真沙箱。
+
+### 请示
+
+规则是用户定的条件;请示是助理自己的判断 —— 规则没说到的地方它也能主动问一句。
+默认关,在「按照规则」和「完全跳过」两档下可开。它**只能增加摩擦,不能减少**,
+也不保证每次都想得起来。卡片上可以勾「同时记成规则」,把一次请示升级成一道常驻的闸。
+
+## 应用
+
+`apps/<id>/` 是一个**完全独立的工程**:自己的 `package.json`、自己的依赖、自己的构建链。
+宿主只认 `dist/index.html`,用 iframe 加载,**不参与构建**。
+
+```text
+apps/notes/
+├── manifest.json   声明文件,宿主读
+├── APP.md          提示词,模型读
+├── src/  dist/  server/
+```
+
+构建的职责没有消失,只是换了执行者:app 由 AI 写,而 AI 手里有 `bash` 工具。
+宿主懒启动 app 的后端进程,空闲回收;数据库路径由宿主给,建表由 app 自己做。
 
 ## 环境要求
 
-- Node.js 22 或更高版本（项目使用 `node:sqlite`）
+- Node.js 22 或更高版本(项目使用 `node:sqlite`)
 - npm
-- 一个兼容 OpenAI Responses API 的服务
+- 一个兼容 OpenAI Responses 或 Chat Completions 的服务
 
-## 安装
+## 安装与运行
 
 ```bash
-git clone https://github.com/yanglongyun/AGENT.git
-cd AGENT
 npm ci
-npm --prefix web/ui ci
-npm --prefix desktop/ui ci
+npm --prefix ui ci
 cp config.example.js config.js
+npm run client:build
+npm run client
 ```
 
-`config.js` 被 Git 忽略。它保存工作目录、端口、工具超时、压缩阈值等程序级参数。
+默认地址 `http://127.0.0.1:9800`。开发界面用 `npm run client:ui`。
 
-Web 和 Desktop 的驱动、模型、API Key、接口地址及系统提示词不读取环境变量或 `config.js`，必须在各自 GUI 的设置页面填写。CLI 仍从 `config.js` 读取这些值。
+`config.js` 被 Git 忽略,保存工作目录、端口、工具超时、压缩阈值等程序级参数。
+驱动、模型、API Key、接口地址和系统提示词**不读环境变量也不读 config.js**,
+必须在界面的设置页填写(CLI 除外)。
 
-## Web
-
-构建并启动：
+进程管理(配合 ngrok 之类的远程访问):
 
 ```bash
-npm run web:build
-npm run web
+npm run ctl -- start|stop|restart|status|logs
 ```
-
-默认地址：
-
-```text
-http://127.0.0.1:9500
-```
-
-开发 UI：
-
-```bash
-npm run web:ui
-```
-
-Web 数据默认位于：
-
-```text
-.data/agent.db
-.data/files/
-```
-
-浏览器无法可靠取得本地绝对路径，因此选择、拖拽或粘贴的附件先进入受管文件目录。数据库只保存附件元数据和路径，不保存 Base64。
-
-## Desktop
-
-启动 Electron 开发版：
-
-```bash
-npm run desktop
-```
-
-生成未安装的应用目录：
-
-```bash
-npm run desktop:pack
-```
-
-生成安装包：
-
-```bash
-npm run desktop:dist
-```
-
-Desktop 启动自己的随机回环端口，不占用 Web 的 `9500`。SQLite、设置和剪贴板图片副本保存在 Electron `userData` 目录。
-
-通过原生选择器或拖拽加入的文件直接引用原始绝对路径，不上传、不复制；剪贴板截图没有稳定路径，因此保存为 Desktop 受管附件。打包时自动包含 `ai`、`agent` 和 `desktop`，不包含可部署版 `web`。
 
 ## CLI
 
-先在 `config.js` 中填写 `responsesUrl`、`apiKey`、`model` 和需要的系统提示词，然后运行：
+先在 `config.js` 填好 `responsesUrl`、`apiKey`、`model`,然后:
 
 ```bash
 npm start
 ```
 
-- 输入 `/exit` 退出
-- 按 `Ctrl+C` 取消当前任务
-- 工作目录、bash 策略和压缩策略由 `config.js` 控制
-
-## GUI 设置
-
-Web 与 Desktop 的侧边栏左下角都有独立设置页面，可配置：
-
-- Responses API 地址
-- API Key
-- 模型 ID
-- 系统提示词
-- 主题
-
-前四项写入各自 SQLite 的 `settings` KV 表。每次启动一轮 Agent 时读取设置快照，因此修改设置不会改变正在运行的任务。主题是 UI 本地偏好，保存在浏览器存储中。
+输入 `/exit` 退出,`Ctrl+C` 取消当前任务。
 
 ## 数据库
 
-Web 与 Desktop 使用相同 DDL、不同数据库文件。目前核心表为：
-
 | 表 | 职责 |
 |---|---|
-| `conversations` | 对话元数据、当前上下文缓存和最近用量 |
-| `messages` | 完整、逐条、不可变的 Responses 消息和工具事件 |
+| `conversations` | 对话元数据、权限档、上下文缓存、最近用量 |
+| `messages` | 完整、逐条、不可变的消息和工具事件 |
 | `compactions` | 只追加的压缩摘要、覆盖序号、类型和 Token 消耗 |
-| `settings` | GUI 模型连接和 Agent 提示词 KV |
+| `rules` | 用户立的规则:原话、提示词、拦截条件、开关、次序 |
+| `settings` | 模型连接、系统提示词、默认权限档 |
 
-删除对话会通过外键级联删除消息和压缩记录。旧数据库启动时自动补充新表和兼容字段，不需要删库。
+app 的数据在各自的库里(`.data/apps/<id>/`),与主库无关。
 
 ## 上下文压缩
 
-当最近一次用量达到配置水位时，Agent 在下一轮开始前压缩早期上下文：
+最近一次用量达到配置水位时,在下一轮开始前压缩早期上下文:
 
 ```text
-早期上下文 → 模型摘要（失败则机械摘要）→ 系统摘要 + 近期原文
+早期上下文 → 模型摘要(失败则机械摘要)→ 系统摘要 + 近期原文
 ```
 
-- 原始内容始终保留在 `messages`
-- 每次压缩写入 `compactions`
-- `kind` 区分 `summary` 和 `mechanical`
-- `start_seq`、`end_seq` 标记覆盖区间
-- `context_json` 只是下一轮运行的快速缓存
-
-## 附件与图片
-
-- 每条消息默认最多 10 个附件
-- 单文件默认最大 8 MB
-- 支持 PNG、JPEG、GIF、WebP
-- `read` 遇到图片时返回图片元数据
-- 图片字节只在单次 Responses 请求边界临时展开
-- 历史消息和 SQLite 不保存 Base64
-- 普通文件以本地路径交给 Agent，再由工具按需读取
-
-相关限制在 `config.js` 的 `images` 中配置。
+原始内容始终保留在 `messages`,每次压缩写入 `compactions`。
+规则和应用清单进的是 `instructions`,每轮重新组装,**压缩吃不掉它们**。
 
 ## 开发检查
 
 ```bash
 npm run check
-npm run web:build
-npm run desktop:build-ui
+npm test
+npm run client:build
 ```
 
 ## 版本说明
 
-各版本设计与变更记录位于 [.dev](./.dev/)：
+各版本设计与变更记录位于 [.dev](./.dev/):
 
-- `0.0.1`：标准 Agent 内核
-- `0.0.2`：Web 对话原型
-- `0.0.3`：工程化 Web 客户端
-- `0.0.4`：图片与文件
-- `0.0.5`：Electron Desktop 与 GUI 设置
-- `0.0.6`：可追踪的上下文压缩
+- `0.0.1` 标准 Agent 内核
+- `0.0.2` Web 对话原型
+- `0.0.3` 工程化 Web 客户端
+- `0.0.4` 图片与文件
+- `0.0.5` Electron Desktop 与 GUI 设置
+- `0.0.6` 可追踪的上下文压缩
+- `0.0.7` 内核正确性修复
+- `0.0.8` 应用宿主
+- `0.0.9` 权限模式
+- `0.1.0` 合并成单一 Web 客户端
 
 ## License
 

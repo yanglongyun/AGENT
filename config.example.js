@@ -47,46 +47,27 @@ export default {
         maxTimeoutMs: 600_000,
         maxOutputChars: 40_000,
     },
-    web: {
+    // client:唯一的客户端。一份服务、一份界面、一个库。
+    client: {
         host: '127.0.0.1',
-        port: 9500,
-        dataFile: './.data/agent.db',
-    },
-    images: {
-        maxBytes: 8 * 1024 * 1024,
-        maxPerMessage: 10,
-        maxLiveToolImages: 2,
-        directory: './.data/files',
-    },
-    // os:应用宿主。app 代码在 appsDir、数据在 appDataDir,两者刻意分开 ——
-    // 重建或重装 app 不会误删用户数据,备份也只备一个目录。
-    os: {
-        host: '127.0.0.1',
-        port: 9600,
-        dataFile: './.data/os.db',
-        appsDir: './os/apps',
-        appDataDir: './.data/os/apps',
+        port: 9800,
+        dataFile: './.data/agent-client.db',
+        // 新对话默认落在哪一档:ask 逐步确认 / rules 按照规则 / skip 完全跳过
+        defaultMode: 'ask',
+        // 没人回应确认卡时等多久。到点当拒绝,绝不无限挂起。
+        approvalTimeoutMs: 300_000,
+        // app 的 iframe sandbox。不给 allow-same-origin —— app 拿到不透明源,
+        // 碰不到宿主 DOM 和 cookie;代价是它用不了 localStorage(状态本就该在自己的库里)。
+        appSandbox: 'allow-scripts allow-forms',
+        appsDir: './apps',
+        appDataDir: './.data/apps',
         appStartTimeoutMs: 10_000,
         appIdleTimeoutMs: 600_000,
-        // iframe 的 sandbox 策略。默认不给 allow-same-origin —— app 拿到不透明源,
-        // 碰不到宿主 DOM 和 cookie,代价是它用不了 localStorage(状态本来就该在它自己的库里)。
-        // 少数带注入的浏览器扩展/预览器会拦截不透明源的子框架,那时才放宽这里。
-        appSandbox: 'allow-scripts allow-forms',
         images: {
             maxBytes: 8 * 1024 * 1024,
             maxPerMessage: 10,
             maxLiveToolImages: 2,
-            directory: './.data/os/files',
+            directory: './.data/files',
         },
-    },
-    // rule:带权限模式的宿主。三档 —— 逐个确认 / 按照规则 / 完全跳过。
-    rule: {
-        host: '127.0.0.1',
-        port: 9700,
-        dataFile: './.data/rule.db',
-        // 新对话默认落在哪一档。
-        defaultMode: 'ask',
-        // 没人回应确认卡时等多久。到点当拒绝,绝不无限挂起。
-        approvalTimeoutMs: 300_000,
     },
 };

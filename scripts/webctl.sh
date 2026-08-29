@@ -8,20 +8,20 @@
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENTRY="web/server/index.js"
+ENTRY="server/index.js"
 PID_FILE="$ROOT/.data/web.pid"
 LOG_FILE="$ROOT/.data/web.log"
 PREV_LOG="$ROOT/.data/web.log.prev"
-HEALTH_URL="http://127.0.0.1:${WEB_PORT:-9500}/api/health"
+HEALTH_URL="http://127.0.0.1:${PORT:-9800}/api/health"
 STOP_TIMEOUT=15   # 秒;超过就走 SIGKILL 兜底
 
-log() { printf '[webctl] %s\n' "$*"; }
+log() { printf '[ctl] %s\n' "$*"; }
 
-# 用 ps 找所有命令行形如「node …web/server/index.js」的进程,列出 PID。
+# 用 ps 找所有命令行形如「node …server/index.js」的进程,列出 PID。
 healthy() { curl -fsS --max-time 2 "$HEALTH_URL" >/dev/null 2>&1; }
 
 who_listens() {
-    lsof -nP -iTCP:"${WEB_PORT:-9500}" -sTCP:LISTEN -t 2>/dev/null | sort -u
+    lsof -nP -iTCP:"${PORT:-9800}" -sTCP:LISTEN -t 2>/dev/null | sort -u
 }
 
 server_pids() {
@@ -141,7 +141,7 @@ case "${1:-status}" in
     logs)    logs "$@" ;;
     recent)  recent "$@" ;;
     *)
-        echo "用法: npm run webctl -- <start|stop|restart|status|logs|recent>"
+        echo "用法: npm run ctl -- <start|stop|restart|status|logs|recent>"
         exit 2
         ;;
 esac
