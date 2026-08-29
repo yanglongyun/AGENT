@@ -40,7 +40,7 @@ apps/<id>/
 | `name` | 是 | 显示名 |
 | `version` | 否 | 语义化版本 |
 | `description` | 是 | 一句话说清是什么、什么时候用。**这行常驻 agent 提示词** |
-| `run` | 否 | 没有 = 纯静态 app,宿主托管目录根的 index.html |
+| `run` | 否 | 没有 = 纯静态 app,见「纯静态 app」一节 |
 | `run.command` / `run.args` | 是 | 启动命令。`node` / `python3` / `./app` 都行 |
 | `run.health` | 否 | 健康检查路径,默认 `/health`,HTTP 2xx 即算活 |
 | `run.mode` | 否 | `on-demand`(默认):点开才起,闲了回收。`always`:随宿主启动,崩了重启,不回收 |
@@ -67,6 +67,28 @@ apps/<id>/
 - `health` 应答 2xx 才算启动成功;超时(默认 10s)按启动失败处理
 - SIGTERM 后限时收尾;崩溃由宿主退避重启,连崩三次标记故障
 - `on-demand` 下闲置会被回收(默认 10 分钟),下次访问自动再起 —— 别依赖进程常驻内存
+
+## 纯静态 app
+
+manifest 里**不写 `run`**,目录里有 `index.html`,就是一个完整的 app:
+
+```text
+apps/readme/
+├── manifest.json    只有 id / name / description
+├── index.html       站点根
+└── (css / js / 图片随意)
+```
+
+- **宿主替它应答**:取址时宿主为它开一个极小的静态文件服务 ——
+  这是契约第 3 条「app 自己应答整站」的唯一例外,由宿主代劳
+- **同样有自己的真 origin**:`<link href="/style.css">` 这类根绝对路径照样成立
+- **SPA 回落**:未命中的路径回落 `index.html`,前端路由天然可用
+- **没有进程**:不参与启动 / 停止 / 崩溃重启 / 空闲回收,宿主界面也不显示这些操作
+- **token 经宿主接口取**:它没有后端持有环境变量,前端要调 `/host/*` 时
+  向宿主的内部接口(如 `GET /api/apps/<id>/token`)取 token —— 具体路径由宿主提供
+
+什么时候升级到有 `run`:要存秘密(API key 不能进前端)、要后台跑、
+要自建数据库 —— 加一个监听 PORT 的 server 即可,前端文件原样保留。
 
 ## 地址
 
