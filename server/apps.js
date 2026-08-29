@@ -3,7 +3,7 @@
 // 每次问都重扫 —— 十几个小 JSON 的开销可以忽略,换来的是 AI 刚写完一个 app、
 // 刷新页面就出现在侧边栏,不需要重启宿主。
 //
-// manifest 只声明宿主必须知道的事实(契约见仓库根 APP.md):
+// manifest 只声明宿主必须知道的事实(契约见仓库根 SPEC.md):
 // 排序等用户偏好归宿主存,图标是文件约定(icon.svg / icon.png),地址是运行时事实。
 import { existsSync, readdirSync, readFileSync, statSync, watch } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -112,7 +112,7 @@ export function createApps({ config, broadcast = () => {} }) {
                 '',
                 `调用方式:先取址 \`curl ${hostBase}/api/apps/<id>/address\`(会顺手把没起的 app 拉起,`,
                 '返回 { origin }),再对着 origin 调 APP.md 里写的接口。**地址每次现取,不要缓存端口。**',
-                `新建 app:在 ${config.client.appsDir}/<id>/ 下按仓库根 APP.md 的契约建目录,`,
+                `新建 app:在 ${config.client.appsDir}/<id>/ 下按仓库根 SPEC.md 的契约建目录,`,
                 '最小只要 manifest.json 和一个监听 PORT 的 server;写完自动出现在侧边栏。',
             ].join('\n');
         },

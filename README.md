@@ -75,7 +75,7 @@ item 词表(`message` / `reasoning` / `function_call` / `function_call_output`)�
 ## 应用
 
 app 是一个目录,里面是一个**本地网站**:自己监听宿主分配的端口,自己应答页面和 API。
-每个 app 一个真 origin;语言、框架、构不构建全是作者的自由。契约正典见仓库根 [APP.md](./APP.md)。
+每个 app 一个真 origin;语言、框架、构不构建全是作者的自由。契约正典见仓库根 [SPEC.md](./SPEC.md)。
 
 ```text
 apps/notes/
