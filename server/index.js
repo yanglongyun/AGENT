@@ -36,9 +36,34 @@ const fail = (response, status, message) => {
     response.end(JSON.stringify({ error: message }));
 };
 
+const SELF_ORIGINS = new Set([
+    `http://${config.client.host}:${config.client.port}`,
+    `http://localhost:${config.client.port}`,
+]);
+const SELF_HOSTS = new Set([`${config.client.host}:${config.client.port}`, `localhost:${config.client.port}`]);
+
+/**
+ * 内部面(/api/*)只服务宿主自己的界面。挡两类来自浏览器的越权:
+ *   跨源请求  别的网页(含 app 的 iframe)对 127.0.0.1 发 fetch —— Origin 对不上就拒
+ *   DNS 重绑  外部域名解析到 127.0.0.1 —— Host 头对不上就拒
+ * 这挡不住本机进程伪造头(那要 UI 会话密钥,见契约的已知限制),但把「开着宿主
+ * 逛网页就可能被驱动」这条路封死了。反代部署时把代理设为保留 Host 即可。
+ */
+function crossOriginBlocked(request, response, url) {
+    if (!url.pathname.startsWith('/api/')) return false;
+    const origin = request.headers.origin;
+    const host = request.headers.host || '';
+    const foreign = (origin && !SELF_ORIGINS.has(origin)) || (host && !SELF_HOSTS.has(host));
+    if (!foreign) return false;
+    response.writeHead(403, { 'content-type': 'application/json; charset=utf-8' });
+    response.end(JSON.stringify({ error: '内部接口只服务宿主自己的界面' }));
+    return true;
+}
+
 const server = http.createServer(async (request, response) => {
     const url = new URL(request.url || '/', 'http://127.0.0.1');
     try {
+        if (crossOriginBlocked(request, response, url)) return;
         if (await api(request, response, url)) return;
         // 契约面:app 凭 token 调宿主能力。token 即身份,路径里没有 app id
         if (url.pathname.startsWith('/host/')) { await bridge(request, response, url.pathname.slice('/host'.length)); return; }

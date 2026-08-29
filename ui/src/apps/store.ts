@@ -51,3 +51,4 @@ export const appServedAt = (id: string) => api.get<{ at: number }>(`/api/apps/${
 export const appLogs = (id: string) => api.get<{ logs: AppLog[] }>(`/api/apps/${id}/logs`).then((data) => data.logs);
 export const restartApp = (id: string) => api.post<{ status: AppStatus }>(`/api/apps/${id}/restart`);
 export const stopApp = (id: string) => api.post<{ status: AppStatus }>(`/api/apps/${id}/stop`);
+export const appToken = (id: string) => api.get<{ token: string }>(`/api/apps/${id}/token`);

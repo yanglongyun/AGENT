@@ -2,13 +2,13 @@
 //
 // iframe 直连 app 自己的 origin(http://127.0.0.1:<port>)—— 每个 app 一个真 origin,
 // 绝对路径天然成立,localStorage 互不可见。地址每次打开现取,不缓存:端口重启就变。
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Icon } from '../icons/Icon';
 import { Sheet } from '../overlay/Sheet';
 import { toast } from '../overlay/toast';
 import { useShell } from '../shell/layout';
-import { appAddress, appLogs, restartApp, stopApp, useApps, type AppLog } from './store';
+import { appAddress, appLogs, appToken, restartApp, stopApp, useApps, type AppLog } from './store';
 
 const LABEL: Record<string, string> = {
     ready: '运行中', starting: '启动中', stopped: '已停止', failed: '故障', invalid: '不可用',
@@ -22,6 +22,7 @@ export function AppView() {
     const [failure, setFailure] = useState('');
     const [logs, setLogs] = useState<AppLog[] | null>(null);
     const [nonce, setNonce] = useState(0);
+    const frame = useRef<HTMLIFrameElement>(null);
 
     // 每次打开(或手动重载)都重新取址 —— 这就是懒启动的触发点
     useEffect(() => {
@@ -99,7 +100,23 @@ export function AppView() {
             ) : origin ? (
                 // 真 origin 直连。不再需要 sandbox 压制:跨 origin 的 iframe 本来就
                 // 碰不到宿主 DOM;localStorage 因 origin 不同而天然隔离
-                <iframe key={`${app.id}:${nonce}`} className="app-frame" src={origin} title={app.name} />
+                <iframe
+                    key={`${app.id}:${nonce}`}
+                    ref={frame}
+                    className="app-frame"
+                    src={origin}
+                    title={app.name}
+                    onLoad={() => {
+                        // 静态 app 没有后端持有环境变量,token 由这里定向递进去。
+                        // targetOrigin 指定为 app 自己的 origin —— 递错了浏览器直接丢弃
+                        void appToken(app.id).then(({ token }) => {
+                            frame.current?.contentWindow?.postMessage(
+                                { type: 'host.init', appId: app.id, token, hostUrl: location.origin },
+                                origin,
+                            );
+                        }).catch(() => { /* 拿不到就不递,app 自己降级 */ });
+                    }}
+                />
             ) : (
                 <div className="app-blank"><div className="app-blank-note">正在启动…</div></div>
             )}

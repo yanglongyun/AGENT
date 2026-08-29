@@ -36,6 +36,9 @@ export function createApps({ config, broadcast = () => {} }) {
             return { ...base, invalid: `manifest.json 解析失败:${String(error?.message || error)}` };
         }
         if (asString(raw.id) !== id) return { ...base, invalid: `manifest.id(${asString(raw.id) || '空'})与目录名不一致` };
+        // 契约主版本:不认识的按无效处理,不猜 —— 猜错的行为比明确拒绝更难排查
+        const contract = raw.contract === undefined ? 1 : Number(raw.contract);
+        if (contract !== 1) return { ...base, invalid: `需要契约版本 ${raw.contract},本宿主只实现版本 1` };
 
         const manifest = {
             ...base,

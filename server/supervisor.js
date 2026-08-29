@@ -137,8 +137,14 @@ export function createSupervisor({ config, apps, broadcast = () => {} }) {
 
         const child = spawn(app.run.command, app.run.args, {
             cwd: app.dir,
+            // 白名单,不是 ...process.env —— 用户 shell 里 export 的密钥
+            // 没有理由全量遗传给每个 app;app 要什么,契约里写明的就这几个
             env: {
-                ...process.env,
+                PATH: process.env.PATH || '',
+                HOME: process.env.HOME || '',
+                TMPDIR: process.env.TMPDIR || '',
+                LANG: process.env.LANG || '',
+                TZ: process.env.TZ || '',
                 PORT: String(record.port),
                 APP_ID: app.id,
                 APP_DATA_DIR: dataDir,
