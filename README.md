@@ -74,18 +74,21 @@ item 词表(`message` / `reasoning` / `function_call` / `function_call_output`)�
 
 ## 应用
 
-`apps/<id>/` 是一个**完全独立的工程**:自己的 `package.json`、自己的依赖、自己的构建链。
-宿主只认 `dist/index.html`,用 iframe 加载,**不参与构建**。
+app 是一个目录,里面是一个**本地网站**:自己监听宿主分配的端口,自己应答页面和 API。
+每个 app 一个真 origin;语言、框架、构不构建全是作者的自由。契约正典见仓库根 [APP.md](./APP.md)。
 
 ```text
 apps/notes/
-├── manifest.json   声明文件,宿主读
-├── APP.md          提示词,模型读
-├── src/  dist/  server/
+├── manifest.json   声明:是什么、怎么跑、要什么
+├── APP.md          文档:API 表、数据、什么时候用 —— 给模型读
+├── icon.svg        可选,没有就用字母头像
+└── server.js       实现(示范用单文件 node;clock 是 python,readme 是纯静态)
 ```
 
-构建的职责没有消失,只是换了执行者:app 由 AI 写,而 AI 手里有 `bash` 工具。
-宿主懒启动 app 的后端进程,空闲回收;数据库路径由宿主给,建表由 app 自己做。
+宿主管生命周期(懒启动 / 常驻 / 空闲回收 / 崩溃重启)和取址;
+app 可凭 token 调宿主能力(`/host/ai/complete`、`/host/ai/agent`、`/host/notify`);
+agent 读 APP.md 后直接用 HTTP 调 app —— 文档即 SDK。
+仓库自带三个示例:`notes`(单文件 node)、`clock`(python + 常驻)、`readme`(纯静态)。
 
 ## 环境要求
 
@@ -103,7 +106,7 @@ npm run client:build
 npm run client
 ```
 
-默认地址 `http://127.0.0.1:9800`。开发界面用 `npm run client:ui`。
+默认地址 `http://127.0.0.1:9500`。开发界面用 `npm run client:ui`。
 
 `config.js` 被 Git 忽略,保存工作目录、端口、工具超时、压缩阈值等程序级参数。
 驱动、模型、API Key、接口地址和系统提示词**不读环境变量也不读 config.js**,

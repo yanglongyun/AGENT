@@ -88,13 +88,15 @@ header, aside, button { -webkit-user-select: none; user-select: none; }
     position: fixed; inset: 0; z-index: 95;
     background: var(--veil);
     display: grid; place-items: center; padding: 20px;
-    /* 隐式行是 auto(由内容决定),.sheet 的 max-height:100% 就没有确定的参照,
-       会被当成 none —— 弹窗照样冲出视口。给一个确定的行高,百分比才落得下来 */
-    grid-template-rows: minmax(0, 1fr);
+    box-sizing: border-box;
+    /* 隐式轨道是 auto(由内容决定),.sheet 的 max-height / width 百分比就没有确定的
+       参照,会被当成 none —— 弹窗照样冲出视口。两个方向都要给确定轨道 */
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
     animation: fade .16s ease-out;
 }
 .sheet {
     width: min(440px, 100%);
+    max-width: 100%;
     /* 内容再长也不许超出视口 —— 超出的部分交给 .sheet-body 滚 */
     max-height: 100%;
     display: flex; flex-direction: column;

@@ -34,6 +34,8 @@ export const EVENTS = Object.freeze({
     APPS_CHANGED: 'apps.changed',
     /** 某个 app 子进程状态变了:stopped / starting / ready / failed。 */
     APP_STATUS: 'app.status',
+    /** app 经宿主能力发来的通知:toast 或侧边栏角标。 */
+    APP_NOTIFY: 'app.notify',
 });
 
 /** SSE 通道上会出现的全部事件名,界面据此逐个 addEventListener。 */

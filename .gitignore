@@ -5,5 +5,5 @@ node_modules/
 ui/node_modules/
 ui/dist/
 apps/*/node_modules/
-# app 的 dist 是宿主唯一认的东西 —— 不提交则换台机器全打不开
-!apps/*/dist/
+# countdown 是「AI 从零造 app」验收当场产出的,不入库 —— 谁跑验收谁重新长一个
+apps/countdown/

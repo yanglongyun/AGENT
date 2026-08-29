@@ -11,28 +11,24 @@ export type AppStatus = 'stopped' | 'starting' | 'ready' | 'failed' | 'static' |
 export interface AppInfo {
     id: string;
     name: string;
-    icon: string;
     version: string;
     description: string;
     permissions: string[];
-    hasServer: boolean;
+    hasRun: boolean;
+    runMode: string;
+    hasIcon: boolean;
     hasDoc: boolean;
-    hidden: boolean;
-    order: number;
     status: AppStatus;
     error: string;
 }
 
 export interface AppLog { stream: string; line: string; at: string }
 
-export const useApps = create<{ apps: AppInfo[]; sandbox: string }>(() => ({
-    apps: [],
-    sandbox: 'allow-scripts allow-forms',
-}));
+export const useApps = create<{ apps: AppInfo[] }>(() => ({ apps: [] }));
 
 export async function loadApps() {
-    const data = await api.get<{ apps: AppInfo[]; sandbox: string }>('/api/apps').catch(() => null);
-    if (data) useApps.setState({ apps: data.apps, sandbox: data.sandbox || 'allow-scripts allow-forms' });
+    const data = await api.get<{ apps: AppInfo[] }>('/api/apps').catch(() => null);
+    if (data) useApps.setState({ apps: data.apps });
 }
 
 /** 只订一次。app.status 只改那一行,不整表重拉。 */
@@ -48,7 +44,10 @@ export function watchApps() {
     });
 }
 
-export const appToken = (id: string) => api.get<{ token: string }>(`/api/apps/${id}/token`).then((data) => data.token);
+/** 取址:地址是运行时事实,每次现问,不许缓存 —— 端口重启就变。 */
+export const appAddress = (id: string) =>
+    api.get<{ origin: string; status: AppStatus }>(`/api/apps/${id}/address`);
 export const appServedAt = (id: string) => api.get<{ at: number }>(`/api/apps/${id}/served`).then((data) => data.at);
 export const appLogs = (id: string) => api.get<{ logs: AppLog[] }>(`/api/apps/${id}/logs`).then((data) => data.logs);
 export const restartApp = (id: string) => api.post<{ status: AppStatus }>(`/api/apps/${id}/restart`);
+export const stopApp = (id: string) => api.post<{ status: AppStatus }>(`/api/apps/${id}/stop`);

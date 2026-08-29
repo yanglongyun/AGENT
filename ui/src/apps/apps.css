@@ -10,7 +10,12 @@
 }
 .app-row:hover { background: var(--row-hover); }
 .app-row.on { background: var(--row-on); box-shadow: var(--shadow-1); }
-.app-row-icon { font-size: 14px; line-height: 1; width: 16px; text-align: center; }
+.app-row-icon { width: 16px; height: 16px; display: grid; place-items: center; }
+.app-icon { border-radius: 4px; display: block; }
+.app-icon.letter {
+    display: grid; place-items: center; border-radius: 4px;
+    background: var(--accent); color: #fff; font-weight: 700; line-height: 1;
+}
 .app-row-name { flex: 1; min-width: 0; color: var(--text-2); }
 .app-row.on .app-row-name { color: var(--text-1); font-weight: 550; }
 .app-row.bad .app-row-name { color: var(--text-4); text-decoration: line-through; }
@@ -20,20 +25,13 @@
 
 .app-page { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; background: var(--surface); }
 
-.app-bar {
-    flex-shrink: 0; height: 46px;
-    display: flex; align-items: center; gap: 8px;
-    padding: 0 12px;
-    border-bottom: 1px solid var(--edge-soft);
-}
-.app-bar-icon { font-size: 15px; }
-.app-bar-name { font-size: 13.5px; font-weight: 600; max-width: 40%; }
 .app-pill {
     font-size: 11px; padding: 2px 7px; border-radius: 999px;
     background: var(--hover); color: var(--text-3);
 }
 .app-pill.ready { color: var(--accent); }
 .app-pill.failed, .app-pill.invalid { color: var(--danger); }
+.app-pill.always { color: #7c5cff; background: color-mix(in srgb, #7c5cff 12%, transparent); }
 
 .app-stage { flex: 1; min-height: 0; position: relative; display: flex; }
 /* 背景给白色:app 是独立文档,不该透出宿主的底色 */
@@ -63,5 +61,3 @@ a.icon-btn { display: grid; place-items: center; }
 .app-log { font-family: var(--mono, ui-monospace, monospace); white-space: pre-wrap; word-break: break-all; color: var(--text-2); }
 .app-log.stderr { color: var(--danger); }
 
-.only-narrow { display: none; }
-@media (max-width: 640px) { .only-narrow { display: grid; } }

@@ -9,6 +9,9 @@ import { useShell } from './shell/layout';
 import { init, useConversation } from './conversation/store';
 import { loadApps, watchApps } from './apps/store';
 import { loadPermission, watchPermission } from './permission/store';
+import { onChannel } from './lib/channel';
+import { EVENTS } from '@shared/events';
+import { toast } from './overlay/toast';
 
 export function App() {
     const page = useShell((state) => state.page);
@@ -19,7 +22,13 @@ export function App() {
         void loadApps();
         const stopApps = watchApps();
         const stopPermission = watchPermission();
-        return () => { stopApps(); stopPermission(); };
+        // app 经 /host/notify 发来的提示。v1 里 badge 也先落成 toast
+        const stopNotify = onChannel((type, data) => {
+            if (type !== EVENTS.APP_NOTIFY) return;
+            const { appName, text } = data as { appName: string; text: string };
+            toast(`「${appName}」${text}`, 3200);
+        });
+        return () => { stopApps(); stopPermission(); stopNotify(); };
     }, []);
 
     // 换对话要重新捞还悬着的确认卡 —— 它是按对话分的

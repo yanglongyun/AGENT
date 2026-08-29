@@ -1,16 +1,17 @@
 {
     "id": "notes",
     "name": "便签",
-    "icon": "📝",
-    "version": "0.1.0",
-    "description": "记随手笔记,存在 app 自己的 SQLite 里,可以让 AI 把它们归纳成要点。",
-    "entry": "dist/index.html",
-    "server": {
+    "version": "0.2.0",
+    "description": "记随手笔记,可让 AI 归纳成要点。用户说「记一下」「笔记理一理」时用它。",
+    "run": {
         "command": "node",
-        "args": ["server/index.js"],
+        "args": [
+            "server.js"
+        ],
         "health": "/health",
-        "idleTimeoutMs": 600000
+        "mode": "on-demand"
     },
-    "permissions": ["ai.complete"],
-    "sidebar": { "order": 10, "hidden": false }
+    "permissions": [
+        "ai.complete"
+    ]
 }

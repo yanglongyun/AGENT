@@ -12,7 +12,7 @@ ENTRY="server/index.js"
 PID_FILE="$ROOT/.data/web.pid"
 LOG_FILE="$ROOT/.data/web.log"
 PREV_LOG="$ROOT/.data/web.log.prev"
-HEALTH_URL="http://127.0.0.1:${PORT:-9800}/api/health"
+HEALTH_URL="http://127.0.0.1:${PORT:-9500}/api/health"
 STOP_TIMEOUT=15   # 秒;超过就走 SIGKILL 兜底
 
 log() { printf '[ctl] %s\n' "$*"; }
@@ -21,7 +21,7 @@ log() { printf '[ctl] %s\n' "$*"; }
 healthy() { curl -fsS --max-time 2 "$HEALTH_URL" >/dev/null 2>&1; }
 
 who_listens() {
-    lsof -nP -iTCP:"${PORT:-9800}" -sTCP:LISTEN -t 2>/dev/null | sort -u
+    lsof -nP -iTCP:"${PORT:-9500}" -sTCP:LISTEN -t 2>/dev/null | sort -u
 }
 
 server_pids() {

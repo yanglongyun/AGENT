@@ -13,7 +13,6 @@ import { createApprovals } from './approvals.js';
 import { createCompiler } from './compile.js';
 import { createApps } from './apps.js';
 import { createSupervisor } from './supervisor.js';
-import { createProxy } from './proxy.js';
 import { createBridge } from './bridge.js';
 
 const meta = {
@@ -28,8 +27,7 @@ const approvals = createApprovals({ broadcast: channel.broadcast, timeoutMs: con
 const compileRule = createCompiler({ config, store });
 const apps = createApps({ config, broadcast: channel.broadcast });
 const supervisor = createSupervisor({ config, apps, broadcast: channel.broadcast });
-const proxy = createProxy({ supervisor });
-const bridge = createBridge({ config, store, supervisor });
+const bridge = createBridge({ config, store, apps, supervisor, channel });
 const runs = createRuns({ config, store, files, approvals, apps, broadcast: channel.broadcast });
 const api = createApi({ config, store, runs, files, channel, approvals, compileRule, apps, supervisor, meta });
 
@@ -38,50 +36,12 @@ const fail = (response, status, message) => {
     response.end(JSON.stringify({ error: message }));
 };
 
-/**
- * /apps/:id/... 三条去向:
- *   host/*  回宿主(能力)
- *   api/*   出到子进程(app 自己的后端)
- *   其余     app 的 dist 静态
- */
-async function routeApps(request, response, url) {
-    if (!url.pathname.startsWith('/apps/')) return false;
-    const segments = url.pathname.split('/').filter(Boolean);
-    const id = segments[1];
-    if (!id) return false;
-
-    const app = apps.get(id);
-    if (!app) { fail(response, 404, `没有这个应用:${id}`); return true; }
-    const rest = segments.slice(2);
-
-    if (rest[0] === 'host') {
-        await bridge(request, response, { app, path: `/${rest.slice(1).join('/')}` });
-        return true;
-    }
-    if (rest[0] === 'api') {
-        await proxy(request, response, { app, path: url.pathname.slice(`/apps/${id}`.length) + url.search });
-        return true;
-    }
-    // 少了尾斜杠,页面里所有相对路径都会打到 /apps/ 上 —— 先把地址摆正
-    if (!rest.length && !url.pathname.endsWith('/')) {
-        response.writeHead(308, { location: `/apps/${id}/` });
-        response.end();
-        return true;
-    }
-    if (app.invalid) { fail(response, 409, app.invalid); return true; }
-    if (request.method === 'GET') {
-        const sub = `/${rest.join('/')}`;
-        if (serveStatic(app.distDir, sub, response)) { apps.markServed(id); return true; }
-    }
-    fail(response, 404, '文件不存在');
-    return true;
-}
-
 const server = http.createServer(async (request, response) => {
     const url = new URL(request.url || '/', 'http://127.0.0.1');
     try {
         if (await api(request, response, url)) return;
-        if (await routeApps(request, response, url)) return;
+        // 契约面:app 凭 token 调宿主能力。token 即身份,路径里没有 app id
+        if (url.pathname.startsWith('/host/')) { await bridge(request, response, url.pathname.slice('/host'.length)); return; }
         if (request.method === 'GET' && serveStatic(uiRoot, url.pathname, response)) return;
         response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
         response.end('Not found');
@@ -110,6 +70,10 @@ server.listen(config.client.port, config.client.host, () => {
     console.log(`[agent] 默认权限档:${config.client.defaultMode}`);
     console.log(`[agent] 应用目录 ${apps.root} —— 已装 ${installed.length} 个:${installed.map((app) => app.id).join(' ') || '(空)'}`);
     for (const app of installed.filter((item) => item.invalid)) console.warn(`[agent] ${app.id} 不可用:${app.invalid}`);
+    // run.mode: "always" 的启动组
+    void supervisor.startAlways().then((ids) => {
+        if (ids.length) console.log(`[agent] 常驻应用已拉起:${ids.join(' ')}`);
+    });
 });
 
 // ---- 平滑退出(SIGTERM / SIGINT 同一条路):消息不丢、状态不悬 ----

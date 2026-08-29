@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { Icon, Mark } from '../icons/Icon';
+import { AppIcon } from '../apps/AppView';
 import { useApps, type AppInfo } from '../apps/store';
 import { Sheet } from '../overlay/Sheet';
 import {
@@ -14,7 +15,7 @@ import { useShell } from './layout';
 export function Sidebar() {
     const shell = useShell();
     const { conversations, currentId, liveIds, meta } = useConversation();
-    const apps = useApps((state) => state.apps).filter((item) => !item.hidden);
+    const apps = useApps((state) => state.apps);
     const [renaming, setRenaming] = useState<Conversation | null>(null);
     const [renameText, setRenameText] = useState('');
     const [removing, setRemoving] = useState<Conversation | null>(null);
@@ -52,7 +53,7 @@ export function Sidebar() {
             title={app.error || app.description || app.name}
             onClick={() => shell.showApp(app.id)}
         >
-            <span className="app-row-icon">{app.icon}</span>
+            <span className="app-row-icon"><AppIcon id={app.id} name={app.name} hasIcon={app.hasIcon} size={16} /></span>
             <span className="app-row-name clip">{app.name}</span>
             {app.status !== 'static' && app.status !== 'stopped' && <span className={`app-dot ${app.status}`} />}
         </div>

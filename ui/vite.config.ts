@@ -13,6 +13,6 @@ export default defineConfig({
         host: '127.0.0.1',
         port: 5180,
         fs: { allow: [fileURLToPath(new URL('..', import.meta.url))] },
-        proxy: { '/api': 'http://127.0.0.1:9800', '/apps': 'http://127.0.0.1:9800' },
+        proxy: { '/api': 'http://127.0.0.1:9500', '/apps': 'http://127.0.0.1:9500' },
     },
 });

@@ -78,6 +78,13 @@ const GLYPHS: Record<string, ReactNode> = {
         <path d="M14.2 4.2H20v5.8" />
         <path d="m12.6 11.4 7-7.2" />
     </>),
+    /** 启动:实心三角 */
+    play: <path d="M8.2 5.4v13.2L19 12z" fill="currentColor" stroke="none" />,
+    /** 重新载入:环形箭头 */
+    reload: (<>
+        <path d="M19.2 12a7.2 7.2 0 1 1-2.1-5.1" />
+        <path d="M19.4 3.6v3.6h-3.6" />
+    </>),
     up: <path d="M12 18.4V5.8m-5.4 5.4L12 5.6l5.4 5.6" />,
     down: <path d="M12 5.6v12.6m5.4-5.4L12 18.4l-5.4-5.6" />,
     x: <path d="m6.4 6.4 11.2 11.2M17.6 6.4 6.4 17.6" />,
