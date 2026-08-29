@@ -79,4 +79,14 @@ export default {
             directory: './.data/os/files',
         },
     },
+    // rule:带权限模式的宿主。三档 —— 逐个确认 / 按照规则 / 完全跳过。
+    rule: {
+        host: '127.0.0.1',
+        port: 9700,
+        dataFile: './.data/rule.db',
+        // 新对话默认落在哪一档。
+        defaultMode: 'ask',
+        // 没人回应确认卡时等多久。到点当拒绝,绝不无限挂起。
+        approvalTimeoutMs: 300_000,
+    },
 };
