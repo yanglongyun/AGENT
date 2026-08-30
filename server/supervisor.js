@@ -146,6 +146,8 @@ export function createSupervisor({ config, apps, broadcast = () => {} }) {
                 LANG: process.env.LANG || '',
                 TZ: process.env.TZ || '',
                 PORT: String(record.port),
+                // 绑定地址由宿主指定 —— 契约不让 app 写死 loopback,沙箱宿主会给别的
+                HOST: '127.0.0.1',
                 APP_ID: app.id,
                 APP_DATA_DIR: dataDir,
                 HOST_URL: hostUrl,
@@ -226,6 +228,21 @@ export function createSupervisor({ config, apps, broadcast = () => {} }) {
         return record.starting;
     }
 
+    /**
+     * 回收前先问一声 —— 浏览器直连 app 的 origin,宿主看不到那些流量,
+     * lastUsed 只能反映取址。app 在 health 里应答 { busy: true } 就推迟(契约条款)。
+     */
+    async function recycle(record, app) {
+        try {
+            const response = await fetch(`http://127.0.0.1:${record.port}${app.run.health}`, { signal: AbortSignal.timeout(1500) });
+            if (response.ok) {
+                const body = await response.json().catch(() => null);
+                if (body?.busy === true) { record.lastUsed = Date.now(); return; }
+            }
+        } catch { /* 连 health 都不应答,回收没商量 */ }
+        void stop(record.id);
+    }
+
     // 空闲回收:只回收 on-demand。always 与静态服务不回收(后者只是个句柄,不值得省)
     const sweep = setInterval(() => {
         for (const record of records.values()) {
@@ -233,7 +250,7 @@ export function createSupervisor({ config, apps, broadcast = () => {} }) {
             const app = apps.get(record.id);
             if (!app?.run || app.run.mode === 'always') continue;
             const idle = app.run.idleTimeoutMs || 0;
-            if (idle > 0 && Date.now() - record.lastUsed > idle) void stop(record.id);
+            if (idle > 0 && Date.now() - record.lastUsed > idle) void recycle(record, app);
         }
     }, IDLE_SWEEP_MS);
     sweep.unref?.();

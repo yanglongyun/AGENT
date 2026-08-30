@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 const PORT = Number(process.env.PORT) || 0;
+const HOST = process.env.HOST || '127.0.0.1';
 const DATA_DIR = process.env.APP_DATA_DIR || process.cwd();
 const HOST_URL = process.env.HOST_URL || '';
 const APP_TOKEN = process.env.APP_TOKEN || '';
@@ -127,4 +128,4 @@ http.createServer(async (request, response) => {
     } catch (error) {
         json(response, 500, { error: String(error?.message || error) });
     }
-}).listen(PORT, '127.0.0.1', () => console.log(`[notes] 监听 ${PORT}`));
+}).listen(PORT, HOST, () => console.log(`[notes] 监听 ${HOST}:${PORT}`));

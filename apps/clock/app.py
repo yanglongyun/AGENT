@@ -26,4 +26,4 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-HTTPServer(('127.0.0.1', int(os.environ['PORT'])), Handler).serve_forever()
+HTTPServer((os.environ.get('HOST', '127.0.0.1'), int(os.environ['PORT'])), Handler).serve_forever()

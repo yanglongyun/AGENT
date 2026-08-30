@@ -36,6 +36,14 @@ export function AppView() {
         return () => { alive = false; };
     }, [app?.id, nonce]);
 
+    // 打开期间每分钟摸一次:浏览器直连 app 的 origin,宿主看不到那些流量,
+    // 但界面知道用户正看着 —— 别让正在用的 app 被当成闲置回收
+    useEffect(() => {
+        if (!app || !origin) return;
+        const timer = setInterval(() => { void appAddress(app.id).catch(() => { /* 掉了下轮再说 */ }); }, 60_000);
+        return () => clearInterval(timer);
+    }, [app?.id, origin]);
+
     if (!app) return <div className="app-page"><div className="app-blank">应用不存在或已被移除</div></div>;
 
     const running = app.status === 'ready' || app.status === 'starting';
