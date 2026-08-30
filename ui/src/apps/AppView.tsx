@@ -107,13 +107,16 @@ export function AppView() {
                 </div>
             ) : origin ? (
                 // 真 origin 直连。不再需要 sandbox 压制:跨 origin 的 iframe 本来就
-                // 碰不到宿主 DOM;localStorage 因 origin 不同而天然隔离
+                // 碰不到宿主 DOM;localStorage 因 origin 不同而天然隔离。
+                // allow 是契约的嵌入义务:跨源默认关掉的能力要放开,
+                // 否则图片编辑器里 Ctrl+V 贴不进图,用户只会觉得 app 是坏的
                 <iframe
                     key={`${app.id}:${nonce}`}
                     ref={frame}
                     className="app-frame"
                     src={origin}
                     title={app.name}
+                    allow="clipboard-read; clipboard-write; fullscreen; pointer-lock"
                     onLoad={() => {
                         // 静态 app 没有后端持有环境变量,token 由这里定向递进去。
                         // targetOrigin 指定为 app 自己的 origin —— 递错了浏览器直接丢弃
