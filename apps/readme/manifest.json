@@ -1,6 +1,0 @@
-{
-    "id": "readme",
-    "name": "说明页",
-    "version": "0.1.0",
-    "description": "纯静态 app 示例:没有 run,只有一个 index.html。"
-}

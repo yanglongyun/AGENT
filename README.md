@@ -78,17 +78,17 @@ app 是一个目录,里面是一个**本地网站**:自己监听宿主分配的�
 每个 app 一个真 origin;语言、框架、构不构建全是作者的自由。契约正典见仓库根 [SPEC.md](./SPEC.md)。
 
 ```text
-apps/memo/
+apps/notes/
 ├── manifest.json   声明:是什么、怎么跑、要什么
 ├── APP.md          文档:API 表、数据、什么时候用 —— 给模型读
 ├── icon.svg        可选,没有就用字母头像
-└── server.js       实现(示范用单文件 node;clock 是 python,readme 是纯静态)
+└── (实现)          随便什么语言、框架、构建方式
 ```
 
 宿主管生命周期(懒启动 / 常驻 / 空闲回收 / 崩溃重启)和取址;
 app 可凭 token 调宿主能力(`/host/ai/complete`、`/host/ai/agent`、`/host/notify`);
 agent 读 APP.md 后直接用 HTTP 调 app —— 文档即 SDK。
-仓库自带三个示例:`notes`(单文件 node)、`clock`(python + 常驻)、`readme`(纯静态)。
+首批生态应用:[notes](https://github.com/yanglongyun/notes)(笔记)、[board](https://github.com/yanglongyun/board)(看板)、[canvas](https://github.com/yanglongyun/canvas)(画布)、[mindmap](https://github.com/yanglongyun/mindmap)(思维导图)、[ramify](https://github.com/yanglongyun/ramify) —— 各自是独立仓库,克隆进 `apps/` 即装。
 
 ## 环境要求
 
