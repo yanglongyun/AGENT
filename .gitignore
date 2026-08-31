@@ -7,3 +7,9 @@ ui/dist/
 apps/*/node_modules/
 # countdown 是「AI 从零造 app」验收当场产出的,不入库 —— 谁跑验收谁重新长一个
 apps/countdown/
+# 这五个是独立仓库(github.com/yanglongyun/*),装进 apps/ 但源头在各自仓库,不入本库
+apps/board/
+apps/notes/
+apps/canvas/
+apps/mindmap/
+apps/ramify/
