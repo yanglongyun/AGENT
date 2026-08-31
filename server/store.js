@@ -1,5 +1,4 @@
 // SQLite 结构与数据访问。
-// 结构变更走 ensureColumn 轻量迁移 —— 已有的本地库直接加列,不删库重开。
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -62,16 +61,8 @@ export function openDatabase(file) {
         CREATE INDEX IF NOT EXISTS idx_compactions_conversation
         ON compactions(conversation_id, end_seq);
     `);
-    ensureColumn(db, 'conversations', 'pinned', 'INTEGER NOT NULL DEFAULT 0');
     db.exec('PRAGMA optimize;');
     return db;
-}
-
-/** CREATE TABLE IF NOT EXISTS 对老库什么都不做 —— 新列在这儿补。 */
-function ensureColumn(db, table, column, definition) {
-    const columns = db.prepare(`PRAGMA table_info(${table})`).all();
-    if (columns.some((item) => item.name === column)) return;
-    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
 export function createStore(db) {
