@@ -26,12 +26,12 @@ export function createApprovals({ broadcast, timeoutMs = 300_000 }) {
 
         respond: (id, answer) => settle(id, answer === 'allow' ? 'allow' : 'deny'),
 
-        request({ conversationId, source = 'rule', name, request, verdict, consult, signal }) {
+        request({ conversationId, source = 'rule', name, request, verdict, confirm, signal }) {
             const id = crypto.randomUUID();
             const at = new Date().toISOString();
             // 两种来源要长成两种卡:规则命中是「你定的闸到了」,提醒是「助理自己觉得该问」
-            const card = source === 'consult'
-                ? { id, conversationId, source, ...consult, at }
+            const card = source === 'confirm'
+                ? { id, conversationId, source, ...confirm, at }
                 : {
                     id,
                     conversationId,

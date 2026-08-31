@@ -7,9 +7,9 @@
 //   1. 它只能**增加**摩擦,不能减少。没有任何路径能让助理靠调用它来跳过规则。
 //   2. 它是助理的判断,不是保证。界面不许让人以为「危险操作它一定会问」。
 
-export const consultTool = {
+export const confirmTool = {
     type: 'function',
-    name: 'consult',
+    name: 'confirm',
     description: [
         '在动手之前先提醒用户并等确认。用在你自己觉得该问一句的时候:',
         '操作不可逆、影响面比你被交代的更大、要动你没被明确授权的东西、',
@@ -35,14 +35,14 @@ export const consultTool = {
 /**
  * @param ask 宿主提供的问询通道(和审批门共用一条)。没有就等于没人可问。
  */
-export function createConsult({ ask }) {
-    return async function consult(args = {}) {
+export function createConfirm({ ask }) {
+    return async function runConfirm(args = {}) {
         if (typeof ask !== 'function') {
             return { approved: false, reason: '当前没有人可以确认,按未获批准处理。' };
         }
         const answer = await ask({
-            source: 'consult',
-            consult: {
+            source: 'confirm',
+            confirm: {
                 summary: String(args.summary || '').slice(0, 300),
                 detail: String(args.detail || '').slice(0, 4000),
                 risk: String(args.risk || '').slice(0, 1000),

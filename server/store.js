@@ -16,7 +16,7 @@ export function openDatabase(file) {
             workdir TEXT NOT NULL,
             pinned INTEGER NOT NULL DEFAULT 0,
             permission_mode TEXT NOT NULL DEFAULT '',
-            consult TEXT NOT NULL DEFAULT '',
+            confirm TEXT NOT NULL DEFAULT '',
             context_json TEXT NOT NULL DEFAULT '[]',
             usage_json TEXT,
             created_at TEXT NOT NULL,
@@ -63,6 +63,10 @@ export function openDatabase(file) {
         ON compactions(conversation_id, end_seq);
     `);
     ensureColumn(db, 'conversations', 'pinned', 'INTEGER NOT NULL DEFAULT 0');
+    renameColumn(db, 'conversations', 'consult', 'confirm');
+    ensureColumn(db, 'conversations', 'confirm', "TEXT NOT NULL DEFAULT ''");
+    // 全局设置是 key/value 行,列改名照顾不到 —— 这条键也一并搬过来
+    db.exec("UPDATE OR REPLACE settings SET key = 'confirm' WHERE key = 'consult'");
     db.exec('PRAGMA optimize;');
     return db;
 }
@@ -74,8 +78,18 @@ function ensureColumn(db, table, column, definition) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
+/**
+ * 改名的列走这里,别用「加新列」凑合 —— 加列是空的,老库里那一列的值就丢了。
+ * 老库没这列(或新名字已经在了)就什么都不做。
+ */
+function renameColumn(db, table, from, to) {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map((item) => item.name);
+    if (!columns.includes(from) || columns.includes(to)) return;
+    db.exec(`ALTER TABLE ${table} RENAME COLUMN ${from} TO ${to}`);
+}
+
 export function createStore(db) {
-    const list = db.prepare(`SELECT id, title, workdir, pinned, permission_mode, consult, created_at, updated_at
+    const list = db.prepare(`SELECT id, title, workdir, pinned, permission_mode, confirm, created_at, updated_at
         FROM conversations ORDER BY pinned DESC, updated_at DESC`);
     const get = db.prepare('SELECT * FROM conversations WHERE id = ?');
     const insert = db.prepare(`INSERT INTO conversations
@@ -95,7 +109,7 @@ export function createStore(db) {
     const updateWorkdir = db.prepare('UPDATE conversations SET workdir = ? WHERE id = ?');
     const touchRow = db.prepare('UPDATE conversations SET updated_at = ? WHERE id = ?');
     const updateMode = db.prepare('UPDATE conversations SET permission_mode = ? WHERE id = ?');
-    const updateConsult = db.prepare('UPDATE conversations SET consult = ? WHERE id = ?');
+    const updateConfirm = db.prepare('UPDATE conversations SET confirm = ? WHERE id = ?');
     const allRules = db.prepare('SELECT * FROM rules ORDER BY position, created_at');
     const nextPosition = db.prepare('SELECT COALESCE(MAX(position), 0) + 1 AS position FROM rules');
     const movePosition = db.prepare('UPDATE rules SET position = ? WHERE id = ?');
@@ -180,7 +194,7 @@ export function createStore(db) {
         setPinned(id, pinned) { updatePinned.run(pinned ? 1 : 0, id); },
         setWorkdir(id, workdir) { updateWorkdir.run(workdir, id); },
         setPermissionMode(id, mode) { updateMode.run(String(mode || ''), id); },
-        setConsult(id, value) { updateConsult.run(String(value || ''), id); },
+        setConfirm(id, value) { updateConfirm.run(String(value || ''), id); },
 
         // ---- 规则 ----
         listRules: () => allRules.all().map(parseRule),

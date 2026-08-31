@@ -2,7 +2,7 @@
 //
 // 不插进消息流:审批是待办不是历史 —— 混进历史会被滚走,而这东西正卡着一轮。
 // 两种来源两种卡:规则命中(你定的闸到了)/ 助理提醒(它自己觉得该问)。
-import { ConsultCard } from './ConsultCard';
+import { ConfirmCard } from './ConfirmCard';
 import { Icon } from '../icons/Icon';
 import { answerApproval, createRule, loadPermission, usePermission, type Approval } from './store';
 import { toast } from '../overlay/toast';
@@ -34,7 +34,7 @@ function RuleCard({ card }: { card: Approval }) {
 }
 
 /** 勾了「记成规则」就先建规则再放行 —— 下次由拦截器保证,不再依赖助理记得问。 */
-async function answerConsult(card: Approval, answer: 'allow' | 'deny', makeRule: boolean) {
+async function answerConfirm(card: Approval, answer: 'allow' | 'deny', makeRule: boolean) {
     if (makeRule && card.suggestion) {
         await createRule({ text: card.suggestion }).catch(() => null);
         await loadPermission();
@@ -48,9 +48,9 @@ export function ApprovalDock() {
     if (!approvals.length) return null;
     return (
         <div className="approval-dock">
-            {approvals.map((card) => (card.source === 'consult'
+            {approvals.map((card) => (card.source === 'confirm'
                 ? (
-                    <ConsultCard
+                    <ConfirmCard
                         key={card.id}
                         card={{
                             id: card.id,
@@ -59,7 +59,7 @@ export function ApprovalDock() {
                             risk: card.risk || '',
                             suggestion: card.suggestion || '',
                         }}
-                        onAnswer={(answer, makeRule) => void answerConsult(card, answer, makeRule)}
+                        onAnswer={(answer, makeRule) => void answerConfirm(card, answer, makeRule)}
                     />
                 )
                 : <RuleCard key={card.id} card={card} />))}

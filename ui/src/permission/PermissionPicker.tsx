@@ -11,7 +11,7 @@ import { Sheet } from '../overlay/Sheet';
 import { toast } from '../overlay/toast';
 import {
     MODES, MODE_LABELS, MODE_NOTES, createRule, loadPermission, patchRule,
-    removeRule, reorderRules, setConsult, setMode, useConsult, useMode, usePermission, type Rule,
+    removeRule, reorderRules, setConfirm, setMode, useConfirm, useMode, usePermission, type Rule,
 } from './store';
 import { useConversation } from '../conversation/store';
 
@@ -125,7 +125,7 @@ function RuleItem({ rule, canUp, canDown, onMove }: ItemProps) {
 
 export function PermissionPicker() {
     const mode = useMode();
-    const consult = useConsult();
+    const confirmOn = useConfirm();
     const currentId = useConversation((state) => state.currentId);
     const rules = usePermission((state) => state.rules);
     const [open, setOpen] = useState(false);
@@ -188,11 +188,11 @@ export function PermissionPicker() {
                     {/* 提醒是扩展功能:规则没说到的地方,助理凭自己判断问一句。
                         逐步确认档下每次调用都要问,再开它是多余的,所以不给这个开关 */}
                     {mode !== 'ask' && (
-                        <label className="perm-consult">
-                            <input type="checkbox" checked={consult} onChange={(event) => void setConsult(event.target.checked)} />
+                        <label className="perm-confirm">
+                            <input type="checkbox" checked={confirmOn} onChange={(event) => void setConfirm(event.target.checked)} />
                             <span>
                                 允许助理主动提醒
-                                <span className="perm-consult-note">
+                                <span className="perm-confirm-note">
                                     遇到它自己觉得敏感的操作时停下来问你。这是助理的判断,不是保证 —— 别指望它每次都想得起来。
                                 </span>
                             </span>

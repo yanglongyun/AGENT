@@ -33,7 +33,7 @@ export interface Rule {
 export interface Approval {
     id: string;
     conversationId: string;
-    /** 'rule' = 规则命中;'consult' = 助理主动提醒。两种卡长得不一样。 */
+    /** 'rule' = 规则命中;'confirm' = 助理主动提醒。两种卡长得不一样。 */
     source: string;
     tool: string;
     summary: string;
@@ -43,7 +43,7 @@ export interface Approval {
     reason: string;
     rule: { id: string; text: string } | null;
     at: string;
-    // 以下只在 source === 'consult' 时有
+    // 以下只在 source === 'confirm' 时有
     detail?: string;
     risk?: string;
     suggestion?: string;
@@ -53,41 +53,41 @@ interface State {
     rules: Rule[];
     approvals: Approval[];
     defaultMode: Mode;
-    defaultConsult: boolean;
+    defaultConfirm: boolean;
 }
 
 export const usePermission = create<State>(() => ({
-    rules: [], approvals: [], defaultMode: 'ask', defaultConsult: false,
+    rules: [], approvals: [], defaultMode: 'ask', defaultConfirm: false,
 }));
 
 /** 提醒工具开不开。对话上记的优先,没记就看全局默认。 */
-export function useConsult(): boolean {
-    const fallback = usePermission((state) => state.defaultConsult);
+export function useConfirm(): boolean {
+    const fallback = usePermission((state) => state.defaultConfirm);
     const own = useConversation((state) => {
         const found = state.conversations.find((item) => item.id === state.currentId);
-        return found?.consult || '';
+        return found?.confirm || '';
     });
     return own ? own === 'on' : fallback;
 }
 
-export async function setConsult(on: boolean) {
+export async function setConfirm(on: boolean) {
     const value = on ? 'on' : 'off';
     const { currentId, conversations } = useConversation.getState();
     if (currentId) {
         const previous = conversations;
         useConversation.setState({
-            conversations: conversations.map((item) => (item.id === currentId ? { ...item, consult: value } : item)),
+            conversations: conversations.map((item) => (item.id === currentId ? { ...item, confirm: value } : item)),
         });
         try {
-            await api.patch(`/api/conversations/${currentId}`, { consult: value });
+            await api.patch(`/api/conversations/${currentId}`, { confirm: value });
         } catch (error) {
             useConversation.setState({ conversations: previous });
             throw error;
         }
         return;
     }
-    await api.put('/api/settings', { consult: value });
-    usePermission.setState({ defaultConsult: on });
+    await api.put('/api/settings', { confirm: value });
+    usePermission.setState({ defaultConfirm: on });
 }
 
 /** 当前对话停在哪一档;草稿期看全局默认。 */
@@ -130,13 +130,13 @@ export async function loadPermission() {
     const [rules, approvals, meta] = await Promise.all([
         api.get<{ rules: Rule[] }>('/api/rules').catch(() => null),
         currentId ? api.get<{ approvals: Approval[] }>(`/api/approvals${query}`).catch(() => null) : null,
-        api.get<{ defaultMode: Mode; defaultConsult: string }>('/api/meta').catch(() => null),
+        api.get<{ defaultMode: Mode; defaultConfirm: string }>('/api/meta').catch(() => null),
     ]);
     usePermission.setState({
         rules: rules?.rules || [],
         approvals: approvals?.approvals || [],
         defaultMode: meta?.defaultMode || 'ask',
-        defaultConsult: meta?.defaultConsult === 'on',
+        defaultConfirm: meta?.defaultConfirm === 'on',
     });
 }
 

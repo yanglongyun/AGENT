@@ -19,7 +19,7 @@ export interface Conversation {
     /** 对话级权限档;空串 = 跟随全局默认。 */
     permission_mode: string;
     /** 提醒工具开关:'on' / 'off';空串 = 跟随全局默认。 */
-    consult: string;
+    confirm: string;
     created_at: string;
     updated_at: string;
 }

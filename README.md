@@ -19,7 +19,7 @@
 ```text
 AGENT/
 ├── ai/       无状态循环 + 协议驱动(responses / chat)
-├── agent/    bash / read / write / edit / consult、上下文压缩、权限引擎
+├── agent/    bash / read / write / edit / confirm、上下文压缩、权限引擎
 ├── server/   HTTP · SQLite · SSE · 轮次编排 · 问询通道 · 应用宿主
 ├── shared/   服务端与界面共用的事件名契约
 ├── ui/       React 客户端

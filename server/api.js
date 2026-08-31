@@ -42,7 +42,7 @@ export function createApi({ config, store, runs, files, channel, approvals, comp
                     defaultWorkdir: config.workdir,
                     version: meta.version,
                     defaultMode: store.getSettings().permissionMode || config.client.defaultMode || 'ask',
-                    defaultConsult: store.getSettings().consult || 'off',
+                    defaultConfirm: store.getSettings().confirm || 'off',
                 });
                 return true;
             }
@@ -51,7 +51,7 @@ export function createApi({ config, store, runs, files, channel, approvals, comp
             }
             if (method === 'PUT' && url.pathname === '/api/settings') {
                 const input = await readBody(request);
-                const allowed = ['driver', 'responsesUrl', 'apiKey', 'model', 'instructions', 'permissionMode', 'consult'];
+                const allowed = ['driver', 'responsesUrl', 'apiKey', 'model', 'instructions', 'permissionMode', 'confirm'];
                 const values = Object.fromEntries(allowed.filter((key) => typeof input[key] === 'string').map((key) => [key, input[key].trim()]));
                 // 驱动名要挡在这里 —— 存进去一个不认识的值,下次运行才炸就太晚了
                 if (values.driver && !DRIVER_IDS.includes(values.driver)) {
@@ -224,7 +224,7 @@ export function createApi({ config, store, runs, files, channel, approvals, comp
                         store.setPermissionMode(id, input.permissionMode);
                     }
                     // 空串 = 跟随全局默认;'on' / 'off' = 这个对话自己说了算
-                    if (typeof input.consult === 'string') store.setConsult(id, input.consult);
+                    if (typeof input.confirm === 'string') store.setConfirm(id, input.confirm);
                     if (typeof input.workdir === 'string') {
                         const workdir = normalizeWorkdir(input.workdir);
                         if (!workdir) { json(response, 400, { error: '工作目录不存在' }); return true; }

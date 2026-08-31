@@ -128,7 +128,7 @@ export function createRuns({ config, store, files, approvals, apps, broadcast })
                 permission: {
                     mode: runtime.permissionMode,
                     rules: runtime.rules,
-                    consult: runtime.consult,
+                    confirm: runtime.confirm,
                     context: { home: homedir(), cwd: conversation.workdir },
                     ask: (payload) => approvals.request({ conversationId, ...payload, signal: controller.signal }),
                 },
@@ -185,8 +185,8 @@ export function createRuns({ config, store, files, approvals, apps, broadcast })
             const mode = conversation.permission_mode || savedSettings.permissionMode || config.client.defaultMode || 'ask';
             const rules = store.listRules().map(normalizeRule).filter((rule) => rule.enabled);
             // 提醒工具是扩展,默认关。逐步确认档下每次都要问,再开它是多余的
-            const consult = mode !== 'ask'
-                && (conversation.consult || savedSettings.consult || 'off') === 'on';
+            const confirm = mode !== 'ask'
+                && (conversation.confirm || savedSettings.confirm || 'off') === 'on';
             const runtime = {
                 ...config,
                 driver: savedSettings.driver || config.driver || 'responses',
@@ -199,7 +199,7 @@ export function createRuns({ config, store, files, approvals, apps, broadcast })
                     .filter(Boolean).join('\n\n'),
                 permissionMode: mode,
                 rules,
-                consult,
+                confirm,
             };
             if (!runtime.responsesUrl || !runtime.apiKey || !runtime.model) {
                 throw Object.assign(new Error('请先在设置中选择驱动并填写接口地址、API Key 和模型'), { status: 400 });
