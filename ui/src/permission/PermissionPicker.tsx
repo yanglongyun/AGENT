@@ -185,13 +185,13 @@ export function PermissionPicker() {
                     </div>
                     {!currentId && <div className="perm-hint">还没有对话,改的是「新对话默认用哪一档」。</div>}
 
-                    {/* 请示是扩展功能:规则没说到的地方,助理凭自己判断问一句。
+                    {/* 提醒是扩展功能:规则没说到的地方,助理凭自己判断问一句。
                         逐步确认档下每次调用都要问,再开它是多余的,所以不给这个开关 */}
                     {mode !== 'ask' && (
                         <label className="perm-consult">
                             <input type="checkbox" checked={consult} onChange={(event) => void setConsult(event.target.checked)} />
                             <span>
-                                允许助理主动请示
+                                允许助理主动提醒
                                 <span className="perm-consult-note">
                                     遇到它自己觉得敏感的操作时停下来问你。这是助理的判断,不是保证 —— 别指望它每次都想得起来。
                                 </span>

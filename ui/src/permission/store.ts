@@ -33,7 +33,7 @@ export interface Rule {
 export interface Approval {
     id: string;
     conversationId: string;
-    /** 'rule' = 规则命中;'consult' = 助理主动请示。两种卡长得不一样。 */
+    /** 'rule' = 规则命中;'consult' = 助理主动提醒。两种卡长得不一样。 */
     source: string;
     tool: string;
     summary: string;
@@ -60,7 +60,7 @@ export const usePermission = create<State>(() => ({
     rules: [], approvals: [], defaultMode: 'ask', defaultConsult: false,
 }));
 
-/** 请示工具开不开。对话上记的优先,没记就看全局默认。 */
+/** 提醒工具开不开。对话上记的优先,没记就看全局默认。 */
 export function useConsult(): boolean {
     const fallback = usePermission((state) => state.defaultConsult);
     const own = useConversation((state) => {

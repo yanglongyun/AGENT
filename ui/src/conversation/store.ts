@@ -18,7 +18,7 @@ export interface Conversation {
     pinned: number;
     /** 对话级权限档;空串 = 跟随全局默认。 */
     permission_mode: string;
-    /** 请示工具开关:'on' / 'off';空串 = 跟随全局默认。 */
+    /** 提醒工具开关:'on' / 'off';空串 = 跟随全局默认。 */
     consult: string;
     created_at: string;
     updated_at: string;

@@ -1,6 +1,6 @@
-// 请示工具。
+// 提醒工具。
 //
-// 规则是**你**定的条件,系统照着拦;请示是**助理**自己的判断 —— 它觉得这一步敏感、
+// 规则是**你**定的条件,系统照着拦;提醒是**助理**自己的判断 —— 它觉得这一步敏感、
 // 可能不可逆、或者拿不准你愿不愿意,就主动停下来问一句。规则没说到的地方也管用。
 //
 // 两条边界必须守住:
@@ -11,7 +11,7 @@ export const consultTool = {
     type: 'function',
     name: 'consult',
     description: [
-        '在动手之前先请示用户。用在你自己觉得该问一句的时候:',
+        '在动手之前先提醒用户并等确认。用在你自己觉得该问一句的时候:',
         '操作不可逆、影响面比你被交代的更大、要动你没被明确授权的东西、',
         '或者你注意到用户的处境可能和你的默认假设不一样。',
         '得到允许之前不要执行。用户不同意就换做法或如实说明,不要绕过。',
@@ -38,7 +38,7 @@ export const consultTool = {
 export function createConsult({ ask }) {
     return async function consult(args = {}) {
         if (typeof ask !== 'function') {
-            return { approved: false, reason: '当前没有人可以请示,按未获批准处理。' };
+            return { approved: false, reason: '当前没有人可以确认,按未获批准处理。' };
         }
         const answer = await ask({
             source: 'consult',
@@ -53,7 +53,7 @@ export function createConsult({ ask }) {
         return {
             approved: false,
             reason: answer === 'timeout'
-                ? '请示超时,没有得到答复。不要执行,如实告诉用户。'
+                ? '提醒超时,没有得到答复。不要执行,如实告诉用户。'
                 : '用户不同意。不要执行这件事,换个做法或如实说明,不要绕过。',
         };
     };

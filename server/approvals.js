@@ -29,7 +29,7 @@ export function createApprovals({ broadcast, timeoutMs = 300_000 }) {
         request({ conversationId, source = 'rule', name, request, verdict, consult, signal }) {
             const id = crypto.randomUUID();
             const at = new Date().toISOString();
-            // 两种来源要长成两种卡:规则命中是「你定的闸到了」,请示是「助理自己觉得该问」
+            // 两种来源要长成两种卡:规则命中是「你定的闸到了」,提醒是「助理自己觉得该问」
             const card = source === 'consult'
                 ? { id, conversationId, source, ...consult, at }
                 : {

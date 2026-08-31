@@ -184,7 +184,7 @@ export function createRuns({ config, store, files, approvals, apps, broadcast })
             // 权限档:对话上记的优先,没记就用全局默认
             const mode = conversation.permission_mode || savedSettings.permissionMode || config.client.defaultMode || 'ask';
             const rules = store.listRules().map(normalizeRule).filter((rule) => rule.enabled);
-            // 请示工具是扩展,默认关。逐步确认档下每次都要问,再开它是多余的
+            // 提醒工具是扩展,默认关。逐步确认档下每次都要问,再开它是多余的
             const consult = mode !== 'ask'
                 && (conversation.consult || savedSettings.consult || 'off') === 'on';
             const runtime = {

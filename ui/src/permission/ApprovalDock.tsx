@@ -1,7 +1,7 @@
 // 待确认的调用,停在输入框正上方。
 //
 // 不插进消息流:审批是待办不是历史 —— 混进历史会被滚走,而这东西正卡着一轮。
-// 两种来源两种卡:规则命中(你定的闸到了)/ 助理请示(它自己觉得该问)。
+// 两种来源两种卡:规则命中(你定的闸到了)/ 助理提醒(它自己觉得该问)。
 import { ConsultCard } from './ConsultCard';
 import { Icon } from '../icons/Icon';
 import { answerApproval, createRule, loadPermission, usePermission, type Approval } from './store';
