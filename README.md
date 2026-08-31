@@ -176,4 +176,4 @@ npm run client:build
 
 ## License
 
-当前仓库尚未声明开源许可证。
+[MIT](./LICENSE)。契约(SPEC.md)欢迎任何宿主与 app 实现。
