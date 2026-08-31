@@ -1,5 +1,5 @@
 {
-    "id": "notes",
+    "id": "memo",
     "name": "便签",
     "version": "0.2.0",
     "description": "记随手笔记,可让 AI 归纳成要点。用户说「记一下」「笔记理一理」时用它。",

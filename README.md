@@ -78,7 +78,7 @@ app 是一个目录,里面是一个**本地网站**:自己监听宿主分配的�
 每个 app 一个真 origin;语言、框架、构不构建全是作者的自由。契约正典见仓库根 [SPEC.md](./SPEC.md)。
 
 ```text
-apps/notes/
+apps/memo/
 ├── manifest.json   声明:是什么、怎么跑、要什么
 ├── APP.md          文档:API 表、数据、什么时候用 —— 给模型读
 ├── icon.svg        可选,没有就用字母头像

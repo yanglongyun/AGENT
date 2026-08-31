@@ -32,7 +32,7 @@ apps/<id>/
 
 ```json
 {
-    "id": "notes",
+    "id": "memo",
     "name": "便签",
     "version": "0.1.0",
     "description": "记随手笔记。用户说「记一下」「笔记理一理」时用它。",

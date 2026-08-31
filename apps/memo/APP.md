@@ -10,7 +10,7 @@
 
 ## API
 
-先取址(`GET {宿主}/api/apps/notes/address` → `{ origin }`),再对 origin 调:
+先取址(`GET {宿主}/api/apps/memo/address` → `{ origin }`),再对 origin 调:
 
 ```text
 GET    /health           健康检查

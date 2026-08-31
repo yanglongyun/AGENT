@@ -128,4 +128,4 @@ http.createServer(async (request, response) => {
     } catch (error) {
         json(response, 500, { error: String(error?.message || error) });
     }
-}).listen(PORT, HOST, () => console.log(`[notes] 监听 ${HOST}:${PORT}`));
+}).listen(PORT, HOST, () => console.log(`[memo] 监听 ${HOST}:${PORT}`));
