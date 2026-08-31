@@ -63,10 +63,6 @@ export function openDatabase(file) {
         ON compactions(conversation_id, end_seq);
     `);
     ensureColumn(db, 'conversations', 'pinned', 'INTEGER NOT NULL DEFAULT 0');
-    renameColumn(db, 'conversations', 'consult', 'confirm');
-    ensureColumn(db, 'conversations', 'confirm', "TEXT NOT NULL DEFAULT ''");
-    // 全局设置是 key/value 行,列改名照顾不到 —— 这条键也一并搬过来
-    db.exec("UPDATE OR REPLACE settings SET key = 'confirm' WHERE key = 'consult'");
     db.exec('PRAGMA optimize;');
     return db;
 }
@@ -76,16 +72,6 @@ function ensureColumn(db, table, column, definition) {
     const columns = db.prepare(`PRAGMA table_info(${table})`).all();
     if (columns.some((item) => item.name === column)) return;
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
-}
-
-/**
- * 改名的列走这里,别用「加新列」凑合 —— 加列是空的,老库里那一列的值就丢了。
- * 老库没这列(或新名字已经在了)就什么都不做。
- */
-function renameColumn(db, table, from, to) {
-    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map((item) => item.name);
-    if (!columns.includes(from) || columns.includes(to)) return;
-    db.exec(`ALTER TABLE ${table} RENAME COLUMN ${from} TO ${to}`);
 }
 
 export function createStore(db) {
