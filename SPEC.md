@@ -147,9 +147,12 @@ token 即身份,路径里没有 app id。manifest 没声明对应权限的,一�
 | 端点 | 权限 | 说明 |
 |---|---|---|
 | `GET /host/me` | 免声明 | `{ appId, name, version, permissions, theme }` |
-| `POST /host/ai/complete` | `ai.complete` | `{ prompt, instructions? }` → `{ text, usage }`。单次补全,无工具 |
-| `POST /host/ai/agent` | `ai.agent` | `{ prompt, workdir? }` → SSE 事件流。完整 agent 轮次,带工具 |
+| `POST /host/ai/complete` | `ai.complete` | `{ prompt, instructions?, title?, schema?, schemaName? }` → `{ text, usage }`。单次补全,无工具。`schema` 给 JSON Schema 即走协议原生的结构化输出;`title` 是这次调用在宿主「任务」里的标题 |
+| `POST /host/ai/agent` | `ai.agent` | `{ prompt, workdir?, title? }` → SSE 事件流。完整 agent 轮次,带工具 |
 | `POST /host/notify` | `notify` | `{ text, kind?: "toast"\|"badge" }`。宿主界面上提示 / 侧边栏角标 |
+
+两个端点的每次调用都在宿主的「任务」里留一条记录(过程逐条落库,用户可回放)——
+应用替用户干的活必须看得见。
 
 `ai/agent` 的边界:轮次走宿主的审批门,按全局规则档判,**命中「要问」的直接拒绝**
 (没人守着弹窗,不挂起)。工作目录默认 `APP_DATA_DIR`。
