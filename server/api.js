@@ -2,7 +2,6 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { EVENTS } from '../shared/events.js';
-import { DRIVER_IDS } from '../ai/index.js';
 import { MODES, normalizeRule } from '../agent/rules.js';
 
 const json = (response, status, body) => {
@@ -51,12 +50,8 @@ export function createApi({ config, store, runs, files, channel, approvals, comp
             }
             if (method === 'PUT' && url.pathname === '/api/settings') {
                 const input = await readBody(request);
-                const allowed = ['driver', 'responsesUrl', 'apiKey', 'model', 'instructions', 'permissionMode', 'confirm'];
+                const allowed = ['responsesUrl', 'apiKey', 'model', 'instructions', 'permissionMode', 'confirm'];
                 const values = Object.fromEntries(allowed.filter((key) => typeof input[key] === 'string').map((key) => [key, input[key].trim()]));
-                // 驱动名要挡在这里 —— 存进去一个不认识的值,下次运行才炸就太晚了
-                if (values.driver && !DRIVER_IDS.includes(values.driver)) {
-                    json(response, 400, { error: `未知的驱动:${values.driver}` }); return true;
-                }
                 if (values.permissionMode && !MODES.includes(values.permissionMode)) {
                     json(response, 400, { error: `未知的权限档:${values.permissionMode}` }); return true;
                 }

@@ -18,7 +18,7 @@
 
 ```text
 AGENT/
-├── ai/       无状态循环 + 协议驱动(responses / chat)
+├── ai/       无状态循环,只说 Responses API
 ├── agent/    bash / read / write / edit / confirm、上下文压缩、权限引擎
 ├── server/   HTTP · SQLite · SSE · 轮次编排 · 问询通道 · 应用宿主
 ├── shared/   服务端与界面共用的事件名契约
@@ -27,18 +27,18 @@ AGENT/
 └── .dev/     各版本设计与变更说明
 ```
 
-### 协议驱动
+### ai 层
 
-`ai/` 下只有 `drivers/` 认识具体协议,其余(循环、重试、工具执行、事件契约)全是协议无关的。
+只认 OpenAI Responses API,一个协议、一条路:
 
-| 驱动 | 用于 |
-|---|---|
-| `responses` | OpenAI Responses API(默认) |
-| `chat` | 只有 `/chat/completions` 的服务,例如 GLM |
-
-两个驱动之间零依赖,各自消化自己协议的怪癖;**工具循环只有一份**。
-驱动接口就是 `attempt()`:进去是统一的 `{ input, instructions, tools }`,
-出来是统一的 `{ items, usage, status, stopReason }`,沿途用 `onEvent` 吐增量。
+```text
+index.js      循环:模型 → 工具 → 模型,直到没有 function_call
+request.js    一次请求 = attempt + 重试
+responses.js  发请求、读 SSE 流、解析成 { items, usage, status, stopReason }
+runner.js     执行 function_call,产出 function_call_output
+retry.js      哪些错误值得再试、退避多久
+complete.js   无工具的单次补全(标题、摘要用)
+```
 
 item 词表(`message` / `reasoning` / `function_call` / `function_call_output`)沿用 Responses 那套 ——
 它早已是仓库的内部契约:数据库、UI 渲染、上下文压缩全按它来。
@@ -94,7 +94,7 @@ agent 读 APP.md 后直接用 HTTP 调 app —— 文档即 SDK。
 
 - Node.js 22 或更高版本(项目使用 `node:sqlite`)
 - npm
-- 一个兼容 OpenAI Responses 或 Chat Completions 的服务
+- 一个兼容 OpenAI Responses API 的服务
 
 ## 安装与运行
 

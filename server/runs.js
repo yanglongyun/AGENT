@@ -55,7 +55,6 @@ export function createRuns({ config, store, files, approvals, apps, broadcast })
         const reply = items.filter((item) => item?.type === 'message').map(itemText).join('\n').slice(0, 1200);
         try {
             const result = await complete({
-                driver: runtime.driver,
                 responsesUrl: runtime.responsesUrl,
                 apiKey: runtime.apiKey,
                 model: runtime.model,
@@ -189,7 +188,6 @@ export function createRuns({ config, store, files, approvals, apps, broadcast })
                 && (conversation.confirm || savedSettings.confirm || 'off') === 'on';
             const runtime = {
                 ...config,
-                driver: savedSettings.driver || config.driver || 'responses',
                 responsesUrl: savedSettings.responsesUrl || '',
                 apiKey: savedSettings.apiKey || '',
                 model: savedSettings.model || '',

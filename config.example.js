@@ -2,9 +2,6 @@
 const WINDOWS = process.platform === 'win32';
 
 export default {
-    // 'responses' = OpenAI Responses API;'chat' = Chat Completions(GLM 等只有这个)。
-    // 两个驱动在 ai/drivers/ 下彼此独立,循环和工具执行是共用的。
-    driver: 'responses',
     responsesUrl: 'https://api.openai.com/v1/responses',
     apiKey: '',
     model: '',

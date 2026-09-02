@@ -35,7 +35,6 @@ export function createCompiler({ config, store }) {
         const settings = store.getSettings();
         if (!settings.responsesUrl || !settings.apiKey || !settings.model) return null;
         return {
-            driver: settings.driver || config.driver || 'responses',
             responsesUrl: settings.responsesUrl,
             apiKey: settings.apiKey,
             model: settings.model,
