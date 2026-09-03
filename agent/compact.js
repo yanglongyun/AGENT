@@ -99,7 +99,8 @@ export async function compact({
         sourceCount: early.length,
         tailCount: history.length - at,
         history: [
-            { role: 'system', content: `[早前对话的摘要]\n${summary}` },
+            // 摘要就是一条普通的 user 消息(user 允许连着出现);kind 只给界面和库用,发请求前会被剥掉
+            { role: 'user', kind: 'compaction', content: `以下是历史上下文压缩摘要:\n\n${summary}` },
             ...history.slice(at),
         ],
     };

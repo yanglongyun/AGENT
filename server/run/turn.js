@@ -90,6 +90,8 @@ export function createTurns({ config, store, files, approvals, apps, broadcast }
                     if (endSeq >= startSeq) {
                         store.appendCompaction(conversationId, { startSeq, endSeq, summary: data.summary, kind: data.kind, tokens: data.tokens });
                     }
+                    // 摘要也落成一条消息:界面能看到压缩发生在哪、压成了什么。上下文里它在最前面,消息表里按时间排在尾段之后
+                    store.append(conversationId, data.history[0]);
                     live = [...data.history];
                 }
                 broadcast(EVENTS.COMPACT_DONE, { conversationId });

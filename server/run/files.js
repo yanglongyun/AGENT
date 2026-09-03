@@ -96,6 +96,7 @@ export function createFiles(config) {
                     const clean = { ...item };
                     delete clean.attachments;
                     delete clean.image;
+                    delete clean.kind; // 摘要行的标记,协议不认
                     output.unshift(clean);
                 }
             }

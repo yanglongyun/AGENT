@@ -284,3 +284,10 @@
     /* 窄屏侧栏是抽屉,唤它回来的键必须常在 */
     .menu-btn { display: grid; }
 }
+
+/* 压缩摘要:一条 user 消息,但它是系统替早期对话写的,画成可展开的卡,不画成气泡 */
+.compaction { align-self: center; max-width: 560px; font-size: 12px; color: var(--text-3); }
+.compaction summary { cursor: pointer; padding: 3px 10px; border-radius: 999px; background: var(--fill); display: inline-block; list-style: none; }
+.compaction summary::-webkit-details-marker { display: none; }
+.compaction[open] summary { margin-bottom: 8px; }
+.compaction .md { padding: 10px 12px; border: 1px dashed var(--edge); border-radius: 10px; font-size: 12.5px; color: var(--text-2); }

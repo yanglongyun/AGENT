@@ -12,6 +12,8 @@ export interface RawMessage {
 
 /** 落库的 item —— Responses 规范的形状。 */
 export interface StoredItem {
+    /** 摘要行:role 是 user,kind 标它是压缩产物,界面画成压缩卡。 */
+    kind?: string;
     type?: string;
     role?: string;
     content?: string | Array<{ type?: string; text?: string }> | null;
@@ -137,6 +139,10 @@ export function renderMessages(raw: RawMessage[]): Row[] {
         }
         if (item.role === 'user') {
             flushReasoning(at);
+            if (item.kind === 'compaction') {
+                rows.push({ key: mkKey('s'), kind: 'system', code: 'compacted', content: itemText(item).replace(/^以下是历史上下文压缩摘要:\s*/, ''), at });
+                continue;
+            }
             rows.push({ key: mkKey('u'), kind: 'user', content: itemText(item), attachments: item.attachments || [], at });
             continue;
         }

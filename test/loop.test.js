@@ -136,8 +136,8 @@ test('循环内压缩:第二次请求前水位超线,早期上下文折成摘要
     assert.deepEqual(events, ['started', 'done'], '第一次请求前水位 10 不压;第二次前水位 90 压一次');
     assert.equal(bodies.length, 3, '两次正常请求 + 一次摘要请求');
     const second = bodies[2].input;
-    assert.match(second[0].content, /^\[早前对话的摘要\]/, '第二次请求发出去的开头是摘要');
+    assert.match(second[0].content, /^以下是历史上下文压缩摘要/, '第二次请求发出去的开头是摘要');
     assert.ok(!second.some((item) => typeof item.content === 'string' && item.content.length >= 3000), '早期大段已经被折掉');
     assert.equal(second.at(-1).type, 'function_call_output', '尾段以工具结果结尾,call 与 output 成对');
-    assert.match(result.context[0].content, /^\[早前对话的摘要\]/, '返回的最终上下文也是压缩后的');
+    assert.match(result.context[0].content, /^以下是历史上下文压缩摘要/, '返回的最终上下文也是压缩后的');
 });

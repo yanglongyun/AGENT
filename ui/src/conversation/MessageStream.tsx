@@ -251,6 +251,14 @@ export function MessageStream() {
                             </div>
                         );
                     }
+                    if (row.code === 'compacted' && row.content && row.content !== '已压缩早期对话') {
+                        return (
+                            <details key={block.key} className="compaction">
+                                <summary>已压缩早期对话</summary>
+                                <div className="md" dangerouslySetInnerHTML={{ __html: renderMd(row.content) }} />
+                            </details>
+                        );
+                    }
                     return (
                         <span key={block.key} className={`chip${row.code === 'error' ? ' chip-bad' : ''}`}>
                             {row.code === 'stopped' ? '已停止' : row.content}
