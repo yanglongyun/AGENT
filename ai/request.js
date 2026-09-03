@@ -1,5 +1,4 @@
 // 一次请求 = attempt + 重试。协议细节在 responses.js,这一层只管失败了要不要再来。
-import { EVENTS } from './events.js';
 import { attempt } from './responses.js';
 import { backoffMs, isRetryable, normalizeRetry, sleep } from './retry.js';
 
@@ -33,7 +32,7 @@ export async function request({
             if (!policy.enabled || exhausted || streamed || !isRetryable(error)) throw error;
 
             const delay = backoffMs(attemptNo, policy);
-            onEvent(EVENTS.RETRY, {
+            onEvent('retry', {
                 attempt: attemptNo,
                 maxRetries: policy.maxRetries,
                 delayMs: delay,

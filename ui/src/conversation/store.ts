@@ -16,10 +16,6 @@ export interface Conversation {
     title: string;
     workdir: string;
     pinned: number;
-    /** 对话级权限档;空串 = 跟随全局默认。 */
-    permission_mode: string;
-    /** 提醒工具开关:'on' / 'off';空串 = 跟随全局默认。 */
-    confirm: string;
     created_at: string;
     updated_at: string;
 }
@@ -151,7 +147,7 @@ export async function loadConversations() {
 
 /** 谁还在跑。失败当成都没有 —— 少画一个点,好过网络一抖整列都亮。 */
 export async function loadRuns() {
-    const data = await api.get<{ ids: string[] }>('/api/runs').catch(() => null);
+    const data = await api.get<{ ids: string[] }>('/api/turns').catch(() => null);
     if (!data) return;
     set({ liveIds: data.ids || [] });
     const id = get().currentId;

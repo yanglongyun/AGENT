@@ -30,6 +30,10 @@ export const EVENTS = Object.freeze({
     APPROVAL_DONE: 'approval.done',
     /** 规则单变了(新增 / 开关 / 删除),界面重拉。 */
     RULES_CHANGED: 'rules.changed',
+    /** 模型放了一个提议到用户面前(不阻塞)。 */
+    PROPOSAL_ASK: 'proposal.ask',
+    /** 提议被接受或丢弃。 */
+    PROPOSAL_DONE: 'proposal.done',
     /** app 装载变化(新增 / 删除 / manifest 改动),界面重拉列表。 */
     APPS_CHANGED: 'apps.changed',
     /** 某个 app 子进程状态变了:stopped / starting / ready / failed。 */

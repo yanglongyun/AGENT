@@ -8,8 +8,9 @@ import { useDraftSeed } from './draft';
 import { api } from '../lib/api';
 import { toast } from '../overlay/toast';
 import type { Attachment } from './thread';
-import { PermissionPicker } from '../permission/PermissionPicker';
-import { ApprovalDock } from '../permission/ApprovalDock';
+import { RulesPicker } from '../rules/RulesPicker';
+import { ApprovalDock } from '../rules/ApprovalDock';
+import { ProposalDock } from '../rules/ProposalDock';
 
 /** 拼音确认的那个 Enter 不是发送。组字中看 isComposing;Safari 在
     compositionend 之后才派发那次 keydown,所以刚结束的 50ms 内也拦。
@@ -159,6 +160,7 @@ export function Composer() {
     return (
         <div className="composer-wrap">
             <ApprovalDock />
+            <ProposalDock />
             <div className="composer" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); void upload(event.dataTransfer.files); }}>
                 <input ref={fileRef} hidden type="file" multiple onChange={(event) => { if (event.target.files) void upload(event.target.files); }} />
                 {attachments.length > 0 && <div className="attach-tray">{attachments.map((file) => (
@@ -198,7 +200,7 @@ export function Composer() {
                             <Icon name="plus" size={14} />{uploading && <span>上传中</span>}
                         </button>
                         <WorkdirChip />
-                        <PermissionPicker />
+                        <RulesPicker />
                     </div>
                     <div className="composer-right">
                         {meta.model && <span className="model-tag clip" title={`模型:${meta.model}`}>{meta.model}</span>}

@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>权限面板原型</title>
+<style>
+:root {
+    --surface: #ffffff; --surface-side: #f4f5f8; --surface-float: #ffffff; --page: #eceef3;
+    --text-1: rgba(16,19,28,.96); --text-2: rgba(19,23,36,.86); --text-3: rgba(26,32,52,.58); --text-4: rgba(28,34,56,.42);
+    --accent: #2563eb; --accent-hover: #1d4fd8; --on-accent: #fff; --accent-ring: rgba(37,99,235,.16); --accent-soft: rgba(37,99,235,.09);
+    --danger: #dc3d3d; --danger-soft: rgba(220,61,61,.09);
+    --fill: rgba(116,122,145,.07); --edge: rgba(116,122,145,.18); --edge-soft: rgba(116,122,145,.1); --hover: rgba(116,122,145,.09);
+    --row-on: #ffffff; --shadow: 0 12px 40px rgba(20,24,40,.14), 0 2px 8px rgba(20,24,40,.06);
+    --font: -apple-system, "PingFang SC", "Helvetica Neue", "Noto Sans SC", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+    --surface: #16171d; --surface-side: #101116; --surface-float: #1f2129; --page: #0b0c10;
+    --text-1: rgba(244,246,252,.96); --text-2: rgba(228,232,244,.88); --text-3: rgba(206,214,240,.56); --text-4: rgba(206,214,240,.4);
+    --accent: #6494ff; --accent-hover: #7aa3ff; --on-accent: #0b1020; --accent-ring: rgba(100,148,255,.26); --accent-soft: rgba(100,148,255,.14);
+    --danger: #ef6a6a; --danger-soft: rgba(239,106,106,.14);
+    --fill: rgba(126,134,160,.1); --edge: rgba(126,134,160,.24); --edge-soft: rgba(126,134,160,.13); --hover: rgba(126,134,160,.13);
+    --row-on: #23252f; --shadow: 0 12px 40px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3);
+} }
+* { box-sizing: border-box; }
+svg { width: 14px; height: 14px; flex: none; }
+body { margin: 0; background: var(--page); color: var(--text-1); font: 14px/1.5 var(--font); }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+button:focus-visible, input:focus-visible, [contenteditable]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input { font: inherit; color: var(--text-1); }
+.clip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grow { flex: 1; }
+
+.top { max-width: 1080px; margin: 0 auto; padding: 26px 24px 0; }
+.top h1 { font-size: 20px; font-weight: 700; margin: 0 0 6px; letter-spacing: -.01em; }
+.top p { margin: 0; color: var(--text-3); font-size: 13px; max-width: 70ch; }
+.frame { max-width: 1080px; margin: 18px auto 40px; padding: 0 24px; }
+.app { position: relative; height: 660px; border-radius: 14px; overflow: hidden; background: var(--surface); border: 1px solid var(--edge-soft); display: flex; }
+.side { width: 176px; flex: none; background: var(--surface-side); border-right: 1px solid var(--edge-soft); padding: 14px 10px; font-size: 12.5px; color: var(--text-3); }
+.side .brand { font-weight: 700; color: var(--text-1); font-size: 13px; margin: 0 6px 16px; }
+.side .lab { font-size: 11px; color: var(--text-4); margin: 12px 6px 6px; }
+.side .row { padding: 6px 8px; border-radius: 7px; color: var(--text-2); }
+.side .row.on { background: var(--row-on); box-shadow: 0 1px 2px rgba(0,0,0,.05); color: var(--text-1); }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chat { flex: 1; padding: 24px 48px; }
+.bubble { max-width: 60%; margin-left: auto; background: var(--fill); border-radius: 12px; padding: 9px 13px; font-size: 13.5px; }
+.reply { margin-top: 18px; font-size: 13.5px; max-width: 60ch; }
+.reply small { display: block; color: var(--text-4); font-size: 11.5px; margin-bottom: 8px; }
+.composer-wrap { padding: 0 48px 20px; }
+.composer { border: 1px solid var(--edge); border-radius: 14px; background: var(--surface-float); padding: 12px 12px 8px; }
+.composer .ph { color: var(--text-4); font-size: 13.5px; padding: 2px 4px 14px; }
+.bar { display: flex; align-items: center; gap: 4px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 9px; border-radius: 8px; font-size: 12px; font-weight: 500; font-family: var(--mono); color: var(--text-2); }
+.chip:hover { background: var(--hover); color: var(--text-1); }
+.chip.ask { color: var(--text-2); }
+.chip.rules { color: var(--accent); }
+.chip.auto { color: var(--danger); }
+.model { margin-left: auto; font-size: 11.5px; color: var(--text-4); font-family: var(--mono); }
+.go { width: 30px; height: 30px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; color: var(--text-4); margin-left: 8px; }
+.foot { text-align: center; font-size: 11px; color: var(--text-4); margin-top: 8px; }
+
+/* ───── 面板 ───── */
+.scrim { position: absolute; inset: 0; background: rgba(10,12,20,.32); display: grid; place-items: center; padding: 20px; }
+.sheet { width: min(560px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--surface-float); border: 1px solid var(--edge-soft); border-radius: 16px; box-shadow: var(--shadow); padding: 18px 20px 16px; }
+.sheet-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+
+/* 顶部三个大切换 */
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mode { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; padding: 11px 13px; text-align: left; border-radius: 11px; border: 1px solid var(--edge-soft); background: transparent; transition: background .15s, border-color .15s, box-shadow .15s; }
+.mode:hover { background: var(--hover); }
+.mode.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-ring); }
+.mode-name { font-size: 14px; font-weight: 650; color: var(--text-1); }
+.mode.on .mode-name { color: var(--accent); }
+.mode-note { font-size: 11.5px; line-height: 1.45; color: var(--text-3); }
+
+/* 规则区 */
+.rules-area { margin-top: 16px; display: flex; flex-direction: column; min-height: 0; }
+.plain { padding: 34px 12px; text-align: center; font-size: 13px; color: var(--text-3); line-height: 1.7; }
+.plain b { display: block; color: var(--text-1); font-size: 14px; margin-bottom: 4px; }
+
+/* 手册标签行 */
+.tabs { display: flex; align-items: flex-end; gap: 2px; border-bottom: 1px solid var(--edge-soft); position: relative; }
+.tab { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; font-size: 13px; color: var(--text-3); border-bottom: 2px solid transparent; margin-bottom: -1px; border-radius: 8px 8px 0 0; max-width: 160px; }
+.tab:hover { background: var(--hover); color: var(--text-1); }
+.tab.on { color: var(--accent); font-weight: 600; border-bottom-color: var(--accent); }
+.tab .cnt { font-family: var(--mono); font-size: 10.5px; color: var(--text-4); font-variant-numeric: tabular-nums; }
+.tab.on .cnt { color: var(--accent); opacity: .7; }
+.tab-add { height: 34px; width: 34px; display: grid; place-items: center; color: var(--text-4); border-radius: 8px 8px 0 0; }
+.tab-add:hover { background: var(--hover); color: var(--text-1); }
+.tab-new { height: 34px; display: flex; align-items: center; padding: 0 6px; }
+.tab-new input { height: 26px; width: 140px; border: 1px solid var(--accent); border-radius: 7px; padding: 0 9px; font-size: 13px; background: var(--surface-float); outline: 0; box-shadow: 0 0 0 3px var(--accent-ring); }
+.tab-more { margin-left: auto; height: 34px; width: 30px; display: grid; place-items: center; color: var(--text-4); border-radius: 6px; }
+.tab-more:hover { background: var(--hover); color: var(--text-1); }
+.menu { position: absolute; z-index: 5; min-width: 170px; background: var(--surface-float); border: 1px solid var(--edge-soft); border-radius: 10px; box-shadow: var(--shadow); padding: 5px; }
+.menu button { display: flex; width: 100%; text-align: left; padding: 7px 10px; border-radius: 7px; font-size: 13px; color: var(--text-2); align-items: center; gap: 8px; }
+.menu button:hover { background: var(--hover); color: var(--text-1); }
+.menu button.danger:hover { color: var(--danger); background: var(--danger-soft); }
+.menu hr { border: 0; border-top: 1px solid var(--edge-soft); margin: 5px 0; }
+
+/* 规则列表 */
+.list { overflow-y: auto; padding: 8px 0 0; }
+.rule { display: flex; align-items: flex-start; gap: 10px; padding: 7px 8px 7px 4px; border-radius: 8px; }
+.rule:hover { background: var(--fill); }
+.rule .n { width: 18px; flex: none; text-align: right; font-family: var(--mono); font-size: 11.5px; color: var(--text-4); padding-top: 3px; font-variant-numeric: tabular-nums; }
+.rule .t { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.55; outline: 0; white-space: pre-wrap; word-break: break-word; }
+.rule.off .t { color: var(--text-4); text-decoration: line-through; }
+.rule .ops { display: flex; opacity: 0; transition: opacity .12s; flex: none; }
+.rule:hover .ops, .rule:focus-within .ops { opacity: 1; }
+.icon { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; color: var(--text-3); }
+.icon:hover { background: var(--hover); color: var(--text-1); }
+.icon.danger:hover { color: var(--danger); background: var(--danger-soft); }
+.icon:disabled { opacity: .25; cursor: default; background: none; }
+.icon svg { width: 13px; height: 13px; }
+.ghost { display: flex; gap: 10px; padding: 7px 8px 7px 4px; }
+.ghost .n { width: 18px; text-align: right; font-family: var(--mono); font-size: 11.5px; color: var(--text-4); opacity: .5; padding-top: 3px; }
+.ghost .t { flex: 1; font-size: 13.5px; line-height: 1.55; color: var(--text-4); outline: 0; }
+.ghost .t:empty::before { content: attr(data-placeholder); }
+.empty { padding: 26px 0; text-align: center; font-size: 13px; color: var(--text-4); }
+.sheet-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--edge-soft); font-size: 12px; color: var(--text-4); }
+.toast { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--text-1); color: var(--surface); font-size: 12.5px; padding: 7px 13px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 9; }
+.toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="top">
+    <h1>权限面板原型</h1>
+    <p>点输入框上的权限标打开面板。顶部三个大切换:逐步确认、按照规则、完全自动,默认按照规则。按照规则下,手册做成标签,点一下就换,加号新建,标签行右侧的「…」管当前这本的改名、复制、删除。规则点文字直接改。</p>
+</div>
+<div class="frame"><div class="app" id="app"></div></div>
+
+<script>
+const I = {
+    spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>',
+    folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>',
+    down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
+    pause: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6v12M15 6v12"/></svg>',
+    play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>',
+    more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+    send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+    pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13 7l4 4"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+};
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let seq = 0; const uid = () => 'x' + (++seq);
+const r = (text, enabled = true) => ({ id: uid(), text, enabled });
+
+const MODES = [
+    { id: 'ask', name: '逐步确认', note: '每次工具调用都停下来问你' },
+    { id: 'rules', name: '按照规则', note: '规则说要问的才问,其余直接做' },
+    { id: 'auto', name: '完全自动', note: '不问不拦,后果自负' },
+];
+const S = {
+    open: true, mode: 'rules', current: 'g', menu: false, newTab: false, renaming: false,
+    books: [
+        { id: 'g', name: '通用', rules: [
+            r('删除或移动我的文件之前,先问我。'), r('需要管理员权限、格式化磁盘,或启动常驻后台进程时,先问我。'),
+            r('在我的电脑上安装软件或软件包之前,先问我。'), r('超出我交代范围的动作先问我:不可逆的、花钱的、对外发送的。'),
+            r('发现我的前提有问题,先告诉我,不要自己换方案。'), r('以后回答我都用中文,不要夹英文句子。'),
+        ] },
+        { id: 'a', name: 'AGENT 开发', rules: [r('不留兼容代码,改了结构直接改建表语句。'), r('提交信息不要加 Co-Authored-By。'), r('先讨论再动手。', false)] },
+        { id: 'p', name: '上线项目', rules: [r('改数据库结构必须写迁移,老数据要能升上来。'), r('对外接口不许改字段名,只能加。'), r('推送到 main 之前先问我。')] },
+    ],
+};
+const book = () => S.books.find((b) => b.id === S.current) || null;
+const app = document.getElementById('app');
+let toastTimer = 0;
+function toast(msg) { const el = app.querySelector('.toast'); if (!el) return; el.textContent = msg; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 1600); }
+
+function chipLabel() {
+    if (S.mode === 'ask') return '逐步确认';
+    if (S.mode === 'auto') return '完全自动';
+    const b = book(); return b ? b.name : '按照规则';
+}
+function renderRules() {
+    const b = book();
+    const tabs = `
+    <div class="tabs">
+        ${S.books.map((x) => `<button class="tab${x.id === S.current ? ' on' : ''}" data-act="tab" data-id="${x.id}"><span class="clip">${esc(x.name)}</span><span class="cnt">${x.rules.length}</span></button>`).join('')}
+        ${S.newTab
+            ? `<span class="tab-new"><input placeholder="新手册名" data-act="newtab-input" autofocus></span>`
+            : `<button class="tab-add" data-act="newtab" title="新建手册">${I.plus}</button>`}
+        ${b ? `<button class="tab-more" data-act="menu" title="这本手册" aria-expanded="${S.menu}">${I.more}</button>` : ''}
+        ${S.menu && b ? `<div class="menu" style="right:0;top:36px">
+            <button data-act="rename">${I.pen}改名</button>
+            <button data-act="copy">${I.copy}复制一本</button>
+            <hr><button class="danger" data-act="delete">${I.trash}删除「${esc(b.name)}」</button></div>` : ''}
+    </div>`;
+    if (!b) return `${tabs}<div class="empty">没有手册。点加号新建一本。</div>`;
+    const list = `
+    <div class="list">
+        ${b.rules.map((x, i) => `
+        <div class="rule${x.enabled ? '' : ' off'}">
+            <span class="n">${i + 1}</span>
+            ${S.renaming === x.id ? '' : ''}<span class="t" contenteditable="true" spellcheck="false" data-act="edit" data-id="${x.id}">${esc(x.text)}</span>
+            <span class="ops">
+                <button class="icon" data-act="move" data-id="${x.id}" data-d="-1" ${i === 0 ? 'disabled' : ''} title="上移">${I.up}</button>
+                <button class="icon" data-act="move" data-id="${x.id}" data-d="1" ${i === b.rules.length - 1 ? 'disabled' : ''} title="下移">${I.down}</button>
+                <button class="icon" data-act="toggle" data-id="${x.id}" title="${x.enabled ? '停用' : '启用'}">${x.enabled ? I.pause : I.play}</button>
+                <button class="icon danger" data-act="remove" data-id="${x.id}" title="删除">${I.x}</button>
+            </span>
+        </div>`).join('')}
+        ${b.rules.length ? '' : '<div class="empty">这本还是空的。</div>'}
+        <div class="ghost"><span class="n">${b.rules.length + 1}</span><span class="t" contenteditable="true" spellcheck="false" data-act="add" data-placeholder="再加一条,回车保存"></span></div>
+    </div>
+    <div class="sheet-foot"><span>点文字直接改,回车保存。这本手册的规则会进系统提示词,规则说要问的,助理会先问你。</span></div>`;
+    return tabs + list;
+}
+function render() {
+    const inner = S.mode === 'rules' ? renderRules()
+        : S.mode === 'ask' ? `<div class="plain"><b>每一步都问</b>每次工具调用都停下来等你允许,一次也不例外。<br>规则不参与,手册在这一档下不显示。</div>`
+        : `<div class="plain"><b>不问不拦</b>助理不会停下来,也没有 confirm 工具。<br>只做交代的事;交代之外的不可逆操作留着不做,说一句。</div>`;
+    const sheet = S.open ? `<div class="scrim" data-act="close"><div class="sheet" data-stop>
+        <div class="sheet-title">这一轮怎么放权</div>
+        <div class="modes">${MODES.map((m) => `<button class="mode${S.mode === m.id ? ' on' : ''}" data-act="mode" data-id="${m.id}"><span class="mode-name">${m.name}</span><span class="mode-note">${m.note}</span></button>`).join('')}</div>
+        <div class="rules-area">${inner}</div>
+    </div></div>` : '';
+    app.innerHTML = `
+    <aside class="side"><div class="brand">AGENT</div><div class="row">✎ 新对话</div><div class="lab">应用</div><div class="row">导图</div><div class="lab">最近</div><div class="row on">询问可用工具数量</div><div class="row">AI 造 app 验收</div></aside>
+    <div class="main">
+        <div class="chat">
+            <div class="bubble">以后你回答我都用中文,不要夹英文句子,记住这条。</div>
+            <div class="reply"><small>已工作 2 秒</small>记住了。以后我都用中文回复你,不夹英文句子。</div>
+        </div>
+        <div class="composer-wrap"><div class="composer">
+            <div class="ph">交给 Agent 一件事…</div>
+            <div class="bar">
+                <span class="chip">${I.plus}</span><span class="chip">${I.folder}Desktop/AGENT</span>
+                <button class="chip ${S.mode}" data-act="open">${I.spark}${esc(chipLabel())}</button>
+                <span class="model">deepseek-v4-flash-vision-exp</span><span class="go">${I.send}</span>
+            </div>
+        </div><div class="foot">Agent 会在工作目录里执行命令、读写文件</div></div>
+        <div class="toast"></div>
+    </div>
+    ${sheet}`;
+    const auto = app.querySelector('[autofocus]'); if (auto) auto.focus();
+}
+function act(ev) {
+    const el = ev.target.closest('[data-act]'); if (!el) return;
+    const a = el.dataset.act; const id = el.dataset.id;
+    const key = ev.type === 'keydown'; const click = ev.type === 'click'; const blur = ev.type === 'blur';
+    const editable = el.matches('[contenteditable], input');
+    if (editable && click) return;
+    if (!editable && !click) return;
+    const b = book(); const rule = b && b.rules.find((x) => x.id === id);
+    switch (a) {
+        case 'open': S.open = true; break;
+        case 'close': if (ev.target !== el) return; S.open = false; S.menu = false; break;
+        case 'mode': S.mode = id; S.menu = false; break;
+        case 'tab': S.current = id; S.menu = false; break;
+        case 'newtab': S.newTab = true; S.menu = false; break;
+        case 'newtab-input':
+            if (key && ev.key === 'Enter' && el.value.trim()) { const nb = { id: uid(), name: el.value.trim(), rules: [] }; S.books.push(nb); S.current = nb.id; S.newTab = false; break; }
+            if (key && ev.key === 'Escape') { S.newTab = false; break; }
+            if (blur) { S.newTab = false; break; }
+            return;
+        case 'menu': ev.stopPropagation(); S.menu = !S.menu; break;
+        case 'rename': { const n = prompt('改名', b.name); if (n && n.trim()) b.name = n.trim(); S.menu = false; break; }
+        case 'copy': { const nb = { id: uid(), name: `${b.name} 副本`, rules: b.rules.map((x) => ({ ...x, id: uid() })) }; S.books.push(nb); S.current = nb.id; S.menu = false; toast('复制好了,在「…」里改名'); break; }
+        case 'delete': if (!confirm(`删掉「${b.name}」和它的全部规则?`)) return; S.books = S.books.filter((x) => x.id !== b.id); S.current = S.books[0] ? S.books[0].id : ''; S.menu = false; break;
+        case 'toggle': rule.enabled = !rule.enabled; break;
+        case 'remove': b.rules = b.rules.filter((x) => x.id !== id); break;
+        case 'move': { const i = b.rules.indexOf(rule); const j = i + Number(el.dataset.d); [b.rules[i], b.rules[j]] = [b.rules[j], b.rules[i]]; break; }
+        case 'edit':
+            if (key && ev.key === 'Enter') { ev.preventDefault(); const t = el.textContent.trim(); if (t) rule.text = t; else b.rules = b.rules.filter((x) => x.id !== id); el.blur(); break; }
+            if (key && ev.key === 'Escape') { el.textContent = rule.text; el.blur(); return; }
+            if (blur) { const t = el.textContent.trim(); if (t && t !== rule.text) { rule.text = t; break; } }
+            return;
+        case 'add':
+            if (key && ev.key === 'Enter') { ev.preventDefault(); const t = el.textContent.trim(); if (!t) return; b.rules.push(r(t)); break; }
+            return;
+        default: return;
+    }
+    render();
+}
+app.addEventListener('click', (ev) => { if (S.menu && !ev.target.closest('.menu') && !ev.target.closest('[data-act="menu"]')) { S.menu = false; render(); return; } act(ev); });
+app.addEventListener('keydown', act);
+app.addEventListener('blur', act, true);
+render();
+</script>
+</body>
+</html>

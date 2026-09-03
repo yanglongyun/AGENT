@@ -2,10 +2,6 @@
 const WINDOWS = process.platform === 'win32';
 
 export default {
-    responsesUrl: 'https://api.openai.com/v1/responses',
-    apiKey: '',
-    model: '',
-    instructions: '你是一个编程 Agent。调用工具前用 summary 简短说明目的。',
     workdir: process.cwd(),
     maxRounds: 32,
     errorMaxChars: 4000,
@@ -44,24 +40,19 @@ export default {
         maxTimeoutMs: 600_000,
         maxOutputChars: 40_000,
     },
-    // client:唯一的客户端。一份服务、一份界面、一个库。
-    client: {
-        host: '127.0.0.1',
-        port: 9500,
-        dataFile: './.data/agent-client.db',
-        // 新对话默认落在哪一档:ask 逐步确认 / rules 按照规则 / skip 完全跳过
-        defaultMode: 'ask',
-        // 没人回应确认卡时等多久。到点当拒绝,绝不无限挂起。
-        approvalTimeoutMs: 300_000,
-        appsDir: './apps',
-        appDataDir: './.data/apps',
-        appStartTimeoutMs: 10_000,
-        appIdleTimeoutMs: 600_000,
-        images: {
-            maxBytes: 8 * 1024 * 1024,
-            maxPerMessage: 10,
-            maxLiveToolImages: 2,
-            directory: './.data/files',
-        },
+    host: '127.0.0.1',
+    port: 9500,
+    dataFile: './.data/agent-client.db',
+    // 没人回应确认卡时等多久。到点当拒绝,绝不无限挂起。
+    approvalTimeoutMs: 300_000,
+    appsDir: './apps',
+    appDataDir: './.data/apps',
+    appStartTimeoutMs: 10_000,
+    appIdleTimeoutMs: 600_000,
+    images: {
+        maxBytes: 8 * 1024 * 1024,
+        maxPerMessage: 10,
+        maxLiveToolImages: 2,
+        directory: './.data/files',
     },
 };

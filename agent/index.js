@@ -1,32 +1,109 @@
-// 具有 Bash 和文件工具的 Agent 入口。
-// permission 传进来时,每个执行器外面会包一层审批门(见 permission.js)。
-import { runAgent as runAi } from '../ai/index.js';
-import { gate } from './permission.js';
-import { confirmTool, createConfirm } from './functions/confirm.js';
-import { bash } from './functions/bash.js';
-import { read } from './functions/read.js';
-import { write } from './functions/write.js';
-import { edit } from './functions/edit.js';
+// Agent:接收参数,跑循环。模型 → 工具 → 模型,直到模型不再调用工具。
+//
+// 这里没有拦截。用户的规则进系统提示词,靠模型遵守;模型觉得该问就调 confirm 工具,
+// 由宿主弹卡等答复;觉得该记就调 propose,由宿主挂一条提议。两个通道都由宿主给,
+// 没给就没有对应的工具 —— 没人守着的轮次,模型只能自己拿主意。
+// emit 的事件名就是 item 的 type:message / reasoning / function_call / function_call_output,
+// 外加 retry(ai 层发)和 done / error(这里发)。没有常量表,字面量就是契约。
+import { request } from '../ai/request.js';
+import { createRunner } from './runner.js';
 import { tools } from './tools.js';
+import { compact, shouldCompact } from './compact.js';
 
-export function runAgent({ bash: bashOptions, permission, ...options }) {
-    const executors = new Map([
-        ['bash', bash(bashOptions)],
-        ['read', read],
-        ['write', write],
-        ['edit', edit],
-    ]);
+export async function runAgent({
+    runId,
+    responsesUrl,
+    apiKey,
+    model,
+    instructions = '',
+    input,
+    modelOptions,
+    retry,
+    maxRounds,
+    errorMaxChars,
+    workdir,
+    env,
+    bash: bashOptions,
+    /** 问询通道:ask(payload) → 'allow' | 'deny' | 'timeout'。给了才有 confirm 工具。 */
+    ask = null,
+    /** 提议通道:propose(payload) → 工具结果。给了才有 propose 工具。 */
+    propose = null,
+    /** 压缩配置(水位、尾段保留量、摘要提示词)。不给就不压。 */
+    compaction = null,
+    /** 最近一次已知的用量,给第一次请求前的压缩判断用;之后每次请求回来都会更新。 */
+    usage = null,
+    signal,
+    emit = () => {},
+    /** 上线形态:把上下文整理成请求体(比如把图片换成 data URL)。只影响发出去的那份,不改上下文本身。 */
+    prepareInput = async (items) => items,
+}) {
+    if (!runId || !Array.isArray(input)) throw new Error('runId 和 input 必填');
+    if (!Number.isInteger(maxRounds) || maxRounds <= 0) throw new Error('maxRounds 必须是正整数');
 
-    const gated = permission ? gate(executors, permission) : executors;
+    const run = createRunner({ bash: bashOptions, ask, propose, workdir, env, signal });
+    const toolDefs = tools.filter((tool) => (tool.name !== 'confirm' || ask) && (tool.name !== 'propose' || propose));
 
-    // 提醒工具(默认关)。装在过闸之后 —— 它自己不该被审批门再拦一道,
-    // 否则就成了「为了问你而先问你」。它只能增加摩擦,没有任何路径能靠它跳过规则。
-    const useConfirm = permission?.confirm && typeof permission.ask === 'function';
-    if (useConfirm) gated.set('confirm', createConfirm({ ask: permission.ask }));
+    // ---- 循环 ----
+    // context 是当前上下文:传进来的历史 + 这一轮新产生的,压缩会整体替换它
+    let context = [...input];
+    try {
+        for (let round = 0; round < maxRounds; round += 1) {
+            if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
-    return runAi({
-        ...options,
-        tools: useConfirm ? [...tools, confirmTool] : tools,
-        executors: gated,
-    });
+            // 每次请求前都看一眼水位 —— 拿的是最近一次应答的 usage。工具循环是上下文增长的大头,
+            // 压缩必须落在循环里,不能只在一轮开头看一次
+            if (compaction && shouldCompact({ usage, compaction })) {
+                emit('compact', { phase: 'started' });
+                const folded = await compact({ history: context, usage, compaction, responsesUrl, apiKey, model, errorMaxChars, signal });
+                if (folded.compacted) context = folded.history;
+                // 原文由宿主自己留着;这里只报压掉了什么、尾段留了几条,宿主据此记账
+                emit('compact', { phase: 'done', compacted: folded.compacted, summary: folded.summary, kind: folded.kind, tokens: folded.tokens, tailCount: folded.tailCount, history: context });
+            }
+
+            const result = await request({
+                url: responsesUrl,
+                apiKey,
+                model,
+                input: await prepareInput(context),
+                instructions: String(instructions),
+                tools: toolDefs,
+                modelOptions,
+                retry,
+                signal,
+                onEvent: emit,
+                errorMaxChars,
+            });
+
+            usage = result.usage;
+            const calls = result.items.filter((item) => item.type === 'function_call');
+            result.items.forEach((item, index) => {
+                context.push(item);
+                // usage 挂在这次应答的最后一个 item 上:上层收到它就存,水位每次应答都更新
+                const attach = index === result.items.length - 1 ? usage : undefined;
+                if (item.type === 'message') emit('message', { item, usage: attach });
+                else if (item.type === 'reasoning') emit('reasoning', { item, usage: attach });
+                else if (item.type === 'function_call') emit('function_call', { phase: 'completed', item, usage: attach });
+            });
+
+            if (!calls.length) {
+                // 截断 / 内容过滤走 incomplete。原样透出,别让上层把半截回复当完整结果。
+                const done = { runId, status: result.status || 'completed', usage };
+                if (result.stopReason) done.stopReason = result.stopReason;
+                emit('done', done);
+                return { context, usage, status: done.status, stopReason: result.stopReason || '' };
+            }
+
+            for (const call of calls) {
+                if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+                const item = await run(call);
+                context.push(item);
+                emit('function_call_output', { item });
+            }
+        }
+        throw new Error(`达到工具循环上限(${maxRounds})`);
+    } catch (error) {
+        if (signal?.aborted) emit('done', { runId, status: 'aborted' });
+        else emit('error', { runId, terminal: true, error: String(error?.message || error) });
+        throw error;
+    }
 }

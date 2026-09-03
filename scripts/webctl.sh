@@ -127,7 +127,7 @@ status() {
     else
         log "进程在 ($listeners) 但健康检查失败 ⚠️"
     fi
-    log "进行中的轮子: $(curl -fsS --max-time 2 "${HEALTH_URL%/health}/runs" 2>/dev/null || echo '未知')"
+    log "进行中的轮子: $(curl -fsS --max-time 2 "${HEALTH_URL%/health}/turns" 2>/dev/null || echo '未知')"
 }
 
 recent() { tail -n "${1:-50}" "$LOG_FILE" 2>/dev/null || log "暂无日志"; }

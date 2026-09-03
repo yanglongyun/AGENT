@@ -1,0 +1,94 @@
+/* ═══════════════════════════════════════════════════════════════
+   规则:输入框上的标 · 规则面板 · 待确认坞 · 提议坞
+   ═══════════════════════════════════════════════════════════════ */
+.perm-chip.on  { color: var(--accent); }
+.perm-chip.off { color: var(--danger); }
+
+.perm-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--edge-soft); }
+.perm-section-title { font-size: 13px; font-weight: 650; margin-bottom: 10px; }
+.perm-add { display: flex; gap: 8px; }
+.perm-add .field-input { flex: 1; min-width: 0; }
+.perm-empty { padding: 16px 0; font-size: 12.5px; color: var(--text-4); text-align: center; }
+
+/* 面板顶部的开关行 */
+.rules-row {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--edge-soft); border-radius: 10px;
+    font-size: 13px; font-weight: 600; color: var(--text-1); cursor: pointer;
+}
+.rules-row input { margin-top: 3px; }
+.rules-note { display: block; margin-top: 3px; font-size: 11.5px; font-weight: 400; line-height: 1.55; color: var(--text-4); }
+
+/* ---- 一条规则 ---- */
+.rule-list { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+.rule { border-radius: 9px; }
+.rule.off { opacity: .5; }
+.rule-head {
+    display: flex; align-items: center; gap: 7px;
+    min-height: 32px; padding: 4px 8px; border-radius: 9px;
+}
+.rule-head:hover { background: var(--row-hover); }
+.rule-text { flex: 1; min-width: 0; font-size: 13px; color: var(--text-2); }
+/* 开关是滑块:一眼看出开着还是关着,不用去分辨对号还是叉 */
+.rule-switch {
+    flex: none; position: relative;
+    width: 30px; height: 17px; border-radius: 999px;
+    background: var(--edge); transition: background .18s;
+}
+.rule-switch.on { background: var(--accent); }
+.rule-switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 13px; height: 13px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .2);
+    transition: transform .18s;
+}
+.rule-switch.on::after { transform: translateX(13px); }
+
+.rule-edit { display: flex; flex-direction: column; gap: 8px; padding: 4px 8px; }
+.rule-edit-bar { display: flex; align-items: center; gap: 8px; }
+.rule-edit .btn { height: 30px; padding: 0 12px; font-size: 12.5px; }
+
+/* 删除就地二次确认。再开一层弹窗会和 Sheet 的「一次只有一层」打架 */
+.rule-confirm { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); }
+.rule-confirm .link { font-size: 12px; color: var(--text-2); background: none; border: 0; cursor: pointer; }
+.rule-confirm .link:hover { color: var(--text-1); }
+.rule-confirm .link.danger { color: var(--danger); font-weight: 600; }
+.rule-ops { display: flex; gap: 1px; }
+.rule-ops .op { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; color: var(--text-3); }
+.rule-ops .op:hover:not(:disabled) { background: var(--hover); color: var(--text-1); }
+.rule-ops .op:disabled { opacity: .25; cursor: default; }
+.rule-ops .op.danger:hover { color: var(--danger); }
+
+/* ---- 待确认坞 ---- */
+/* 宽度必须跟 .composer 一样(max-width 768 居中),否则比输入框宽一圈,看着是拉通的 */
+.approval-dock {
+    max-width: 768px; margin: 0 auto 10px;
+    display: flex; flex-direction: column; gap: 8px;
+}
+
+/* ---- 提议坞:比 confirm 卡轻,一行一条 ---- */
+.proposal-dock {
+    max-width: 768px; margin: 0 auto 8px;
+    display: flex; flex-direction: column; gap: 6px;
+}
+.proposal {
+    border: 1px solid var(--edge-soft); border-radius: 9px;
+    padding: 7px 10px; background: var(--surface-side);
+    display: flex; flex-direction: column; gap: 6px;
+}
+.proposal-head { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+.proposal-kind {
+    flex: none; font-size: 10.5px; padding: 1px 7px; border-radius: 999px;
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.proposal-text { flex: 1; min-width: 0; font-size: 13px; color: var(--text-1); }
+.proposal-old { font-size: 11.5px; color: var(--text-4); text-decoration: line-through; }
+.proposal-input {
+    width: 100%; font-size: 13px; padding: 5px 8px; border-radius: 7px;
+    border: 1px solid var(--edge-soft); background: transparent; color: var(--text-1);
+}
+.proposal .op { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; color: var(--text-3); }
+.proposal .op:hover:not(:disabled) { background: var(--hover); color: var(--text-1); }
+.proposal .op.accent { color: var(--accent); }
+.proposal .op:disabled { opacity: .3; }

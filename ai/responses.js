@@ -2,7 +2,6 @@
 // 只负责一件事:把 { input, instructions, tools } 发出去,把流解析成
 // { items, usage, status, stopReason },沿途用 onEvent 吐增量。
 // 重试在 request.js,循环在 index.js,工具执行在 runner.js —— 都不在这儿。
-import { EVENTS } from './events.js';
 
 const readError = async (response) => {
     const body = await response.text().catch(() => '');
@@ -90,12 +89,12 @@ export async function attempt({ url, apiKey, model, input, instructions, tools, 
                 try { event = JSON.parse(payload); } catch { continue; }
                 if (event.type === 'response.output_text.delta') {
                     emitted = true;
-                    onEvent(EVENTS.MESSAGE, { delta: String(event.delta || '') });
+                    onEvent('message', { delta: String(event.delta || '') });
                 } else if (event.type === 'response.reasoning_text.delta' || event.type === 'response.reasoning_summary_text.delta') {
                     emitted = true;
-                    onEvent(EVENTS.REASONING, { delta: String(event.delta || '') });
+                    onEvent('reasoning', { delta: String(event.delta || '') });
                 } else if (event.type === 'response.output_item.added' && event.item?.type === 'function_call') {
-                    onEvent(EVENTS.FUNCTION_CALL, { phase: 'started' });
+                    onEvent('function_call', { phase: 'started' });
                 } else if (event.type === 'response.output_item.done' && event.item) {
                     items.push(event.item);
                 } else if (event.type === 'response.completed' || event.type === 'response.incomplete') {

@@ -4,32 +4,37 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import config from '../config.js';
 import { openDatabase, createStore } from './store.js';
-import { createChannel } from './sse.js';
-import { createRuns } from './runs.js';
-import { createApi } from './api.js';
-import { serveStatic } from './static.js';
-import { createFiles } from './files.js';
-import { createApprovals } from './approvals.js';
-import { createCompiler } from './compile.js';
-import { createApps } from './apps.js';
-import { createSupervisor } from './supervisor.js';
-import { createBridge } from './bridge.js';
+import { createChannel } from './http/sse.js';
+import { createTurns } from './run/turn.js';
+import { createApi } from './api/index.js';
+import { serveStatic } from './http/static.js';
+import { createFiles } from './run/files.js';
+import { createApprovals } from './run/approvals.js';
+import { createApps } from './apps/registry.js';
+import { createSupervisor } from './apps/supervisor.js';
+import { createBridge } from './apps/bridge.js';
+import { SEED_RULES } from './run/rules.js';
 
 const meta = {
     version: JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version,
 };
 const uiRoot = fileURLToPath(new URL('../ui/dist', import.meta.url));
 
-const store = createStore(openDatabase(config.client.dataFile));
+const store = createStore(openDatabase(config.dataFile));
 const channel = createChannel();
 const files = createFiles(config);
-const approvals = createApprovals({ broadcast: channel.broadcast, timeoutMs: config.client.approvalTimeoutMs });
-const compileRule = createCompiler({ config, store });
+const approvals = createApprovals({ broadcast: channel.broadcast, timeoutMs: config.approvalTimeoutMs });
 const apps = createApps({ config, broadcast: channel.broadcast });
 const supervisor = createSupervisor({ config, apps, broadcast: channel.broadcast });
 const bridge = createBridge({ config, store, apps, supervisor, channel });
-const runs = createRuns({ config, store, files, approvals, apps, broadcast: channel.broadcast });
-const api = createApi({ config, store, runs, files, channel, approvals, compileRule, apps, supervisor, meta });
+const turns = createTurns({ config, store, files, approvals, apps, broadcast: channel.broadcast });
+const api = createApi({ config, store, turns, files, channel, approvals, apps, supervisor, meta });
+
+// 出厂规则只铺一次。铺完就是普通规则,删了不复活
+if (!store.getSettings().rulesSeeded) {
+    for (const text of SEED_RULES) store.createRule({ id: crypto.randomUUID(), text });
+    store.setSettings({ rulesSeeded: '1' });
+}
 
 const fail = (response, status, message) => {
     response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
@@ -37,10 +42,10 @@ const fail = (response, status, message) => {
 };
 
 const SELF_ORIGINS = new Set([
-    `http://${config.client.host}:${config.client.port}`,
-    `http://localhost:${config.client.port}`,
+    `http://${config.host}:${config.port}`,
+    `http://localhost:${config.port}`,
 ]);
-const SELF_HOSTS = new Set([`${config.client.host}:${config.client.port}`, `localhost:${config.client.port}`]);
+const SELF_HOSTS = new Set([`${config.host}:${config.port}`, `localhost:${config.port}`]);
 
 /**
  * 内部面(/api/*)只服务宿主自己的界面。挡两类来自浏览器的越权:
@@ -83,16 +88,16 @@ const server = http.createServer(async (request, response) => {
 // 监听失败的提示要放在 listen 前,EADDRINUSE 才不会以未捕获异常的形式炸出来。
 server.on('error', (error) => {
     if (error?.code === 'EADDRINUSE') {
-        console.error(`[agent] 端口 ${config.client.port} 被占用:先停掉旧进程再启动。`);
+        console.error(`[agent] 端口 ${config.port} 被占用:先停掉旧进程再启动。`);
         process.exit(1);
     }
     throw error;
 });
 
-server.listen(config.client.port, config.client.host, () => {
+server.listen(config.port, config.host, () => {
     const installed = apps.list();
-    console.log(`AGENT: http://${config.client.host}:${config.client.port} (v${meta.version})`);
-    console.log(`[agent] 默认权限档:${config.client.defaultMode}`);
+    console.log(`AGENT: http://${config.host}:${config.port} (v${meta.version})`);
+    console.log(`[agent] 规则:${(store.getSettings().rulesEnabled || 'on') === 'on' ? '启用' : '停用'},${store.listRules().length} 条`);
     console.log(`[agent] 应用目录 ${apps.root} —— 已装 ${installed.length} 个:${installed.map((app) => app.id).join(' ') || '(空)'}`);
     for (const app of installed.filter((item) => item.invalid)) console.warn(`[agent] ${app.id} 不可用:${app.invalid}`);
     // run.mode: "always" 的启动组
@@ -118,15 +123,15 @@ async function shutdown(signal) {
     server.close();
     server.closeIdleConnections?.();
 
-    const running = runs.ids();
+    const running = turns.ids();
     if (running.length) {
         console.log(`[agent] 有 ${running.length} 个轮子在跑,等待收尾(最长 ${GRACE_MS / 1000} 秒)`);
-        for (const id of running) runs.stop(id);
+        for (const id of running) turns.stop(id);
         const deadline = Date.now() + GRACE_MS;
-        while (runs.ids().length > 0 && Date.now() < deadline) {
+        while (turns.ids().length > 0 && Date.now() < deadline) {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
-        const left = runs.ids().length;
+        const left = turns.ids().length;
         console.log(left ? `[agent] 仍有 ${left} 个未收尾,强制退出` : '[agent] 所有轮子已收尾入库');
     }
 

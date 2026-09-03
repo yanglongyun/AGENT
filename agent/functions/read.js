@@ -1,6 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
-import { toLf } from './text.js';
+import { toLf } from './edit.js';
 
 const IMAGES = new Map([['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.gif', 'image/gif'], ['.webp', 'image/webp']]);
 const MAX_LIMIT = 2000;

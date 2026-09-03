@@ -1,5 +1,5 @@
-// 在两次 run 之间按上下文水位压缩早期历史。
-import { complete } from '../ai/index.js';
+// 按上下文水位压缩早期历史。每次请求前都可能被调用 —— 工具循环内也一样。
+import { complete } from '../ai/complete.js';
 
 const chars = (item) => {
     try { return JSON.stringify(item).length; } catch { return 0; }

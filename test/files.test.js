@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { edit } from '../agent/functions/edit.js';
 import { read } from '../agent/functions/read.js';
-import { detectLineEnding, restoreLineEnding, toLf } from '../agent/functions/text.js';
+import { detectLineEnding, restoreLineEnding, toLf } from '../agent/functions/edit.js';
 
 const workspace = async () => mkdtemp(join(tmpdir(), 'agent-test-'));
 
