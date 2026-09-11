@@ -35,6 +35,15 @@ export async function edit({ path, old_text, new_text = '', replace_all = false 
     const file = resolve(context.cwd, path);
     const raw = await readFile(file, 'utf8');
 
+    const { text, replacements } = replaceText(raw, old_text, new_text, replace_all);
+
+    await writeFile(file, text, 'utf8');
+
+    return { path: file, replacements };
+}
+
+export function replaceText(raw, old_text, new_text, replace_all = false) {
+    if (!old_text) throw new Error('old_text 不能为空');
     // 归一化到 LF 再匹配：模型基于 read 的输出构造 old_text，而 read 也按 LF 返回。
     // 不这样做时，CRLF 文件上任何跨行的 old_text 都匹配不到。
     const ending = detectLineEnding(raw);
@@ -56,7 +65,5 @@ export async function edit({ path, old_text, new_text = '', replace_all = false 
         result = content.slice(0, at) + replacement + content.slice(at + target.length);
     }
 
-    await writeFile(file, restoreLineEnding(result, ending), 'utf8');
-
-    return { path: file, replacements: replace_all ? matches : 1 };
+    return { text: restoreLineEnding(result, ending), replacements: replace_all ? matches : 1 };
 }

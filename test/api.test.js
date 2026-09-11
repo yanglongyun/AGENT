@@ -48,7 +48,7 @@ test('HTTP：聊天、任务、消息分页、旧接口移除、任务取消和�
     assert.equal(chat.type, 'chat');
     assert.equal(task.status, 'pending');
     assert.equal('workdir' in chat, false);
-    const proposed = store.createProposal(chat.id, { kind: 'rule', summary: '测试', detail: '原因', text: '规则' });
+    const proposed = store.createProposal(chat.id, { kind: 'rule', summary: '测试', detail: '原因', old_text: '', new_text: '规则' });
     assert.equal((await call(`/api/threads/${chat.id}/proposals`)).body.proposals.length, 1);
     assert.equal((await call(`/api/threads/${task.id}/proposals/${proposed.id}`, 'POST', { answer: 'accept' })).status, 404);
     assert.equal((await call(`/api/threads/${chat.id}/proposals/${proposed.id}`, 'POST', { answer: 'accept' })).status, 200);

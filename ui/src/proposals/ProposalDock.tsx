@@ -8,7 +8,7 @@ import { useThread } from '../thread/store';
 import { seedDraft } from '../thread/draft';
 import './proposals.css';
 
-type Proposal = { id: number; thread: string; kind: 'rule' | 'prompt'; summary: string; detail: string; text: string };
+type Proposal = { id: number; thread: string; kind: 'rule' | 'prompt'; summary: string; detail: string; text: string; old_text?: string; new_text?: string; replace_all?: boolean };
 export function ProposalDock() {
     const thread = useThread((state) => state.currentId);
     return thread ? <ThreadProposals key={thread} thread={thread} /> : null;
@@ -44,7 +44,7 @@ function ThreadProposals({ thread }: { thread: string }) {
             }
             setCards((items) => items.filter((item) => item.id !== card.id));
             setOpened(null);
-            toast(choice === 'ignore' ? '已忽略' : card.kind === 'rule' ? '已追加到本对话规则' : '已填入输入框，尚未发送');
+            toast(choice === 'ignore' ? '已忽略' : card.kind === 'rule' ? '本对话规则已更新' : '已填入输入框，尚未发送');
         } catch (error) {
             toast(error instanceof Error ? error.message : '处理失败');
             setRevision((value) => value + 1);
@@ -62,8 +62,8 @@ function ThreadProposals({ thread }: { thread: string }) {
             {actions(card)}
         </div>)}</div>}
         {selected && <Sheet title="提议详情" onClose={() => setOpened(null)}>
-            <div className="proposal-detail"><h3>{selected.summary}</h3><p>{selected.detail}</p><pre>{selected.text}</pre>
-                <p className="proposal-effect">{selected.kind === 'rule' ? '同意后追加到本对话规则，从下一轮对话生效。' : '同意后填入输入框，由你确认发送。'}</p>
+            <div className="proposal-detail"><h3>{selected.summary}</h3><p>{selected.detail}</p>{selected.kind === 'rule' && selected.old_text !== undefined ? <><h4>修改前{selected.replace_all ? '（所有匹配处）' : ''}</h4><pre>{selected.old_text || '（规则为空）'}</pre><h4>修改后</h4><pre>{selected.new_text || '（删除这段内容）'}</pre></> : <pre>{selected.text}</pre>}
+                <p className="proposal-effect">{selected.kind === 'rule' ? selected.old_text === undefined ? '同意后追加到本对话规则，从下一轮对话生效。' : '同意后按原文精确替换本对话规则；原文不匹配时不会应用。' : '同意后填入输入框，由你确认发送。'}</p>
                 {actions(selected)}<button className="btn btn-quiet" onClick={() => setOpened(null)}>关闭</button>
             </div>
         </Sheet>}

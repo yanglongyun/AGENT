@@ -150,7 +150,7 @@ test('propose 不等待用户，模型继续回复，提议保持待处理且规
     globalThis.fetch = async (_url, init) => {
         const body = JSON.parse(init.body);
         assert.ok(body.tools.some((tool) => tool.name === 'propose'));
-        if (++requests === 1) return ok([{ type: 'function_call', call_id: 'proposal1', name: 'propose', arguments: JSON.stringify({ kind: 'rule', summary: '中文回答', detail: '保持语言一致', text: '请使用中文回答' }) }]);
+        if (++requests === 1) return ok([{ type: 'function_call', call_id: 'proposal1', name: 'propose', arguments: JSON.stringify({ kind: 'rule', summary: '中文回答', detail: '保持语言一致', old_text: '', new_text: '请使用中文回答' }) }]);
         const result = body.input.find((item) => item.type === 'function_call_output');
         assert.equal(JSON.parse(result.output).status, 'pending');
         return ok([answer]);

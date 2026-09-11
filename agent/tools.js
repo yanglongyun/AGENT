@@ -2,13 +2,16 @@
 export const tools = [
     {
         type: 'function', name: 'propose',
-        description: '异步提出建议，立即返回，不等待用户。kind=rule 建议追加本对话规则；kind=prompt 建议下一条用户消息。同意 prompt 只填草稿，不自动发送。不可用来获取危险操作授权，需要等待授权时用 confirm。',
+        description: '异步提出建议，立即返回，不等待用户。kind=rule 按 edit 的精确替换语义修改本对话规则（新增、修改、删除）；kind=prompt 建议下一条用户消息。同意 prompt 只填草稿，不自动发送。不可用来获取危险操作授权，需要等待授权时用 confirm。',
         parameters: { type: 'object', properties: {
             kind: { type: 'string', enum: ['rule', 'prompt'] },
             summary: { type: 'string', description: '简短标题' },
             detail: { type: 'string', description: '提议理由和详情' },
-            text: { type: 'string', description: '要追加的规则或填入草稿的完整文本' },
-        }, required: ['kind', 'summary', 'detail', 'text'], additionalProperties: false },
+            text: { type: 'string', description: 'kind=prompt 时填入草稿的完整文本' },
+            old_text: { type: 'string', description: 'kind=rule 必填：待替换的规则原文。仅当前规则为空时允许空字符串。新增规则时保留原文并在 new_text 加入新内容。' },
+            new_text: { type: 'string', description: 'kind=rule 必填：替换后的文本，空字符串表示删除。' },
+            replace_all: { type: 'boolean', description: '是否替换所有匹配，默认 false；多处匹配时必须明确指定 true。' },
+        }, required: ['kind', 'summary', 'detail'], additionalProperties: false },
     },
     {
         type: 'function',

@@ -2,6 +2,7 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { replaceText } from '../agent/functions/edit.js';
 import { migrate } from './migrate.js';
 
 export function openDatabase(file) {
@@ -66,12 +67,37 @@ export function createStore(db) {
     const addCompaction = db.prepare('INSERT INTO compactions (thread, first, last, summary, tokens, created) VALUES (?, ?, ?, ?, ?, ?)');
     const statusUpdate = db.prepare('UPDATE tasks SET status = ?, finished = ?, updated = ? WHERE id = ?');
 
+    function applyRuleEdit(current, proposal) {
+        // 旧版待处理追加提议仍按原先展示的含义处理。
+        if (proposal.old_text === undefined) return [current, proposal.text].filter(Boolean).join('\n\n');
+        let next;
+        if (proposal.old_text === '') {
+            if (current !== '') throw Object.assign(new Error('规则已变化：空原文只能用于创建空白规则，请重新提议'), { status: 409 });
+            next = proposal.new_text;
+        } else {
+            try { next = replaceText(current, proposal.old_text, proposal.new_text, proposal.replace_all).text; }
+            catch (error) { throw Object.assign(new Error(`规则编辑冲突：${error.message}，请重新提议`), { status: 409 }); }
+        }
+        if (next === current) throw Object.assign(new Error('提议没有实际修改'), { status: 400 });
+        if (next.length > 20000) throw Object.assign(new Error('修改后规则超过 20000 字'), { status: 400 });
+        return next;
+    }
+
     return {
         getThread,
         createProposal(id, payload) {
             if (owner(id) !== 'chats') throw Object.assign(new Error('只有聊天支持提议'), { status: 400 });
-            if (!['rule', 'prompt'].includes(payload.kind) || ['summary', 'detail', 'text'].some((key) => typeof payload[key] !== 'string') || !payload.summary.trim() || !payload.text.trim() || payload.summary.length > 200 || payload.detail.length > 20000 || payload.text.length > 20000) throw Object.assign(new Error('提议格式无效或文本过长'), { status: 400 });
-            const saved = transaction(() => append(id, { kind: 'proposal', proposal: { kind: payload.kind, summary: payload.summary, detail: payload.detail, text: payload.text, status: 'pending' } }));
+            if (!['rule', 'prompt'].includes(payload.kind) || ['summary', 'detail'].some((key) => typeof payload[key] !== 'string') || !payload.summary.trim() || payload.summary.length > 200 || payload.detail.length > 20000) throw Object.assign(new Error('提议格式无效或文本过长'), { status: 400 });
+            let change;
+            if (payload.kind === 'rule') {
+                if (['old_text', 'new_text'].some((key) => typeof payload[key] !== 'string' || payload[key].length > 20000) || (payload.replace_all !== undefined && typeof payload.replace_all !== 'boolean')) throw Object.assign(new Error('规则提议必须提供 old_text 和 new_text'), { status: 400 });
+                change = { old_text: payload.old_text, new_text: payload.new_text, replace_all: payload.replace_all === true };
+                applyRuleEdit(getThread(id).rules, change);
+            } else {
+                if (typeof payload.text !== 'string' || !payload.text.trim() || payload.text.length > 20000) throw Object.assign(new Error('问题提议必须提供 text'), { status: 400 });
+                change = { text: payload.text };
+            }
+            const saved = transaction(() => append(id, { kind: 'proposal', proposal: { kind: payload.kind, summary: payload.summary, detail: payload.detail, ...change, status: 'pending' } }));
             return { id: saved.id, thread: id, ...saved.item.proposal };
         },
         listProposals(id) {
@@ -87,8 +113,8 @@ export function createStore(db) {
                 const item = JSON.parse(row.item), proposal = item.proposal;
                 if (proposal.status !== 'pending') throw Object.assign(new Error('提议已处理'), { status: 409 });
                 if (answer === 'accept' && proposal.kind === 'rule') {
-                    const rules = [getThread(thread).rules, proposal.text].filter(Boolean).join('\n\n');
-                    if (rules.length > 20000) throw Object.assign(new Error('追加后规则超过 20000 字，请先整理本对话规则'), { status: 400 });
+                    const rules = applyRuleEdit(getThread(thread).rules, proposal);
+                    if (rules.length > 20000) throw Object.assign(new Error('修改后规则超过 20000 字，请先整理本对话规则'), { status: 400 });
                     db.prepare('UPDATE chats SET rules = ?, updated = ? WHERE id = ?').run(rules, now(), thread);
                 }
                 proposal.status = answer === 'accept' ? 'accepted' : 'ignored';
