@@ -17,7 +17,7 @@ const parse = (value) => {
  * @param ask      问询通道:ask(payload) → 'allow' | 'deny' | 'timeout'。给了才有 confirm 工具
  * @returns run(call):执行一次并包成 output
  */
-export function createRunner({ shell: shellOptions, ask = null, propose = null, env, signal }) {
+export function createRunner({ shell: shellOptions, ask = null, propose = null, env, signal, toolOutputLimit }) {
     const functions = { shell: shell(shellOptions), read, write, edit };
     if (typeof ask === 'function') functions.confirm = createConfirm({ ask });
     if (typeof propose === 'function') functions.propose = propose;
@@ -41,6 +41,10 @@ export function createRunner({ shell: shellOptions, ask = null, propose = null, 
             call_id: String(call.call_id || ''),
             output: typeof result === 'string' ? result : JSON.stringify(result),
         };
+        if (Number.isInteger(toolOutputLimit) && toolOutputLimit > 0 && item.output.length > toolOutputLimit) {
+            const note = '\n[工具结果超出字符上限，已截断]';
+            item.output = item.output.slice(0, Math.max(0, toolOutputLimit - note.length)) + note;
+        }
         if (result?.image?.path) item.image = result.image;
         return item;
     }

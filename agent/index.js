@@ -18,6 +18,7 @@ export async function runAgent({
     modelOptions,
     retry,
     maxRounds,
+    toolOutputLimit,
     errorMaxChars,
     env,
     shell: shellOptions,
@@ -34,16 +35,16 @@ export async function runAgent({
     prepareInput = async (items) => items,
 }) {
     if (!runId || !Array.isArray(input)) throw new Error('runId 和 input 必填');
-    if (!Number.isInteger(maxRounds) || maxRounds <= 0) throw new Error('maxRounds 必须是正整数');
+    if (!Number.isInteger(maxRounds) || maxRounds < 0) throw new Error('maxRounds 必须是非负整数，0 表示不限制');
 
-    const run = createRunner({ shell: shellOptions, ask, propose, env, signal });
+    const run = createRunner({ shell: shellOptions, ask, propose, env, signal, toolOutputLimit });
     const toolDefs = tools.filter((tool) => (tool.name !== 'confirm' || ask) && (tool.name !== 'propose' || propose));
 
     // ---- 循环 ----
     // context 是当前上下文:传进来的历史 + 这一轮新产生的,压缩会整体替换它
     let context = [...input];
     try {
-        for (let round = 0; round < maxRounds; round += 1) {
+        for (let round = 0; (maxRounds === 0 || round < maxRounds); round += 1) {
             if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
             // 每次请求前都看一眼水位 —— 拿的是最近一次应答的 usage。工具循环是上下文增长的大头,

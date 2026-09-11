@@ -12,9 +12,13 @@ interface SettingsValue {
     apiKey: string;
     model: string;
     instructions: string;
+    compactThreshold: string;
+    toolOutputLimit: string;
+    maxRounds: string;
+    compactPrompt: string;
 }
 
-const EMPTY: SettingsValue = { responsesUrl: '', apiKey: '', model: '', instructions: '' };
+const EMPTY: SettingsValue = { responsesUrl: '', apiKey: '', model: '', instructions: '', compactThreshold: '', toolOutputLimit: '', maxRounds: '', compactPrompt: '' };
 
 export function Settings() {
     const [value, setValue] = useState(EMPTY);
@@ -60,6 +64,12 @@ export function Settings() {
                 <label><span>模型</span><input className="field-input mono" value={value.model} placeholder="模型 ID" onChange={(event) => field('model', event.target.value)} /></label>
                 </div></section>
                 <section className="settings-section"><div className="settings-section-title">Agent</div><div className="settings-form"><label><span>系统提示词</span><textarea className="field-input settings-prompt" rows={8} value={value.instructions} placeholder="定义 Agent 的角色和行为" onChange={(event) => field('instructions', event.target.value)} /></label></div></section>
+                <section className="settings-section"><div className="settings-section-title">高级</div><p className="sheet-note">调整长对话和工具结果的处理方式，保存后从下一轮请求生效。</p><div className="settings-form">
+                    <label><span>压缩阈值</span><div><input className="field-input" type="number" min={0} max={10000000} step={1} value={value.compactThreshold} onChange={(event) => field('compactThreshold', event.target.value)} /><p className="sheet-note">对话达到此 token 数时生成摘要，0 表示关闭自动压缩。摘要失败会报错。</p></div></label>
+                    <label><span>工具结果上限</span><div><input className="field-input" type="number" min={1000} max={1000000} step={1} value={value.toolOutputLimit} onChange={(event) => field('toolOutputLimit', event.target.value)} /><p className="sheet-note">单次工具结果保留的最多字符数，范围 1000–1000000。</p></div></label>
+                    <label><span>工具循环</span><div><select className="field-input" value={value.maxRounds === '0' ? 'unlimited' : 'limited'} onChange={(event) => field('maxRounds', event.target.value === 'unlimited' ? '0' : '32')}><option value="limited">限制轮数</option><option value="unlimited">不限制</option></select>{value.maxRounds !== '0' && <input className="field-input" aria-label="最大工具循环轮数" type="number" min={1} max={10000} step={1} value={value.maxRounds} onChange={(event) => field('maxRounds', event.target.value)} />}<p className="sheet-note">每轮对话的模型与工具循环上限；不限制时运行到模型结束或手动停止。</p></div></label>
+                    <label><span>压缩提示词</span><textarea className="field-input settings-prompt" rows={10} maxLength={30000} value={value.compactPrompt} onChange={(event) => field('compactPrompt', event.target.value)} /></label>
+                </div></section>
                 <section className="settings-section"><div className="settings-section-title">界面</div><div className="settings-theme"><span>主题</span><button className="btn btn-quiet" onClick={cycleTheme}>{theme === 'auto' ? '跟随系统' : theme === 'light' ? '浅色' : '深色'}</button></div></section>
                 </>}
                 <div className="settings-actions"><button className="btn btn-accent" disabled={loading || saving} onClick={() => void save()}>{saving ? '保存中…' : '保存设置'}</button></div>

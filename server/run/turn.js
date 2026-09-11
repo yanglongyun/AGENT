@@ -1,4 +1,5 @@
 // 聊天和任务共用一条运行链：逐条落库、摘要压缩、工具确认、停止和错误收尾。
+import { runtimeSettings } from '../settings.js';
 import { runAgent } from '../../agent/index.js';
 import { complete } from '../../ai/complete.js';
 import { EVENTS } from '../../shared/events.js';
@@ -91,7 +92,7 @@ export function createTurns({ config, store, files, approvals, apps, broadcast }
                         return { id: proposal.id, status: 'pending', message: '提议已展示，等待用户稍后处理；不要等待或视为授权。' };
                     },
                     runId: crypto.randomUUID(), input: live, usage,
-                    compaction: config.compaction, env: process.env, signal: controller.signal,
+                    compaction: runtime.compaction, env: process.env, signal: controller.signal,
                     emit, prepareInput: files.prepareInput,
                 });
             }
@@ -151,8 +152,8 @@ export function createTurns({ config, store, files, approvals, apps, broadcast }
             const runtime = {
                 responsesUrl: settings.responsesUrl || '', apiKey: settings.apiKey || '', model: settings.model || '',
                 modelOptions: { ...config.modelOptions, ...(options.format ? { text: { ...config.modelOptions?.text, format: options.format } } : {}) },
-                retry: config.retry, maxRounds: config.maxRounds,
-                errorMaxChars: config.errorMaxChars, shell: config.shell,
+                retry: config.retry, ...runtimeSettings(config, settings),
+                errorMaxChars: config.errorMaxChars,
                 instructions: [settings.instructions || '', rules ? `本对话规则：\n${rules}` : '', options.instructions || '', apps?.promptSection() || ''].filter(Boolean).join('\n\n'),
             };
             if (!runtime.responsesUrl || !runtime.apiKey || !runtime.model) {
