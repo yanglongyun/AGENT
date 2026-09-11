@@ -83,7 +83,7 @@
     border-top: 1px solid var(--edge-soft);
 }
 .side-meta { font-size: 11px; color: var(--text-4); }
-.side-settings { flex: 1; min-width: 0; height: 30px; padding: 0 7px; border-radius: 8px; display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 13px; text-align: left; }
+.side-settings { flex: 1 1 0; min-width: 0; height: 30px; padding: 0 7px; border-radius: 8px; display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 13px; text-align: left; }
 .side-settings:hover { background: var(--hover); color: var(--text-1); }
 .side-settings.on { background: var(--row-on); color: var(--text-1); font-weight: 550; }
 

@@ -2,7 +2,6 @@
 const WINDOWS = process.platform === 'win32';
 
 export default {
-    workdir: process.cwd(),
     maxRounds: 32,
     errorMaxChars: 4000,
     // 上游抖动时的重试。判定顺序:额度/账单(终态) → HTTP 状态码 → 错误文本兜底。
@@ -25,14 +24,13 @@ export default {
         summaryMinChars: 80,
         callArgsMaxChars: 2_000,
         callOutputMaxChars: 4_000,
-        mechanicalItemMaxChars: 160,
         prompt: [
             '你在压缩一段对话，让 Agent 能无缝继续工作。',
             '保留用户目标与约束、已完成的事、关键事实、路径、命令、错误、未完成部分和下一步。',
             '只输出连续的中文摘要正文，不要工具调用、标签或代码围栏。',
         ].join('\n'),
     },
-    bash: {
+    shell: {
         executable: WINDOWS ? 'cmd.exe' : '/bin/zsh',
         args: WINDOWS ? ['/d', '/s', '/c'] : ['-lc'],
         minTimeoutMs: 100,

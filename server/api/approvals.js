@@ -3,7 +3,7 @@ import { json, readBody } from './helpers.js';
 
 export async function route({ method, path, segments, url, request, response, approvals }) {
     if (method === 'GET' && path === '/api/approvals') {
-        json(response, 200, { approvals: approvals.listFor(url.searchParams.get('conversationId') || '') });
+        json(response, 200, { approvals: approvals.listFor(url.searchParams.get('thread') || '') });
         return true;
     }
     if (method === 'POST' && segments[1] === 'approvals' && segments[2]) {

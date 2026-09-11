@@ -5,7 +5,7 @@ import { toast } from '../overlay/toast';
 import { Icon } from '../icons/Icon';
 import { useShell } from './layout';
 import { cycleTheme, useTheme } from '../lib/theme';
-import { loadMeta } from '../conversation/store';
+import { loadMeta } from '../thread/store';
 
 interface SettingsValue {
     responsesUrl: string;

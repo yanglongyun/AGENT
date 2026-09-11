@@ -13,22 +13,22 @@ export function createApprovals({ broadcast, timeoutMs = 300_000 }) {
         pending.delete(id);
         clearTimeout(entry.timer);
         entry.cleanup();
-        broadcast(EVENTS.APPROVAL_DONE, { id, conversationId: entry.card.conversationId, answer });
+        broadcast(EVENTS.APPROVAL_DONE, { id, thread: entry.card.thread, answer });
         entry.resolve(answer);
         return true;
     }
 
     return {
         /** 刷新页面要能把还悬着的卡捞回来,否则用户永远等不到那个弹窗。 */
-        listFor: (conversationId) => [...pending.values()]
-            .filter((entry) => entry.card.conversationId === conversationId)
+        listFor: (thread) => [...pending.values()]
+            .filter((entry) => entry.card.thread === thread)
             .map((entry) => entry.card),
 
         respond: (id, answer) => settle(id, answer === 'allow' ? 'allow' : 'deny'),
 
-        request({ conversationId, confirm, signal }) {
+        request({ thread, confirm, signal }) {
             const id = crypto.randomUUID();
-            const card = { id, conversationId, ...confirm, at: new Date().toISOString() };
+            const card = { id, thread, ...confirm, at: new Date().toISOString() };
             return new Promise((resolve) => {
                 const timer = setTimeout(() => settle(id, 'timeout'), timeoutMs);
                 const onAbort = () => settle(id, 'deny');

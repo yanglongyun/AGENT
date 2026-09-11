@@ -5,13 +5,12 @@
 import { json } from './helpers.js';
 import { route as meta } from './meta.js';
 import { route as apps } from './apps.js';
-import { route as rules } from './rules.js';
-import { route as proposals } from './proposals.js';
 import { route as approvals } from './approvals.js';
 import { route as files } from './files.js';
-import { route as conversations } from './conversations.js';
+import { route as proposals } from './proposals.js';
+import { route as threads } from './threads.js';
 
-const ROUTES = [meta, apps, rules, proposals, approvals, files, conversations];
+const ROUTES = [meta, apps, approvals, files, proposals, threads];
 
 export function createApi(deps) {
     /** 处理了返回 true;不是 /api 请求返回 false 交给静态层。 */

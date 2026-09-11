@@ -32,5 +32,5 @@ export async function complete({
         .map((part) => part.text || '')
         .join('');
 
-    return { text, usage: result.usage };
+    return { text, usage: result.usage, status: result.status, stopReason: result.stopReason };
 }

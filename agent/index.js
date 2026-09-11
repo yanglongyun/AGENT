@@ -1,8 +1,6 @@
 // Agent:接收参数,跑循环。模型 → 工具 → 模型,直到模型不再调用工具。
 //
-// 这里没有拦截。用户的规则进系统提示词,靠模型遵守;模型觉得该问就调 confirm 工具,
-// 由宿主弹卡等答复;觉得该记就调 propose,由宿主挂一条提议。两个通道都由宿主给,
-// 没给就没有对应的工具 —— 没人守着的轮次,模型只能自己拿主意。
+// 宿主提供 ask 通道时启用 confirm 工具，询问用户后继续执行。
 // emit 的事件名就是 item 的 type:message / reasoning / function_call / function_call_output,
 // 外加 retry(ai 层发)和 done / error(这里发)。没有常量表,字面量就是契约。
 import { request } from '../ai/request.js';
@@ -21,12 +19,10 @@ export async function runAgent({
     retry,
     maxRounds,
     errorMaxChars,
-    workdir,
     env,
-    bash: bashOptions,
+    shell: shellOptions,
     /** 问询通道:ask(payload) → 'allow' | 'deny' | 'timeout'。给了才有 confirm 工具。 */
     ask = null,
-    /** 提议通道:propose(payload) → 工具结果。给了才有 propose 工具。 */
     propose = null,
     /** 压缩配置(水位、尾段保留量、摘要提示词)。不给就不压。 */
     compaction = null,
@@ -40,7 +36,7 @@ export async function runAgent({
     if (!runId || !Array.isArray(input)) throw new Error('runId 和 input 必填');
     if (!Number.isInteger(maxRounds) || maxRounds <= 0) throw new Error('maxRounds 必须是正整数');
 
-    const run = createRunner({ bash: bashOptions, ask, propose, workdir, env, signal });
+    const run = createRunner({ shell: shellOptions, ask, propose, env, signal });
     const toolDefs = tools.filter((tool) => (tool.name !== 'confirm' || ask) && (tool.name !== 'propose' || propose));
 
     // ---- 循环 ----
@@ -57,7 +53,7 @@ export async function runAgent({
                 const folded = await compact({ history: context, usage, compaction, responsesUrl, apiKey, model, errorMaxChars, signal });
                 if (folded.compacted) context = folded.history;
                 // 原文由宿主自己留着;这里只报压掉了什么、尾段留了几条,宿主据此记账
-                emit('compact', { phase: 'done', compacted: folded.compacted, summary: folded.summary, kind: folded.kind, tokens: folded.tokens, tailCount: folded.tailCount, history: context });
+                emit('compact', { phase: 'done', compacted: folded.compacted, summary: folded.summary, tokens: folded.tokens, tailCount: folded.tailCount, history: context });
             }
 
             const result = await request({

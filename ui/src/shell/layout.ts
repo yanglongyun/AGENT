@@ -5,7 +5,7 @@ const KEY = 'agent.sidebar.collapsed';
 const savedCollapsed = () => { try { return localStorage.getItem(KEY) === '1'; } catch { return false; } };
 
 interface ShellState {
-    page: 'conversation' | 'settings' | 'app';
+    page: 'thread' | 'settings' | 'app' | 'tasks';
     /** 当前打开的 app;page === 'app' 时有效。 */
     appId: string;
     /** 宽屏下侧栏是否收起。 */
@@ -15,13 +15,14 @@ interface ShellState {
     toggleCollapsed: () => void;
     openSidebar: () => void;
     closeDrawer: () => void;
-    showConversation: () => void;
+    showThread: () => void;
     showSettings: () => void;
+    showTasks: () => void;
     showApp: (id: string) => void;
 }
 
 export const useShell = create<ShellState>((set) => ({
-    page: 'conversation',
+    page: 'thread',
     appId: '',
     collapsed: savedCollapsed(),
     drawer: false,
@@ -36,7 +37,8 @@ export const useShell = create<ShellState>((set) => ({
         return { collapsed: false, drawer: true };
     }),
     closeDrawer: () => set({ drawer: false }),
-    showConversation: () => set({ page: 'conversation', drawer: false }),
+    showThread: () => set({ page: 'thread', drawer: false }),
     showSettings: () => set({ page: 'settings', drawer: false }),
+    showTasks: () => set({ page: 'tasks', drawer: false }),
     showApp: (id) => set({ page: 'app', appId: id, drawer: false }),
 }));

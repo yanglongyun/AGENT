@@ -4,11 +4,8 @@
 // 模型、agent、产品界面。文件网络进程它本来就有,不需要宿主转手。
 //
 // 两道闸,顺序不能反:先认 token(你是谁),再查 manifest.permissions(你被允许什么)。
-import { complete } from '../../ai/complete.js';
-import { runAgent } from '../../agent/index.js';
 import { applyCors, handlePreflight } from '../http/cors.js';
 import { EVENTS } from '../../shared/events.js';
-import { rulesSection } from '../run/rules.js';
 
 const json = (response, status, body) => {
     applyCors(response);
@@ -25,7 +22,7 @@ const readBody = async (request) => {
 
 const bearer = (request) => String(request.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
 
-export function createBridge({ config, store, apps, supervisor, channel }) {
+export function createBridge({ config, store, apps, supervisor, channel, turns }) {
     const runtime = () => {
         const settings = store.getSettings();
         if (!settings.responsesUrl || !settings.apiKey || !settings.model) return null;
@@ -69,14 +66,27 @@ export function createBridge({ config, store, apps, supervisor, channel }) {
                 const input = await readBody(request);
                 const prompt = String(input.prompt || '').trim();
                 if (!prompt) { json(response, 400, { error: 'prompt 不能为空' }); return; }
+                let format;
+                if (input.schema !== undefined) {
+                    const name = input.schemaName ?? 'result';
+                    if (!input.schema || typeof input.schema !== 'object' || Array.isArray(input.schema)
+                        || input.schema.type !== 'object' || typeof name !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(name)) {
+                        json(response, 400, { error: 'schema 必须是 object 类型的 JSON Schema，schemaName 只允许字母、数字、下划线和连字符（1–64 字符）' }); return;
+                    }
+                    format = { type: 'json_schema', name, schema: input.schema, strict: true };
+                }
                 const base = runtime();
                 if (!base) { json(response, 400, { error: '宿主还没配置模型:请先在设置页填写接口地址、API Key 和模型' }); return; }
-                const result = await complete({
-                    ...base,
-                    instructions: String(input.instructions || '').slice(0, 4000),
-                    input: [{ role: 'user', content: prompt.slice(0, 20_000) }],
-                });
-                json(response, 200, { text: result.text, usage: result.usage });
+                const task = store.createThread({ type: 'task', title: String(input.title || '').trim().slice(0, 64) || prompt.slice(0, 24) });
+                const onClose = () => turns.stop(task.id);
+                response.on('close', onClose);
+                try {
+                    const { finished } = turns.start(task, prompt.slice(0, 20_000), [], '', {
+                        single: true, interactive: false, format, instructions: String(input.instructions || '').slice(0, 4000),
+                    });
+                    const result = await finished;
+                    if (!response.destroyed) json(response, result.error ? 502 : 200, { task: task.id, ...result });
+                } finally { response.off('close', onClose); }
                 return;
             }
 
@@ -88,41 +98,38 @@ export function createBridge({ config, store, apps, supervisor, channel }) {
                 const base = runtime();
                 if (!base) { json(response, 400, { error: '宿主还没配置模型' }); return; }
 
-                // 没人守着答卡,所以没有 confirm。用户的规则照样进提示词,不随总开关关掉:
-                // app 触发的轮次不该成为绕过规则的口子。
-                const rules = rulesSection({ on: true, rules: store.listRules().filter((rule) => rule.enabled), canConfirm: false });
-                const workdir = String(input.workdir || '') || `${config.appDataDir}/${app.id}`;
-
-                // SSE:事件词表沿用仓库契约,app 端好消化,curl 也能看
+                const task = store.createThread({ type: 'task', title: String(input.title || '').trim().slice(0, 64) || prompt.slice(0, 24) });
                 applyCors(response);
                 response.writeHead(200, {
                     'content-type': 'text/event-stream; charset=utf-8',
                     'cache-control': 'no-cache',
                     connection: 'keep-alive',
                 });
-                const send = (type, data) => response.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+                const send = (type, data) => {
+                    if (!response.destroyed && !response.writableEnded) response.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+                };
+                // App 任务和聊天共用落库、摘要、停止及关闭收尾逻辑。
+                send('task', { id: task.id });
+                const onClose = () => turns.stop(task.id);
+                response.on('close', onClose);
                 try {
-                    const result = await runAgent({
-                        ...base,
-                        bash: config.bash,
-                        maxRounds: config.maxRounds,
-                        errorMaxChars: config.errorMaxChars,
-                        compaction: config.compaction,
-                        instructions: [String(input.instructions || '').slice(0, 4000), rules].filter(Boolean).join('\n\n'),
-                        workdir,
-                        runId: crypto.randomUUID(),
-                        input: [{ role: 'user', content: prompt.slice(0, 20_000) }],
-                        env: process.env,
+                    const { finished } = turns.start(task, prompt.slice(0, 20_000), [], '', {
+                        interactive: false,
+                        instructions: String(input.instructions || '').slice(0, 4000),
                         emit: (type, data) => {
                             if (data?.item) send(type, { item: data.item });
                             else if (data?.delta) send(type, { delta: data.delta });
                         },
                     });
-                    send('done', { status: result.status, usage: result.usage });
+                    const result = await finished;
+                    send(result.error ? 'error' : 'done', { task: task.id, ...result });
                 } catch (error) {
-                    send('error', { error: String(error?.message || error) });
+                    store.setStatus(task.id, 'failed');
+                    send('error', { task: task.id, error: String(error?.message || error) });
+                } finally {
+                    response.off('close', onClose);
+                    response.end();
                 }
-                response.end();
                 return;
             }
 

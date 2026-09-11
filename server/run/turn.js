@@ -1,242 +1,179 @@
-// 运行编排:一个对话同一时刻只有一轮在跑,轮子在后台转,事件走广播。
-//
-// 与 0.0.2 的关键差别:**逐条落库**。从前整轮结束才存 result.items,
-// 中途停止或崩溃就整轮丢失;现在每个 item 完成即落库,停止只丢正在流式的半句。
-// 停止 / 出错时补齐悬空的 function_call(Responses 要求 call 与 output 成对,
-// 缺一个下一轮请求整个被拒),并落一条系统留痕 —— 给用户看,也给模型看。
+// 聊天和任务共用一条运行链：逐条落库、摘要压缩、工具确认、停止和错误收尾。
 import { runAgent } from '../../agent/index.js';
 import { complete } from '../../ai/complete.js';
 import { EVENTS } from '../../shared/events.js';
-import { rulesSection } from './rules.js';
 
-const DEFAULT_TITLE = '新对话';
-
-const mechanicalTitle = (content) => String(content).replace(/\s+/g, ' ').trim().slice(0, 24) || DEFAULT_TITLE;
-
-const itemText = (item) => {
-    if (typeof item?.content === 'string') return item.content;
-    if (Array.isArray(item?.content)) return item.content.map((part) => part?.text || '').join('');
-    return '';
-};
-
-const parseArgs = (value) => {
-    try { return JSON.parse(String(value || '{}')); } catch { return {}; }
-};
+const itemText = (item) => typeof item?.content === 'string' ? item.content
+    : Array.isArray(item?.content) ? item.content.map((part) => part?.text || '').join('') : '';
+const parseArgs = (value) => { try { return JSON.parse(String(value || '{}')); } catch { return {}; } };
+const defaults = new Set(['新对话', '新任务']);
 
 export function createTurns({ config, store, files, approvals, apps, broadcast }) {
     const active = new Map();
+    // 上次进程异常退出的任务不能一直显示“执行中”；上下文已逐条保存，可继续。
+    for (const task of store.listTasks().filter((item) => item.status === 'running')) store.setStatus(task.id, 'paused');
 
-    /** 停止 / 出错后,给没等到结果的 function_call 补一条输出,落库并进上下文。 */
-    function settleDanglingCalls(conversationId, items, reason) {
-        const pending = new Map();
-        for (const item of items) {
-            if (item?.type === 'function_call') pending.set(item.call_id, item);
-            else if (item?.type === 'function_call_output') pending.delete(item.call_id);
-        }
-        const settled = [];
-        for (const call of pending.values()) {
-            const output = {
-                type: 'function_call_output',
-                call_id: call.call_id,
-                output: JSON.stringify({ error: reason }),
-            };
-            store.append(conversationId, output);
-            broadcast(EVENTS.CALL_OUTPUT, { conversationId, callId: call.call_id, result: output.output });
-            settled.push(output);
-        }
-        return settled;
-    }
-
-    /** 首轮跑完后请模型起个标题;失败就留着机械标题,不打扰任何人。 */
-    async function autoTitle(conversationId, userContent, items, runtime) {
-        const reply = items.filter((item) => item?.type === 'message').map(itemText).join('\n').slice(0, 1200);
+    async function autoTitle(id, content, generated, runtime, fallback) {
         try {
+            const reply = generated.filter((item) => item?.type === 'message').map(itemText).join('\n').slice(0, 1200);
             const result = await complete({
-                responsesUrl: runtime.responsesUrl,
-                apiKey: runtime.apiKey,
-                model: runtime.model,
-                errorMaxChars: config.errorMaxChars,
-                instructions: '为这段对话起一个不超过 16 个字的标题,概括用户想做的事。只输出标题本身,不要引号和句号。',
-                input: [{ role: 'user', content: `用户:${String(userContent).slice(0, 1200)}\n\n助手:${reply}` }],
+                ...runtime,
+                instructions: '为这段对话起一个不超过 16 个字的标题，概括用户想做的事。只输出标题。',
+                input: [{ role: 'user', content: `用户:${content.slice(0, 1200)}\n\n助手:${reply}` }],
             });
             const title = String(result.text).replace(/\s+/g, ' ').trim().slice(0, 32);
-            if (!title) return;
-            store.setTitle(conversationId, title);
-            broadcast(EVENTS.CONVERSATIONS_CHANGED, {});
-        } catch { /* 起不出来就用机械标题 */ }
+            if (!title || store.getThread(id)?.title !== fallback) return;
+            store.setTitle(id, title);
+            broadcast(EVENTS.THREADS_CHANGED, {});
+        } catch { /* 标题失败保留用户首句 */ }
     }
 
-    async function work(conversation, user, controller, runtime) {
-        const conversationId = conversation.id;
-        // generated:这一轮新产生的;live:当前完整上下文,压缩会整体替换它。出错时靠它存档
+    async function work(thread, user, controller, runtime, options, fallback) {
+        const id = thread.id;
         const generated = [];
-        let live = [...conversation.context, user];
-        let usage = conversation.usage;
-
+        let live = [...thread.context, user];
+        let usage = thread.usage;
+        const event = (name, data = {}) => broadcast(name, { thread: id, ...data });
         const emit = (type, data) => {
-            if (type === 'message' && data.delta) {
-                broadcast(EVENTS.DELTA, { conversationId, content: data.delta });
-            } else if (type === 'reasoning' && data.delta) {
-                broadcast(EVENTS.REASONING, { conversationId, content: data.delta });
-            } else if (type === 'function_call' && data.phase === 'started') {
-                broadcast(EVENTS.CALL_STARTED, { conversationId });
-            } else if (type === 'compact') {
-                if (data.phase === 'started') { broadcast(EVENTS.COMPACT_START, { conversationId }); return; }
-                if (data.compacted) {
-                    // 上下文的最后一项永远是最近落库的那条,所以尾段之前的最后一个 seq = 最新 seq - 尾段条数
-                    const previousEnd = store.lastCompactionEnd(conversationId);
-                    const endSeq = store.latestMessageSeq(conversationId) - data.tailCount;
-                    const startSeq = previousEnd + 1;
-                    if (endSeq >= startSeq) {
-                        store.appendCompaction(conversationId, { startSeq, endSeq, summary: data.summary, kind: data.kind, tokens: data.tokens });
+            if (type === 'message' && data.delta) event(EVENTS.DELTA, { content: data.delta });
+            else if (type === 'reasoning' && data.delta) event(EVENTS.REASONING, { content: data.delta });
+            else if (type === 'function_call' && data.phase === 'started') event(EVENTS.CALL_STARTED);
+            else if (type === 'compact') {
+                if (data.phase === 'started') event(EVENTS.COMPACT_START);
+                else {
+                    if (data.compacted) {
+                        store.compact(id, { ...data, usage });
+                        live = [...data.history];
                     }
-                    // 摘要也落成一条消息:界面能看到压缩发生在哪、压成了什么。上下文里它在最前面,消息表里按时间排在尾段之后
-                    store.append(conversationId, data.history[0]);
-                    live = [...data.history];
+                    event(EVENTS.COMPACT_DONE, { summary: data.summary || '' });
                 }
-                broadcast(EVENTS.COMPACT_DONE, { conversationId });
             } else if (data.item) {
                 generated.push(data.item);
                 live.push(data.item);
-                store.append(conversationId, data.item);
-                // 模型每次应答回来都带 usage,存下来 —— 这就是下一次请求前压不压的依据
-                if (data.usage) { usage = data.usage; store.saveUsage(conversationId, usage); }
-                if (type === 'function_call') {
-                    broadcast(EVENTS.CALLS, {
-                        conversationId,
-                        calls: [{ callId: data.item.call_id, name: data.item.name, args: parseArgs(data.item.arguments) }],
-                    });
-                } else if (type === 'function_call_output') {
-                    broadcast(EVENTS.CALL_OUTPUT, { conversationId, callId: data.item.call_id, result: data.item.output || '' });
-                }
+                if (data.usage) usage = data.usage;
+                store.record(id, data.item, live, usage);
+                if (type === 'message' || type === 'reasoning') event(EVENTS.TEXT_DONE, { kind: type, content: type === 'reasoning' ? [...(data.item.summary || []), ...(Array.isArray(data.item.content) ? data.item.content : [])].map((part) => part.text || '').join('') : itemText(data.item) });
+                if (type === 'function_call') event(EVENTS.CALLS, { calls: [{ callId: data.item.call_id, name: data.item.name, args: parseArgs(data.item.arguments) }] });
+                else if (type === 'function_call_output') event(EVENTS.CALL_OUTPUT, { callId: data.item.call_id, result: data.item.output || '' });
             }
+            options.emit?.(type, data);
         };
-
         try {
-            const { rulesEnabled, rules, ...options } = runtime;
-            const result = await runAgent({
-                ...options,
-                workdir: conversation.workdir,
-                // 规则启用才有 confirm。ask 由这里实现 —— 弹卡、等表态;没人回应就超时当拒绝
-                ask: rulesEnabled
-                    ? (payload) => approvals.request({ conversationId, ...payload, signal: controller.signal })
-                    : null,
-                propose: proposeFor(conversationId, { rulesEnabled, rules }),
-                runId: crypto.randomUUID(),
-                input: live,
-                usage,
-                compaction: config.compaction,
-                env: process.env,
-                signal: controller.signal,
-                emit,
-                prepareInput: files.prepareInput,
-            });
-            const tail = result.stopReason
-                ? [{ role: 'system', content: `[incomplete] 上一条回复未完整结束:${result.stopReason}` }]
-                : [];
-            for (const marker of tail) store.append(conversationId, marker);
-            store.saveContext(conversationId, [...result.context, ...tail], result.usage);
-            broadcast(EVENTS.DONE, { conversationId, usage: result.usage, stopReason: result.stopReason || '' });
-            if (conversation.title === DEFAULT_TITLE) void autoTitle(conversationId, user.content, generated, runtime);
+            // 恢复异常退出留下的未配对工具调用，避免下一次 Responses 请求被拒绝。
+            const pending = new Map();
+            for (const item of live) {
+                if (item.type === 'function_call') pending.set(item.call_id, item);
+                else if (item.type === 'function_call_output') pending.delete(item.call_id);
+            }
+            for (const call of pending.values()) {
+                const item = { type: 'function_call_output', call_id: call.call_id, output: JSON.stringify({ error: '上次进程退出，该调用未完成' }) };
+                live.push(item);
+                store.record(id, item, live, usage);
+            }
+            let result;
+            if (options.single) {
+                const completed = await complete({ ...runtime, input: live, signal: controller.signal });
+                const item = { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: completed.text }] };
+                emit('message', { item, usage: completed.usage });
+                if (completed.status !== 'completed') throw new Error(`补全未完整结束：${completed.stopReason || completed.status}`);
+                if (!completed.text.trim()) throw new Error('补全返回空内容');
+                if (options.format?.type === 'json_schema') {
+                    try { JSON.parse(completed.text); } catch { throw new Error('结构化补全未返回有效 JSON'); }
+                }
+                result = { ...completed, context: live };
+            } else {
+                result = await runAgent({
+                    ...runtime,
+                    ask: thread.type === 'task' || options.interactive === false ? null : (payload) => approvals.request({ thread: id, ...payload, signal: controller.signal }),
+                    propose: thread.type === 'task' || options.interactive === false ? null : (payload) => {
+                        const proposal = store.createProposal(id, payload);
+                        broadcast(EVENTS.PROPOSALS_CHANGED, { thread: id });
+                        return { id: proposal.id, status: 'pending', message: '提议已展示，等待用户稍后处理；不要等待或视为授权。' };
+                    },
+                    runId: crypto.randomUUID(), input: live, usage,
+                    compaction: config.compaction, env: process.env, signal: controller.signal,
+                    emit, prepareInput: files.prepareInput,
+                });
+            }
+            live = [...result.context];
+            usage = result.usage;
+            if (result.stopReason) {
+                const marker = { role: 'system', content: `[incomplete] 上一条回复未完整结束:${result.stopReason}` };
+                live.push(marker);
+                store.record(id, marker, live, usage);
+            } else store.saveContext(id, live, usage);
+            if (thread.type === 'task') store.setStatus(id, result.status === 'completed' ? 'completed' : 'failed');
+            event(EVENTS.DONE, { usage, stopReason: result.stopReason || '' });
+            if (fallback) void autoTitle(id, user.content, generated, runtime, fallback);
+            return { status: result.status, usage, stopReason: result.stopReason || '', text: generated.filter((item) => item.type === 'message').map(itemText).join('') };
         } catch (error) {
             const aborted = controller.signal.aborted;
-            const reason = aborted ? '任务被用户停止,该调用未完成' : '运行出错,该调用未完成';
-            const settled = settleDanglingCalls(conversationId, generated, reason);
-            const marker = aborted
-                ? { role: 'system', content: '[stopped] 上一条回复被用户停止,输出到此为止。' }
-                : { role: 'system', content: `[error] 上一轮运行失败:${String(error?.message || error).slice(0, config.errorMaxChars)}` };
-            store.append(conversationId, marker);
-            store.saveContext(conversationId, [...live, ...settled, marker], usage);
-            if (aborted) broadcast(EVENTS.ABORTED, { conversationId });
-            else broadcast(EVENTS.ERROR, { conversationId, message: String(error?.message || error) });
-        } finally {
-            active.delete(conversationId);
-            broadcast(EVENTS.CONVERSATIONS_CHANGED, {});
-        }
-    }
-
-    /**
-     * 提议通道。模型给的是编号,这里换成规则 id 存起来;存完广播,立刻回「已提议」。
-     * 不等用户 —— 提议不卡任何东西,下一轮提示词里规则单是新的,模型自然知道结果。
-     */
-    function proposeFor(conversationId, { rulesEnabled, rules }) {
-        return ({ kind, text, replaces }) => {
-            let target = null;
-            if (kind === 'rule') {
-                if (!rulesEnabled) return { error: '用户停用了规则,现在不能提议规则' };
-                if (replaces) {
-                    target = rules[replaces - 1];
-                    if (!target) return { error: `没有编号为 ${replaces} 的规则` };
-                }
-                if (!text && !target) return { error: '新增规则时 text 不能为空' };
-            } else if (!text) {
-                return { error: 'prompt 提议的 text 不能为空' };
+            const pending = new Map();
+            for (const item of live) {
+                if (item.type === 'function_call') pending.set(item.call_id, item);
+                else if (item.type === 'function_call_output') pending.delete(item.call_id);
             }
-            const proposal = store.createProposal({
-                id: crypto.randomUUID(), conversationId, kind, text, replaces: target?.id || '',
-            });
-            broadcast(EVENTS.PROPOSAL_ASK, proposal);
-            return { proposed: true, note: '已提议,等用户决定。不用等,继续手头的事。' };
-        };
+            for (const call of pending.values()) {
+                const item = { type: 'function_call_output', call_id: call.call_id, output: JSON.stringify({ error: aborted ? '任务被用户停止，该调用未完成' : '运行出错，该调用未完成' }) };
+                live.push(item);
+                store.record(id, item, live, usage);
+                event(EVENTS.CALL_OUTPUT, { callId: call.call_id, result: item.output });
+            }
+            const message = String(error?.message || error);
+            const marker = { role: 'system', content: aborted ? '[stopped] 上一条回复被用户停止。' : `[error] 上一轮运行失败:${message.slice(0, config.errorMaxChars)}` };
+            // 摘要失败时 live 仍为原始上下文，没有机械裁剪，也没有成功压缩记录。
+            live.push(marker);
+            store.record(id, marker, live, usage);
+            if (thread.type === 'task') store.setStatus(id, aborted ? 'paused' : 'failed');
+            event(aborted ? EVENTS.ABORTED : EVENTS.ERROR, aborted ? {} : { message });
+            return { status: aborted ? 'aborted' : 'failed', error: message, usage };
+        } finally {
+            active.delete(id);
+            broadcast(EVENTS.THREADS_CHANGED, {});
+        }
     }
 
     return {
         ids: () => [...active.keys()],
         isRunning: (id) => active.has(id),
-
-        stop(id) {
-            const controller = active.get(id);
-            controller?.abort();
-            return Boolean(controller);
+        stop(id) { const run = active.get(id); run?.controller.abort(); return Boolean(run); },
+        async stopAndWait(id) {
+            const run = active.get(id);
+            if (!run) return false;
+            run.controller.abort();
+            await run.finished;
+            return true;
         },
-
-        /** 落库用户消息、点亮标题、把轮子丢进后台,立即返回已存的那条消息。 */
-        start(conversation, content, attachments = [], clientId = '') {
-            if (active.has(conversation.id)) throw Object.assign(new Error('该对话正在运行'), { status: 409 });
-            const savedSettings = store.getSettings();
-            const rulesEnabled = (savedSettings.rulesEnabled || 'on') === 'on';
-            // 启用的规则,顺序就是提示词里的编号 —— 提议用编号指代要改的那条
-            const rules = rulesEnabled ? store.listRules().filter((rule) => rule.enabled) : [];
-            // runAgent 要的全部参数,加上 rulesEnabled / rules 供问询和提议通道用。不整包展开 config
+        start(thread, content, attachments = [], clientId = '', options = {}) {
+            if (active.has(thread.id)) throw Object.assign(new Error('该聊天或任务正在运行'), { status: 409 });
+            const settings = store.getSettings();
+            const rules = thread.type === 'chat' ? store.getThread(thread.id)?.rules || '' : '';
             const runtime = {
-                responsesUrl: savedSettings.responsesUrl || '',
-                apiKey: savedSettings.apiKey || '',
-                model: savedSettings.model || '',
-                modelOptions: config.modelOptions,
-                retry: config.retry,
-                maxRounds: config.maxRounds,
-                errorMaxChars: config.errorMaxChars,
-                bash: config.bash,
-                // 规则 + 已装应用清单,都进 instructions —— 每轮重新组装,压缩吃不掉
-                instructions: [
-                    savedSettings.instructions || '',
-                    rulesSection({ on: rulesEnabled, rules, canPropose: true }),
-                    apps?.promptSection() || '',
-                ].filter(Boolean).join('\n\n'),
-                rulesEnabled,
-                rules,
+                responsesUrl: settings.responsesUrl || '', apiKey: settings.apiKey || '', model: settings.model || '',
+                modelOptions: { ...config.modelOptions, ...(options.format ? { text: { ...config.modelOptions?.text, format: options.format } } : {}) },
+                retry: config.retry, maxRounds: config.maxRounds,
+                errorMaxChars: config.errorMaxChars, shell: config.shell,
+                instructions: [settings.instructions || '', rules ? `本对话规则：\n${rules}` : '', options.instructions || '', apps?.promptSection() || ''].filter(Boolean).join('\n\n'),
             };
             if (!runtime.responsesUrl || !runtime.apiKey || !runtime.model) {
                 throw Object.assign(new Error('请先在设置中填写接口地址、API Key 和模型'), { status: 400 });
             }
-            const controller = new AbortController();
-            active.set(conversation.id, controller);
-
             const user = { role: 'user', content, attachments };
-            const saved = store.append(conversation.id, user);
-            if (conversation.title === DEFAULT_TITLE) {
-                store.setTitle(conversation.id, mechanicalTitle(content || attachments[0]?.name));
-            }
-            broadcast(EVENTS.START, { conversationId: conversation.id, clientId, content });
-            broadcast(EVENTS.CONVERSATIONS_CHANGED, {});
-
-            work(conversation, user, controller, runtime).catch((error) => {
-                // work 自己兜错;走到这儿说明兜错本身炸了(如落库失败),别让进程静默烂掉
+            const message = store.record(thread.id, user, [...thread.context, user], thread.usage);
+            const fallback = defaults.has(thread.title) ? content.replace(/\s+/g, ' ').trim().slice(0, 24) || attachments[0]?.name || thread.title : '';
+            if (fallback) store.setTitle(thread.id, fallback);
+            if (thread.type === 'task') store.setStatus(thread.id, 'running');
+            const controller = new AbortController();
+            const finished = Promise.resolve().then(() => work(thread, user, controller, runtime, options, fallback)).catch((error) => {
                 console.error('[turn] 收尾失败:', error);
-                active.delete(conversation.id);
-                broadcast(EVENTS.ERROR, { conversationId: conversation.id, message: String(error?.message || error) });
+                active.delete(thread.id);
+                broadcast(EVENTS.ERROR, { thread: thread.id, message: String(error?.message || error) });
+                return { status: 'failed', error: String(error?.message || error) };
             });
-            return saved;
+            active.set(thread.id, { controller, finished });
+            broadcast(EVENTS.START, { thread: thread.id, clientId, content });
+            broadcast(EVENTS.THREADS_CHANGED, {});
+            return { message, finished };
         },
     };
 }

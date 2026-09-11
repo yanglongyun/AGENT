@@ -4,15 +4,14 @@
 // 绝对路径天然成立,localStorage 互不可见。地址每次打开现取,不缓存:端口重启就变。
 import { useEffect, useRef, useState } from 'react';
 
+import { ThreadView } from '../thread';
+import { createDraft } from '../thread/store';
+import { AppMenu } from './AppMenu';
 import { Icon } from '../icons/Icon';
 import { Sheet } from '../overlay/Sheet';
 import { toast } from '../overlay/toast';
 import { useShell } from '../shell/layout';
-import { appAddress, appLogs, appToken, restartApp, stopApp, useApps, type AppLog } from './store';
-
-const LABEL: Record<string, string> = {
-    ready: '运行中', starting: '启动中', stopped: '已停止', failed: '故障', invalid: '不可用',
-};
+import { appAddress, appLogs, appToken, useApps, type AppLog } from './store';
 
 export function AppView() {
     const appId = useShell((state) => state.appId);
@@ -21,6 +20,8 @@ export function AppView() {
     const [origin, setOrigin] = useState('');
     const [failure, setFailure] = useState('');
     const [logs, setLogs] = useState<AppLog[] | null>(null);
+    const [chatOpen, setChatOpen] = useState(false);
+    const openedChat = useRef(false);
     const [nonce, setNonce] = useState(0);
     const frame = useRef<HTMLIFrameElement>(null);
 
@@ -46,10 +47,10 @@ export function AppView() {
 
     if (!app) return <div className="app-page"><div className="app-blank">应用不存在或已被移除</div></div>;
 
-    const running = app.status === 'ready' || app.status === 'starting';
     const problem = failure || (app.status === 'invalid' || app.status === 'failed' ? app.error || '未知原因' : '');
 
     return (
+        <div className="app-workspace">
         <div className="app-page">
             {/* 顶栏与对话页同一套 .topbar:同高同距,只是右侧多了 app 的操作 */}
             <header className="topbar">
@@ -60,35 +61,12 @@ export function AppView() {
                 ><Icon name="panel" size={17} /></button>
                 <AppIcon id={app.id} name={app.name} hasIcon={app.hasIcon} size={18} />
                 <span className="topbar-title clip">{app.name}</span>
-                <span className={`app-pill ${app.status}`}>{LABEL[app.status] || app.status}</span>
-                {app.runMode === 'always' && <span className="app-pill always" title="随宿主启动,一直在跑">常驻</span>}
                 <span className="grow" />
-                <button className="icon-btn" title="重新载入" onClick={() => setNonce((n) => n + 1)}>
-                    <Icon name="reload" size={15} />
-                </button>
-                {origin && (
-                    <a className="icon-btn" title="在新标签页打开" href={origin} target="_blank" rel="noopener noreferrer">
-                        <Icon name="external" size={15} />
-                    </a>
-                )}
-                {app.hasRun && (<>
-                    <button className="icon-btn" title="查看日志" onClick={() => { void appLogs(app.id).then(setLogs); }}>
-                        <Icon name="terminal" size={15} />
-                    </button>
-                    {running ? (
-                        <button
-                            className="icon-btn" title="停止"
-                            onClick={() => { void stopApp(app.id).then(() => toast(`已停止「${app.name}」`)); }}
-                        ><Icon name="stop" size={14} /></button>
-                    ) : (
-                        <button className="icon-btn" title="启动" onClick={() => setNonce((n) => n + 1)}>
-                            <Icon name="play" size={14} />
-                        </button>
-                    )}
-                </>)}
-                <button className="icon-btn" title="关闭" onClick={useShell.getState().showConversation}>
-                    <Icon name="x" size={15} />
-                </button>
+                <button className={`icon-btn${chatOpen ? ' on' : ''}`} title="对话" aria-label="对话面板" aria-expanded={chatOpen} onClick={() => {
+                    if (!openedChat.current) { createDraft(); openedChat.current = true; }
+                    setChatOpen(!chatOpen);
+                }}><Icon name="chat" size={18} /></button>
+                <AppMenu app={app} origin={origin} reload={() => setNonce((n) => n + 1)} logs={() => { void appLogs(app.id).then(setLogs).catch((error) => toast(error.message)); }} />
             </header>
 
             {problem ? (
@@ -141,6 +119,8 @@ export function AppView() {
                     </div>
                 </Sheet>
             )}
+        </div>
+        {chatOpen && <aside className="app-chat" aria-label="对话面板"><ThreadView panel onClose={() => setChatOpen(false)} /></aside>}
         </div>
     );
 }

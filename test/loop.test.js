@@ -17,7 +17,7 @@ const sse = (events) => new ReadableStream({
 });
 const ok = (events) => new Response(sse(events), { status: 200 });
 
-const BASH = { executable: '/bin/sh', args: ['-lc'], minTimeoutMs: 100, defaultTimeoutMs: 5_000, maxTimeoutMs: 10_000, maxOutputChars: 4_000 };
+const SHELL = { executable: '/bin/sh', args: ['-lc'], minTimeoutMs: 100, defaultTimeoutMs: 5_000, maxTimeoutMs: 10_000, maxOutputChars: 4_000 };
 
 const options = (cwd, extra = {}) => ({
     runId: 'r1',
@@ -27,9 +27,8 @@ const options = (cwd, extra = {}) => ({
     input: [{ role: 'user', content: 'go' }],
     maxRounds: 8,
     errorMaxChars: 400,
-    workdir: cwd,
     env: {},
-    bash: BASH,
+    shell: SHELL,
     retry: { baseDelayMs: 1 },
     ...extra,
 });
@@ -48,7 +47,7 @@ test('模型调用 edit 后再收尾，工具真的落盘', async () => {
                     type: 'function_call',
                     call_id: 'c1',
                     name: 'edit',
-                    arguments: JSON.stringify({ path: 'a.js', old_text: 'OLD', new_text: '"$&"' }),
+                    arguments: JSON.stringify({ path: join(cwd, 'a.js'), old_text: 'OLD', new_text: '"$&"' }),
                 },
             }, { type: 'response.completed', response: { status: 'completed', usage: {} } }]);
         }
@@ -130,7 +129,7 @@ test('循环内压缩:第二次请求前水位超线,早期上下文折成摘要
             { role: 'user', content: 'go' },
         ],
         usage: { input_tokens: 10 },
-        compaction: { contextWindowTokens: 100, foldRatio: 0.8, tailKeepChars: 500, summaryMinChars: 5, callArgsMaxChars: 2000, callOutputMaxChars: 4000, mechanicalItemMaxChars: 160, prompt: '压缩' },
+        compaction: { contextWindowTokens: 100, foldRatio: 0.8, tailKeepChars: 500, summaryMinChars: 5, callArgsMaxChars: 2000, callOutputMaxChars: 4000, prompt: '压缩' },
         emit: (type, data) => { if (type === 'compact') events.push(data.phase); },
     }));
     assert.deepEqual(events, ['started', 'done'], '第一次请求前水位 10 不压;第二次前水位 90 压一次');

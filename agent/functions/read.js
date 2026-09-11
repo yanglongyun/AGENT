@@ -27,7 +27,7 @@ export async function read({ path, offset = 1, limit = MAX_LIMIT }, context = {}
     const count = Math.min(MAX_LIMIT, Math.max(1, Number(limit) || MAX_LIMIT));
     const slice = lines.slice(start - 1, start - 1 + count);
 
-    // 字符预算内整行收口:至少返回一行(单行超预算时截行并注明,模型可用 bash 取整行)
+    // 字符预算内整行收口:至少返回一行(单行超预算时截行并注明,模型可用 shell 取整行)
     const kept = [];
     let used = 0;
     for (const line of slice) {
@@ -37,7 +37,7 @@ export async function read({ path, offset = 1, limit = MAX_LIMIT }, context = {}
     }
     let body = kept.join('\n');
     if (kept.length === 1 && body.length > MAX_CHARS) {
-        body = `${body.slice(0, MAX_CHARS)}\n[第 ${start} 行共 ${slice[0].length} 字符,超出单次预算已截行;完整行可用 bash: sed -n '${start}p' 该文件]`;
+        body = `${body.slice(0, MAX_CHARS)}\n[第 ${start} 行共 ${slice[0].length} 字符,超出单次预算已截行;完整行可用 shell: sed -n '${start}p' 该文件]`;
     }
 
     return {

@@ -39,11 +39,6 @@ const material = (items, config) => items
     .map((item, index) => `#${index + 1} ${item.role || item.type || 'unknown'}\n${text(item, config)}`)
     .join('\n\n---\n\n');
 
-const mechanical = (items, config) => [
-    '[早前对话的机械摘要]',
-    ...items.map((item, index) => `#${index + 1} ${item.role || item.type || 'unknown'} ${text(item, config).replace(/\s+/g, ' ').slice(0, config.mechanicalItemMaxChars)}`),
-].join('\n');
-
 /** 用量是否已到压缩水位。单独导出给调用方预判(如 Web 端提前广播「正在压缩」)。 */
 export function shouldCompact({ usage, compaction }) {
     if (!compaction || typeof compaction !== 'object') throw new Error('compaction 配置必填');
@@ -70,31 +65,21 @@ export async function compact({
     // 材料太薄(比如只有首条用户消息,reasoning 被滤掉后一片空白)就不压:
     // 折叠不了多少上下文,却会往历史里塞一份「什么都没发生」的假事实
     if (material(early, compaction).length < MATERIAL_MIN_CHARS) return { history, compacted: false };
-    let summary = '';
-    let kind = 'summary';
-    let tokens = 0;
-    try {
-        const result = await complete({
-            responsesUrl,
-            apiKey,
-            model,
-            instructions: compaction.prompt,
-            input: [{ role: 'user', content: `压缩下面的对话：\n\n${material(early, compaction)}` }],
-            errorMaxChars,
-            signal,
-        });
-        tokens = (Number(result.usage?.input_tokens) || 0) + (Number(result.usage?.output_tokens) || 0);
-        if (String(result.text).trim().length >= compaction.summaryMinChars) summary = String(result.text).trim();
-    } catch { /* 摘要失败时使用确定性索引 */ }
-    if (!summary) {
-        summary = mechanical(early, compaction);
-        kind = 'mechanical';
-    }
+    const result = await complete({
+        responsesUrl, apiKey, model,
+        instructions: compaction.prompt,
+        input: [{ role: 'user', content: `压缩下面的对话：\n\n${material(early, compaction)}` }],
+        errorMaxChars, signal,
+        retry: { enabled: false },
+    });
+    if (result.status !== 'completed') throw new Error(`摘要失败：${result.stopReason || result.status || '未完整结束'}`);
+    const summary = String(result.text || '').trim();
+    if (summary.length < compaction.summaryMinChars) throw new Error('摘要失败：内容为空或长度不足');
+    const tokens = Number(result.usage?.output_tokens) || 0;
 
     return {
         compacted: true,
         summary,
-        kind,
         tokens,
         sourceCount: early.length,
         tailCount: history.length - at,

@@ -2,8 +2,7 @@
 
 一个以 OpenAI Responses 消息协议为核心、从无状态 AI 循环逐层组合出的本地 Web Agent。
 
-浏览器里的对话界面,加上一套可授权的工具执行、一套用大白话立规则的权限系统,
-以及一个能装第三方应用的侧边栏。全部跑在本地,也可以整个部署到服务器上。
+浏览器里的聊天与任务界面、工具执行和确认卡，以及一个能装第三方应用的侧边栏。全部跑在本地,也可以整个部署到服务器上。
 
 ## 架构
 
@@ -19,8 +18,8 @@
 ```text
 AGENT/
 ├── ai/       Responses API 客户端:请求、读流、重试
-├── agent/    循环、工具执行、bash / read / write / edit / confirm、上下文压缩
-├── server/   HTTP · SQLite · SSE · 轮次编排 · 规则 · 问询通道 · 应用宿主
+├── agent/    循环、工具执行、shell / read / write / edit / confirm、上下文压缩
+├── server/   HTTP · SQLite · SSE · 轮次编排 · 问询通道 · 应用宿主
 ├── shared/   服务端与界面共用的事件名契约
 ├── ui/       React 客户端
 ├── apps/     用户的应用,各自是独立工程
@@ -45,8 +44,8 @@ complete.js   无工具的单次补全(标题、摘要用)
 ```text
 index.js      循环:请求 → 有 function_call 就交给 runner → 再请求。给了 ask 才把 confirm 发给模型
 runner.js     执行一次 function_call
-functions/    bash / read / write / edit / confirm / propose 的实现
-tools.js      给模型看的六个工具 schema
+functions/    shell / read / write / edit / confirm 的实现
+tools.js      给模型看的五个工具 schema
 compact.js    上下文压缩
 ```
 
@@ -57,40 +56,22 @@ index.js      启动:装配、监听、平滑退出
 store.js      SQLite:建表、全部读写
 api/          /api/* 路由,每个资源一个文件
 http/         sse · static · cors,HTTP 的皮
-run/          一轮怎么跑:turn(编排、落库、压缩记账、提议通道)· approvals · files · rules
+run/          一轮怎么跑:turn(编排、落库、压缩记账)· approvals · files
 apps/         应用宿主:registry(扫目录读 manifest)· supervisor(子进程)· bridge(/host/* 契约面)
 ```
 
 item 词表(`message` / `reasoning` / `function_call` / `function_call_output`)沿用 Responses 那套 ——
 它早已是仓库的内部契约:数据库、UI 渲染、上下文压缩全按它来。
 
-## 规则
+## 聊天与任务
 
-一张全局的规则单,一个总开关。没有硬闸,没有分组。
+聊天保存在 `chats`，任务保存在 `tasks`。两者共用 `messages` 和 `compactions`，通过全局唯一的 `thread` ID 关联。
+用户只创建聊天。任务仅由 Apps 调用宿主模型能力时创建，界面用于查看执行过程及取消任务，不提供任务输入框或用户继续执行入口。
+任务状态由执行流程维护；服务中断的任务会标为暂停，用户可以取消任务。
 
-**一条规则就是你的一句话**,原样进系统提示词,每轮重装,压缩吃不掉。
-它和系统提示词的区别只在于分条、可单独开关、可以由对话沉淀。
-"删东西之前先问我"是规则,"回答用中文"也是规则 —— 机制一样,都是常驻指令。
-
-| 总开关 | 行为 |
-|---|---|
-| 启用 | 规则进提示词;模型有 `confirm` 工具,该问的时候停下来问你 |
-| 停用 | 规则不进,没有 `confirm`,不问不拦 |
-
-规则要求先问的,模型调 `confirm` 弹卡等你答复;规则没说到但它自己拿不准的,也这么问。
-
-**规则由对话沉淀。** 用户纠正、补充、驳斥的时候,模型调 `propose` 提议记一条规则
-(或改、删已有的一条);提议挂在输入框上方,不阻塞,点勾才落库,点叉丢掉。
-同一个通道也能提议下一句话,点了填进输入框,发不发用户定。
-
-首次启动铺五条出厂规则(删除移动、提权格式化、装软件、超出范围、前提有问题),
-铺完就是普通规则,可停可删,删了不复活。
-
-这是一场赌:赌模型能遵守用户明写的规则,赌它在该问的时候会问。
-正则和词表只能看命令的字面,覆盖面小,却要养一套编译器;与其给人「拦得住」的错觉,
-不如把赌注押明白。真正的兜底在文件系统那一层(git、Time Machine、trash 代替 rm),不在这里。
-
-app 触发的轮次没人守着答卡,所以没有 `confirm`;规则照样进提示词,不随总开关关掉。
+所有 Agent 工具统一在 **AGENT 项目根目录** 运行，不提供按聊天或任务切换目录的选项。
+聊天保留 `confirm` 工具，模型需要用户确认时可暂停等待答复；App 任务不提供确认卡。
+对话标题栏最右侧的面板入口可编辑全局提示词和本对话规则。全局提示词由所有对话共用；本对话规则以整段文本保存在 `chats.rules`，每轮请求重新读取并与全局提示词组合。新对话规则默认留空，可在首条消息发送前填写。规则不再逐条管理。`propose` 异步展示在输入框上方，点击查看详情；同意规则提议会追加到本对话规则，同意后续问题提议只填入草稿，忽略则不执行。提议随消息持久化，刷新后仍可处理。
 
 ## 应用
 
@@ -108,7 +89,18 @@ apps/notes/
 宿主管生命周期(懒启动 / 常驻 / 空闲回收 / 崩溃重启)和取址;
 app 可凭 token 调宿主能力(`/host/ai/complete`、`/host/ai/agent`、`/host/notify`);
 agent 读 APP.md 后直接用 HTTP 调 app —— 文档即 SDK。
-首批生态应用:[notes](https://github.com/yanglongyun/notes)(笔记)、[board](https://github.com/yanglongyun/board)(看板)、[canvas](https://github.com/yanglongyun/canvas)(画布)、[mindmap](https://github.com/yanglongyun/mindmap)(思维导图)、[ramify](https://github.com/yanglongyun/ramify) —— 各自是独立仓库,克隆进 `apps/` 即装。
+项目自带三个初始应用，源码和构建产物都在 `apps/` 中，启动 AGENT 后自动列在侧边栏，点开时启动：
+
+| 应用 | 目录 | 数据目录 |
+|---|---|---|
+| 导图 | `apps/mindmap` | `.data/apps/mindmap` |
+| 笔记 | `apps/notes` | `.data/apps/notes` |
+| 创意 | `apps/ramify` | `.data/apps/ramify` |
+
+这三个应用的已有构建产物可以直接运行，不需要额外安装依赖。修改应用源码后，按各自 APP.md 的命令重建。
+Ramify 的生成请求通过 `/host/ai/complete` 使用设置中的模型，并在任务列表留存。方向规划要求模型支持 `text.format` 结构化输出。
+原应用的数据不会自动导入；所有初始应用从本项目各自的数据目录开始。
+
 
 ## 环境要求
 
@@ -118,36 +110,36 @@ agent 读 APP.md 后直接用 HTTP 调 app —— 文档即 SDK。
 
 ## 安装与运行
 
-```bash
+```shell
 npm ci
 npm --prefix ui ci
 cp config.example.js config.js
-npm run client:build
-npm run client
+npm run build
+npm start
 ```
 
-默认地址 `http://127.0.0.1:9500`。开发界面用 `npm run client:ui`。
+默认地址 `http://127.0.0.1:9500`。开发界面用 `npm run dev`。
 
-`config.js` 被 Git 忽略,保存工作目录、端口、工具超时、压缩阈值等程序级参数。
+`config.js` 被 Git 忽略,保存端口、工具超时、压缩阈值等程序级参数。
 模型、API Key、接口地址和系统提示词**不读环境变量也不读 config.js**,
 必须在界面的设置页填写。
 
-进程管理(配合 ngrok 之类的远程访问):
-
-```bash
-npm run ctl -- start|stop|restart|status|logs
-```
+启动后日志直接显示在终端,按 `Ctrl+C` 停止服务。重新执行 `npm start` 即可启动。
 
 ## 数据库
 
 | 表 | 职责 |
 |---|---|
-| `conversations` | 对话元数据、上下文缓存、最近用量 |
-| `messages` | 完整、逐条、不可变的消息和工具事件 |
-| `compactions` | 只追加的压缩摘要、覆盖序号、类型和 Token 消耗 |
-| `rules` | 用户的规则:原话、开关、次序 |
-| `proposals` | 模型放到用户面前、还没点的提议 |
-| `settings` | 模型连接、系统提示词、规则总开关 |
+| `chats` | 聊天标题、整段规则、置顶、上下文、最近用量 |
+| `tasks` | 任务标题、状态、上下文、最近用量和结束时间 |
+| `messages` | 完整消息，以全局自增 `id` 排序和分页，以 `thread` 归属 |
+| `compactions` | 模型摘要、覆盖的起止消息 ID、摘要输出 token 数 |
+| `settings` | 模型连接和系统提示词等全局设置 |
+
+完整带注释的 DDL 见 `server/schema.sql`。SQLite 自带的 `sqlite_sequence` 是自增计数器，不是业务表。
+旧数据库首次启动时自动生成 `.backup` 一致性备份，再在事务中迁移：保留聊天、消息、模型摘要及设置，删除规则和提议表。
+历史机械裁剪不计作模型摘要，其消息原文仍保留在历史中，旧规则及提议可从备份恢复。
+`thread` 的跨表唯一性、消息归属和删除清理由存储层事务保证。删除运行中的 thread 会先停止并等待收尾。
 
 app 的数据在各自的库里(`.data/apps/<id>/`),与主库无关。
 
@@ -157,18 +149,19 @@ app 的数据在各自的库里(`.data/apps/<id>/`),与主库无关。
 工具循环才是上下文增长的大头,压缩落在循环里,不只在一轮开头:
 
 ```text
-早期上下文 → 模型摘要(失败则机械摘要)→ 系统摘要 + 近期原文
+早期上下文 → 模型摘要 → 摘要 + 近期原文
 ```
 
-原始内容始终保留在 `messages`,每次压缩写入 `compactions`。
-规则和应用清单进的是 `instructions`,每轮重新组装,**压缩吃不掉它们**。
+原始内容始终保留在 `messages`，摘要、压缩范围和更新后的上下文在同一事务提交。
+摘要请求失败、输出不完整或内容过短时直接报错，保留原始上下文，不使用机械裁剪。
+全局提示词、本对话规则和应用清单进的是 `instructions`,每轮重新组装,**压缩吃不掉它们**。
 
 ## 开发检查
 
-```bash
+```shell
 npm run check
 npm test
-npm run client:build
+npm run build
 ```
 
 ## 版本说明
@@ -190,6 +183,7 @@ npm run client:build
 - `0.1.3` 底层清晰化:架构
 - `0.1.4` 护盾改成规则
 - `0.1.5` 项目与提议
+- `0.1.6` 对话规则、应用任务与三个初始应用
 
 ## License
 

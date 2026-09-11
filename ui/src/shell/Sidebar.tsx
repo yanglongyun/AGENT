@@ -1,4 +1,4 @@
-// 左侧栏,自上而下:品牌行 · 新对话 · 置顶组 · 最近组 · 底部(主题 + 版本)。
+// 左侧栏,自上而下:品牌行 · 新对话 · 置顶组 · 最近组 · 底部(任务 + 设置)。
 // 行悬停露出操作(置顶 / 重命名 / 删除),正在跑的行画呼吸点。
 import { useEffect, useState } from 'react';
 
@@ -7,18 +7,18 @@ import { AppIcon } from '../apps/AppView';
 import { useApps, type AppInfo } from '../apps/store';
 import { Sheet } from '../overlay/Sheet';
 import {
-    createDraft, loadRuns, openConversation, removeConversation, renameConversation,
-    togglePinned, useConversation, type Conversation,
-} from '../conversation/store';
+    createDraft, loadRuns, openThread, removeThread, renameThread,
+    togglePinned, useThread, type Thread,
+} from '../thread/store';
 import { useShell } from './layout';
 
 export function Sidebar() {
     const shell = useShell();
-    const { conversations, currentId, liveIds, meta } = useConversation();
+    const { threads, currentId, liveIds } = useThread();
     const apps = useApps((state) => state.apps);
-    const [renaming, setRenaming] = useState<Conversation | null>(null);
+    const [renaming, setRenaming] = useState<Thread | null>(null);
     const [renameText, setRenameText] = useState('');
-    const [removing, setRemoving] = useState<Conversation | null>(null);
+    const [removing, setRemoving] = useState<Thread | null>(null);
 
     useEffect(() => { if (renaming) setRenameText(renaming.title); }, [renaming]);
 
@@ -28,22 +28,24 @@ export function Sidebar() {
         return () => clearInterval(timer);
     }, []);
 
-    const pinned = conversations.filter((item) => item.pinned);
-    const recent = conversations.filter((item) => !item.pinned);
+    const pinned = threads.filter((item) => item.type === 'chat' && item.pinned);
+    const recent = threads.filter((item) => item.type === 'chat' && !item.pinned);
+    const taskActive = shell.page === 'tasks' || (shell.page === 'thread' && threads.some((item) => item.id === currentId && item.type === 'task'));
+    const runningTasks = threads.filter((item) => item.type === 'task' && item.status === 'running').length;
     const live = new Set(liveIds);
 
     const pick = (id: string) => {
-        shell.showConversation();
+        shell.showThread();
         shell.closeDrawer();
-        void openConversation(id);
+        void openThread(id);
     };
 
     const confirmRename = () => {
-        const conversation = renaming;
+        const thread = renaming;
         setRenaming(null);
-        if (!conversation) return;
+        if (!thread) return;
         const title = renameText.trim();
-        if (title && title !== conversation.title) void renameConversation(conversation.id, title);
+        if (title && title !== thread.title) void renameThread(thread.id, title);
     };
 
     const appRow = (app: AppInfo) => (
@@ -59,26 +61,26 @@ export function Sidebar() {
         </div>
     );
 
-    const row = (conversation: Conversation) => (
+    const row = (thread: Thread) => (
         <div
-            key={conversation.id}
-            className={`conv${shell.page === 'conversation' && conversation.id === currentId ? ' on' : ''}`}
-            onClick={() => pick(conversation.id)}
+            key={thread.id}
+            className={`conv${shell.page === 'thread' && thread.id === currentId ? ' on' : ''}`}
+            onClick={() => pick(thread.id)}
         >
-            {live.has(conversation.id) && <span className="conv-live" title="正在运行" />}
-            <span className="conv-title clip">{conversation.title}</span>
+            {live.has(thread.id) && <span className="conv-live" title="正在运行" />}
+            <span className="conv-title clip">{thread.title}</span>
             <span className="conv-ops" onClick={(event) => event.stopPropagation()}>
-                <button
-                    className={`op${conversation.pinned ? ' held' : ''}`}
-                    title={conversation.pinned ? '取消置顶' : '置顶'}
-                    onClick={() => void togglePinned(conversation)}
+                {thread.type === 'chat' && <button
+                    className={`op${thread.pinned ? ' held' : ''}`}
+                    title={thread.pinned ? '取消置顶' : '置顶'}
+                    onClick={() => void togglePinned(thread)}
                 >
-                    <Icon name={conversation.pinned ? 'pinFill' : 'pin'} size={13} />
-                </button>
-                <button className="op" title="重命名" onClick={() => setRenaming(conversation)}>
+                    <Icon name={thread.pinned ? 'pinFill' : 'pin'} size={13} />
+                </button>}
+                <button className="op" title="重命名" onClick={() => setRenaming(thread)}>
                     <Icon name="pen" size={13} />
                 </button>
-                <button className="op danger" title="删除" onClick={() => setRemoving(conversation)}>
+                <button className="op danger" title="删除" onClick={() => setRemoving(thread)}>
                     <Icon name="trash" size={13} />
                 </button>
             </span>
@@ -102,7 +104,7 @@ export function Sidebar() {
                 {/* 新对话是动作不是清单的一行,恒在顶部,不进滚动区 */}
                 <button
                     className="side-new"
-                    onClick={() => { shell.showConversation(); createDraft(); }}
+                    onClick={() => { shell.showThread(); createDraft(); }}
                 >
                     <Icon name="compose" size={16} /><span>新对话</span>
                 </button>
@@ -120,19 +122,21 @@ export function Sidebar() {
                         <div className="side-label">最近</div>
                         {recent.map(row)}
                     </>)}
-                    {!conversations.length && <div className="side-empty">还没有对话</div>}
+                    {!pinned.length && !recent.length && <div className="side-empty">还没有对话</div>}
                 </div>
 
                 <div className="side-foot">
+                    <button className={`side-settings${taskActive ? ' on' : ''}`} aria-current={taskActive ? 'page' : undefined} onClick={shell.showTasks}>
+                        <Icon name="tasks" size={15} /><span>任务</span>{runningTasks > 0 && <span className="side-task-count">{runningTasks}</span>}
+                    </button>
                     <button className={`side-settings${shell.page === 'settings' ? ' on' : ''}`} onClick={shell.showSettings}>
                         <Icon name="settings" size={15} /><span>设置</span>
                     </button>
-                    <span className="side-meta clip">{meta.version ? `v${meta.version}` : ''}</span>
                 </div>
             </aside>
 
             {renaming && (
-                <Sheet title="重命名对话" onClose={() => setRenaming(null)}>
+                <Sheet title="重命名" onClose={() => setRenaming(null)}>
                     <input
                         className="field-input"
                         value={renameText}
@@ -149,13 +153,13 @@ export function Sidebar() {
             )}
 
             {removing && (
-                <Sheet title="删除对话" onClose={() => setRemoving(null)}>
+                <Sheet title="删除" onClose={() => setRemoving(null)}>
                     <div className="sheet-note">「{removing.title}」的全部消息会一并删除,不可恢复。</div>
                     <div className="sheet-foot">
                         <button className="btn btn-quiet" onClick={() => setRemoving(null)}>取消</button>
                         <button
                             className="btn btn-danger"
-                            onClick={() => { const target = removing; setRemoving(null); void removeConversation(target.id); }}
+                            onClick={() => { const target = removing; setRemoving(null); void removeThread(target.id); }}
                         >删除</button>
                     </div>
                 </Sheet>

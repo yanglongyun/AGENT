@@ -2,6 +2,8 @@
 import type { ReactNode } from 'react';
 
 const GLYPHS: Record<string, ReactNode> = {
+    chat: <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 2v-6a7.5 7.5 0 1 1 16-3.5Z" />,
+    more: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
     /** 新对话:方框 + 落笔 */
     compose: (<>
         <path d="M12 4.5H6.7A2.7 2.7 0 0 0 4 7.2v10.1A2.7 2.7 0 0 0 6.7 20h10.1a2.7 2.7 0 0 0 2.7-2.7V12" />
@@ -25,7 +27,7 @@ const GLYPHS: Record<string, ReactNode> = {
     </>),
     /** 展开:右尖号 */
     chev: <path d="m9.2 5.8 6.2 6.2-6.2 6.2" />,
-    /** bash:终端 */
+    /** shell:终端 */
     terminal: (<>
         <rect x="3.5" y="4.8" width="17" height="14.4" rx="2.6" />
         <path d="m7.2 9.3 3 2.7-3 2.7" />
@@ -88,6 +90,10 @@ const GLYPHS: Record<string, ReactNode> = {
     up: <path d="M12 18.4V5.8m-5.4 5.4L12 5.6l5.4 5.6" />,
     down: <path d="M12 5.6v12.6m5.4-5.4L12 18.4l-5.4-5.6" />,
     x: <path d="m6.4 6.4 11.2 11.2M17.6 6.4 6.4 17.6" />,
+    tasks: (<>
+        <rect x="4.5" y="4" width="15" height="16" rx="2.5" />
+        <path d="m8 9 1 1 2-2M13 9h3M8 14h8" />
+    </>),
     settings: (<>
         <circle cx="12" cy="12" r="3.2" />
         <path d="M12 3.6v2M12 18.4v2M3.6 12h2M18.4 12h2M6.1 6.1l1.4 1.4M16.5 16.5l1.4 1.4M17.9 6.1l-1.4 1.4M7.5 16.5l-1.4 1.4" />

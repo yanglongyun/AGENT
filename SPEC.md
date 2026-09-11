@@ -147,16 +147,22 @@ token 即身份,路径里没有 app id。manifest 没声明对应权限的,一�
 | 端点 | 权限 | 说明 |
 |---|---|---|
 | `GET /host/me` | 免声明 | `{ appId, name, version, permissions, theme }` |
-| `POST /host/ai/complete` | `ai.complete` | `{ prompt, instructions?, title?, schema?, schemaName? }` → `{ text, usage }`。单次补全,无工具。`schema` 给 JSON Schema 即走协议原生的结构化输出;`title` 是这次调用在宿主「任务」里的标题 |
-| `POST /host/ai/agent` | `ai.agent` | `{ prompt, workdir?, title? }` → SSE 事件流。完整 agent 轮次,带工具 |
+| `POST /host/ai/complete` | `ai.complete` | `{ prompt, instructions?, title?, schema?, schemaName? }` → `{ task, text, usage, status }`。单次补全，无工具；`task` 是宿主保存的任务 ID |
+| `POST /host/ai/agent` | `ai.agent` | `{ prompt, instructions?, title? }` → SSE 事件流。完整 agent 轮次,带工具 |
 | `POST /host/notify` | `notify` | `{ text, kind?: "toast"\|"badge" }`。宿主界面上提示 / 侧边栏角标 |
+
+`schema` 使用 JSON Schema（根类型为 object），`schemaName` 默认 result。宿主按
+[OpenAI Docs 的结构化输出格式](https://developers.openai.com/api/docs/guides/structured-outputs)
+透传为 `text.format: { type: "json_schema", name, schema, strict: true }`。
+模型或网关需要支持该参数；请求失败或内容不完整时明确报错。
 
 两个端点的每次调用都在宿主的「任务」里留一条记录(过程逐条落库,用户可回放)——
 应用替用户干的活必须看得见。
 
-`ai/agent` 的边界:轮次走宿主的审批门,按全局规则档判,**命中「要问」的直接拒绝**
-(没人守着弹窗,不挂起)。工作目录默认 `APP_DATA_DIR`。
-事件流的词表:`message` / `reasoning` / `function_call` / `function_call_output` / `done` / `error`。
+`ai/agent` 统一在 AGENT 项目根目录运行，不接受工作目录设置。聊天规则以整段文本保存在 `chats.rules`，只注入所属聊天；App 任务不继承聊天规则。
+App 任务不提供交互式确认工具；任务仅由 Apps 创建，宿主界面只提供消息查看和取消，不接受用户发送消息继续执行。
+事件流先发送 `task`（包含任务 ID），再发送 `message` / `reasoning` / `function_call` / `function_call_output` / `done` / `error`。
+摘要失败直接报错，不使用机械裁剪。
 
 宿主能力只有这些。文件、网络、进程你本来就有 —— 不需要宿主转手。
 

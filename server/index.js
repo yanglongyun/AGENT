@@ -13,7 +13,9 @@ import { createApprovals } from './run/approvals.js';
 import { createApps } from './apps/registry.js';
 import { createSupervisor } from './apps/supervisor.js';
 import { createBridge } from './apps/bridge.js';
-import { SEED_RULES } from './run/rules.js';
+import { ROOT } from '../shared/root.js';
+
+process.chdir(ROOT);
 
 const meta = {
     version: JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version,
@@ -26,15 +28,9 @@ const files = createFiles(config);
 const approvals = createApprovals({ broadcast: channel.broadcast, timeoutMs: config.approvalTimeoutMs });
 const apps = createApps({ config, broadcast: channel.broadcast });
 const supervisor = createSupervisor({ config, apps, broadcast: channel.broadcast });
-const bridge = createBridge({ config, store, apps, supervisor, channel });
 const turns = createTurns({ config, store, files, approvals, apps, broadcast: channel.broadcast });
+const bridge = createBridge({ config, store, apps, supervisor, channel, turns });
 const api = createApi({ config, store, turns, files, channel, approvals, apps, supervisor, meta });
-
-// 出厂规则只铺一次。铺完就是普通规则,删了不复活
-if (!store.getSettings().rulesSeeded) {
-    for (const text of SEED_RULES) store.createRule({ id: crypto.randomUUID(), text });
-    store.setSettings({ rulesSeeded: '1' });
-}
 
 const fail = (response, status, message) => {
     response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
@@ -97,7 +93,6 @@ server.on('error', (error) => {
 server.listen(config.port, config.host, () => {
     const installed = apps.list();
     console.log(`AGENT: http://${config.host}:${config.port} (v${meta.version})`);
-    console.log(`[agent] 规则:${(store.getSettings().rulesEnabled || 'on') === 'on' ? '启用' : '停用'},${store.listRules().length} 条`);
     console.log(`[agent] 应用目录 ${apps.root} —— 已装 ${installed.length} 个:${installed.map((app) => app.id).join(' ') || '(空)'}`);
     for (const app of installed.filter((item) => item.invalid)) console.warn(`[agent] ${app.id} 不可用:${app.invalid}`);
     // run.mode: "always" 的启动组

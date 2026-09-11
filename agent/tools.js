@@ -1,9 +1,19 @@
-// 发给 AI 的工具定义表,不包含任何执行逻辑。confirm 和 propose 只在宿主给了通道时才发给模型,见 index.js。
+// 发给 AI 的工具定义表,不包含任何执行逻辑。confirm 只在宿主给了通道时才发给模型,见 index.js。
 export const tools = [
     {
+        type: 'function', name: 'propose',
+        description: '异步提出建议，立即返回，不等待用户。kind=rule 建议追加本对话规则；kind=prompt 建议下一条用户消息。同意 prompt 只填草稿，不自动发送。不可用来获取危险操作授权，需要等待授权时用 confirm。',
+        parameters: { type: 'object', properties: {
+            kind: { type: 'string', enum: ['rule', 'prompt'] },
+            summary: { type: 'string', description: '简短标题' },
+            detail: { type: 'string', description: '提议理由和详情' },
+            text: { type: 'string', description: '要追加的规则或填入草稿的完整文本' },
+        }, required: ['kind', 'summary', 'detail', 'text'], additionalProperties: false },
+    },
+    {
         type: 'function',
-        name: 'bash',
-        description: '在工作目录执行 bash 命令。',
+        name: 'shell',
+        description: '在AGENT 项目根目录执行 shell 命令。',
         parameters: {
             type: 'object',
             properties: {
@@ -18,7 +28,7 @@ export const tools = [
     {
         type: 'function',
         name: 'read',
-        description: '读取文本文件，路径相对于工作目录。',
+        description: '读取文本文件，路径相对于AGENT 项目根目录。',
         parameters: {
             type: 'object',
             properties: {
@@ -34,7 +44,7 @@ export const tools = [
     {
         type: 'function',
         name: 'write',
-        description: '写入文件，文件存在时覆盖，路径相对于工作目录。',
+        description: '写入文件，文件存在时覆盖，路径相对于AGENT 项目根目录。',
         parameters: {
             type: 'object',
             properties: {
@@ -67,8 +77,7 @@ export const tools = [
         type: 'function',
         name: 'confirm',
         description: [
-            '在动手之前停下来问用户,等到答复再做。两种情况必须用它:',
-            '一是用户的规则说了要先问的操作;二是你自己觉得该问一句的时候,',
+            '需要用户确认时，在动手之前停下来问用户，等到答复再做。',
             '比如操作不可逆、影响面比交代的大、要动没被明确授权的东西。',
             '得到允许之前不要执行。用户不同意就换做法或如实说明,不要绕过。',
         ].join(''),
@@ -80,25 +89,6 @@ export const tools = [
                 risk: { type: 'string', description: '你觉得风险或不确定在哪里' },
             },
             required: ['summary', 'detail', 'risk'],
-            additionalProperties: false,
-        },
-    },
-    {
-        type: 'function',
-        name: 'propose',
-        description: [
-            '把一个可选项放到用户面前,不阻塞,用户点了才生效。调用后立即返回,不要等结果,继续手头的事。',
-            'kind=rule:提议记一条规则,或用 replaces 指编号改、删已有的那条(text 留空 = 删)。',
-            'kind=prompt:提议用户的下一句话,用户点了会填进输入框,由用户决定发不发。',
-        ].join(''),
-        parameters: {
-            type: 'object',
-            properties: {
-                kind: { type: 'string', enum: ['rule', 'prompt'], description: 'rule 记规则;prompt 建议下一句话' },
-                text: { type: 'string', description: 'rule:规则原文,用用户的口吻;prompt:建议的那句话' },
-                replaces: { type: 'integer', description: '仅 rule。要改或删的已有规则编号(提示词里方括号中的数字)' },
-            },
-            required: ['kind', 'text'],
             additionalProperties: false,
         },
     },
