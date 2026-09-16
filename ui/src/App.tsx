@@ -1,45 +1,41 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
-import { Sidebar } from './shell/Sidebar';
-import { ThreadView } from './thread';
-import { AppView } from './apps/AppView';
-import { ToastHost } from './overlay/toast';
-import { Tasks } from './tasks';
-import { Settings } from './shell/Settings';
-import { useShell } from './shell/layout';
-import { init, useThread } from './thread/store';
-import { loadApps, watchApps } from './apps/store';
-import { loadApprovals, watchApprovals } from './approvals/store';
-import { onChannel } from './lib/channel';
-import { EVENTS } from '@shared/events';
-import { toast } from './overlay/toast';
+import { AppRoutes } from "./router";
+import { ToastHost } from "./overlay/toast";
+import { checkAuth, useAuth } from "./lib/auth";
+import { init, dispose } from "./thread/store";
 
 export function App() {
-    const page = useShell((state) => state.page);
-    const currentId = useThread((state) => state.currentId);
+  const { state: auth, error } = useAuth();
 
-    useEffect(() => {
-        void init();
-        void loadApps();
-        const stopApps = watchApps();
-        const stopApprovals = watchApprovals();
-        // app 经 /host/notify 发来的提示。v1 里 badge 也先落成 toast
-        const stopNotify = onChannel((type, data) => {
-            if (type !== EVENTS.APP_NOTIFY) return;
-            const { appName, text } = data as { appName: string; text: string };
-            toast(`「${appName}」${text}`, 3200);
-        });
-        return () => { stopApps(); stopApprovals(); stopNotify(); };
-    }, []);
+  useEffect(() => {
+    void checkAuth();
+  }, []);
+  useEffect(() => {
+    if (auth !== "in") {
+      return;
+    }
+    void init();
+    return dispose;
+  }, [auth]);
 
-    // 换对话要重新捞还悬着的确认卡 —— 它是按对话分的
-    useEffect(() => { void loadApprovals(); }, [currentId]);
-
+  if (auth === "checking") {
+    return null;
+  }
+  if (auth === "error") {
     return (
-        <>
-            <Sidebar />
-            {page === 'tasks' ? <Tasks /> : page === 'settings' ? <Settings /> : page === 'app' ? <AppView /> : <ThreadView />}
-            <ToastHost />
-        </>
+      <main className="login">
+        <p>{error}</p>
+        <button className="btn" onClick={() => void checkAuth()}>
+          重新连接
+        </button>
+      </main>
     );
+  }
+  return (
+    <>
+      <AppRoutes />
+      <ToastHost />
+    </>
+  );
 }

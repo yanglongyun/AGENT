@@ -1,158 +1,108 @@
-// 直播 reducer —— 每个打开的对话一份,事件按 thread 认领。
-// 行对象原地修改,改完由调用方 bump 触发重渲染。
-import { EVENTS } from '@shared/events';
-import type { ChannelEvent } from '../lib/channel';
-import { mkKey, toolRow, type Row } from './thread';
+import { ApiError } from "../lib/api";
+import { useAuth } from "../lib/auth";
+import type { Thread } from "./store";
+import type {
+  MessageItem,
+  ReasoningItem,
+  FunctionCallItem,
+  FunctionOutputItem,
+  Compaction,
+} from "./thread";
 
-export interface StreamPorts {
-    thread: string;
-    getRows: () => Row[];
-    pushRow: (row: Row) => Row;
-    setBusy: (busy: boolean) => void;
-    bump: () => void;
+interface SavedMessage {
+  sequence: number;
+  id: number;
+  usage: Record<string, unknown> | null;
+  created_at: number;
 }
 
-export function setupStream(ports: StreamPorts) {
-    const { thread, getRows, pushRow, setBusy, bump } = ports;
-    let streamingKey = '';
-    let compactKey = '';
-
-    const find = (key: string) => getRows().find((row) => row.key === key);
-
-    function closeStreaming() {
-        if (!streamingKey) return;
-        const row = find(streamingKey);
-        if (row) row.streaming = false;
-        streamingKey = '';
+// API 在原有九种事件外补充保存信息；标准 item 不加业务字段。
+export type StreamEvent = (
+  | { type: "message"; delta: string; item?: never }
+  | { type: "message"; item: MessageItem; delta?: never; sequence: number; created_at: number }
+  | { type: "reasoning"; delta: string; item?: never }
+  | { type: "reasoning"; item: ReasoningItem; delta?: never; sequence: number; created_at: number }
+  | { type: "function_call"; item: FunctionCallItem; sequence: number; created_at: number }
+  | { type: "function_call_output"; item: FunctionOutputItem; sequence: number; created_at: number }
+  | { type: "retry"; attempt: number; maxRetries: number; delayMs: number; error: string }
+  | { type: "usage"; usage: Record<string, unknown> | null }
+  | { type: "compact"; status: "started" }
+  | {
+      type: "compact";
+      status: "completed";
+      compaction: Compaction;
+      item: MessageItem;
+      start: number;
+      end: number;
+      usage: Record<string, unknown> | null;
     }
+  | { type: "done"; status: "completed" | "incomplete" | "aborted"; stopReason?: string }
+  | { type: "error"; code: string; error: string }
+) & {
+  saved?: SavedMessage[];
+  session?: Thread;
+};
 
-    function streamingRow(): Row {
-        if (streamingKey) {
-            const existing = find(streamingKey);
-            if (existing) return existing;
-        }
-        const row = pushRow({
-            key: mkKey('a'), kind: 'assistant',
-            content: '', reasoning: '', streaming: true, at: Date.now(),
-        });
-        streamingKey = row.key;
-        return row;
+// 一个 POST 对应一次回复，连接关闭会停止服务端执行。
+export async function streamMessage(
+  id: string,
+  text: string,
+  signal: AbortSignal,
+  receive: (event: StreamEvent) => void,
+  images: string[] = [],
+) {
+  const response = await fetch(`/api/sessions/${encodeURIComponent(id)}/messages`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text, images }),
+    signal,
+  });
+  if (!response.ok) {
+    if (response.status === 401) {
+      useAuth.setState({ state: "out" });
     }
-
-    function completeCall(callId: string, result: string) {
-        const rows = getRows();
-        let target: Row | undefined;
-        for (let i = rows.length - 1; i >= 0; i--) {
-            if (rows[i].kind === 'tool' && rows[i].callId === callId) { target = rows[i]; break; }
+    const detail = await response.json();
+    throw new ApiError(detail.error || `HTTP ${response.status}`, response.status);
+  }
+  if (!response.body) {
+    throw new Error("服务器没有返回事件流");
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let completed = false;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      let split = buffer.indexOf("\n\n");
+      while (split >= 0) {
+        const block = buffer.slice(0, split);
+        buffer = buffer.slice(split + 2);
+        split = buffer.indexOf("\n\n");
+        const data = block
+          .split("\n")
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trimStart())
+          .join("\n");
+        if (!data) {
+          continue;
         }
-        if (!target) {
-            for (let i = rows.length - 1; i >= 0; i--) {
-                if (rows[i].kind === 'tool' && rows[i].status !== 'done') { target = rows[i]; break; }
-            }
+        const event = JSON.parse(data) as StreamEvent;
+        if (event.type === "done") {
+          completed = true;
         }
-        if (!target) return;
-        target.result = result;
-        target.status = 'done';
+        receive(event);
+      }
+      if (done) {
+        break;
+      }
     }
-
-    /** 终局时把还挂着的工具行收掉 —— 停止 / 出错后等不到 output 事件,
-        不收就永远「执行中」。 */
-    function settleCalls() {
-        for (const row of getRows()) {
-            if (row.kind === 'tool' && row.status !== 'done') row.status = 'done';
-        }
+    if (!completed) {
+      throw new Error("连接中断，本次回复未完成");
     }
-
-    function onEvent(type: string, event: ChannelEvent) {
-        if (event.thread !== thread) return;
-
-        switch (type) {
-            case EVENTS.START: {
-                setBusy(true);
-                closeStreaming();
-                const clientId = String(event.clientId || '');
-                const mine = clientId && getRows().some((row) => row.kind === 'user' && row.clientId === clientId);
-                // 另一个窗口发起的轮:把提问补进画面,不然只看到答案不见问题
-                if (!mine) pushRow({ key: mkKey('u'), kind: 'user', content: String(event.content || ''), at: Date.now() });
-                break;
-            }
-
-            case EVENTS.REASONING: {
-                const row = streamingRow();
-                row.reasoning = (row.reasoning || '') + String(event.content || '');
-                break;
-            }
-            case EVENTS.DELTA: {
-                const row = streamingRow();
-                row.content = (row.content || '') + String(event.content || '');
-                break;
-            }
-
-            case EVENTS.TEXT_DONE: {
-                const content = String(event.content || '');
-                if (content || streamingKey) {
-                    const row = streamingRow();
-                    if (event.kind === 'reasoning') row.reasoning = content;
-                    else { row.content = content; closeStreaming(); }
-                }
-                break;
-            }
-
-            case EVENTS.CALL_STARTED:
-                // 模型转去吐工具参数了:正文行到此为止,不收会把等待动画压住
-                closeStreaming();
-                break;
-
-            case EVENTS.CALLS: {
-                closeStreaming();
-                const calls = (event.calls as Array<{ callId?: string; name?: string; args?: Record<string, unknown> }>) || [];
-                for (const call of calls) pushRow({ ...toolRow(call, 'running'), at: Date.now() });
-                break;
-            }
-            case EVENTS.CALL_OUTPUT:
-                completeCall(String(event.callId || ''), typeof event.result === 'string' ? event.result : JSON.stringify(event.result));
-                break;
-
-            case EVENTS.COMPACT_START: {
-                closeStreaming();
-                const row = pushRow({ key: mkKey('s'), kind: 'system', code: 'compacting', content: '正在压缩早期对话…', at: Date.now() });
-                compactKey = row.key;
-                break;
-            }
-            case EVENTS.COMPACT_DONE: {
-                const row = compactKey ? find(compactKey) : null;
-                if (row) { row.code = 'compacted'; row.content = String(event.summary || '已压缩早期对话'); }
-                compactKey = '';
-                break;
-            }
-
-            case EVENTS.DONE:
-                closeStreaming();
-                settleCalls();
-                setBusy(false);
-                break;
-
-            case EVENTS.ABORTED:
-                closeStreaming();
-                settleCalls();
-                setBusy(false);
-                // 停下来要留痕:不留的话半截回复像网络断了。服务端也落了持久标记,
-                // 重开对话由 thread.ts 认出来;这里只管眼下这一屏
-                pushRow({ key: mkKey('s'), kind: 'system', code: 'stopped', content: '', at: Date.now() });
-                break;
-
-            case EVENTS.ERROR:
-                closeStreaming();
-                settleCalls();
-                setBusy(false);
-                pushRow({ key: mkKey('s'), kind: 'system', code: 'error', content: String(event.message || '运行失败'), at: Date.now() });
-                break;
-
-            default:
-                return;
-        }
-        bump();
-    }
-
-    return { onEvent, close: closeStreaming };
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
 }

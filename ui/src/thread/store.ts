@@ -1,350 +1,511 @@
-// 对话状态与动作。
-//
-// currentId 为空 = 空白草稿:不落库不进列表,发首条消息那刻才真正建对话 ——
-// 侧栏不会攒出一排空的「新对话」。行数组是可变结构,流式直接改行,tick 触发重渲染。
-import { create } from 'zustand';
-import { EVENTS } from '@shared/events';
-
-import { api, ApiError } from '../lib/api';
-import { connectChannel, onChannel, useChannel, type ChannelEvent } from '../lib/channel';
-import { toast } from '../overlay/toast';
-import { mkKey, renderMessages, type Attachment, type RawMessage, type Row } from './thread';
-import { setupStream } from './stream';
+import { create } from "zustand";
+import { api } from "../lib/api";
+import { toast } from "../overlay/toast";
+import { streamMessage } from "./stream";
+import {
+  mergeMessages,
+  itemText,
+  type RawMessage,
+  type Row,
+  type Compaction,
+  type StoredItem,
+  type MessageItem,
+} from "./thread";
 
 export interface Thread {
-    id: string;
-    title: string;
-    pinned?: number;
-    type: 'chat' | 'task';
-    rules?: string;
-    status?: string;
-    finished?: string | null;
-    created: string;
-    updated: string;
+  id: string;
+  title: string;
+  preview: string;
+  running: boolean;
+  created_at: number;
+  updated_at: number;
 }
-
-export interface Meta {
-    model: string;
-    version: string;
+export interface Status {
+  version: string;
+  model: string;
+  url: string;
+  model_ready: boolean;
+  workdir: string;
+  data_dir: string;
 }
-
-export function getDraftRules() { try { return localStorage.getItem('agent.draft.rules') || ''; } catch { return ''; } }
-export function setDraftRules(rules: string) { try { localStorage.setItem('agent.draft.rules', rules); } catch { /* unavailable */ } }
-
-const ID_KEY = 'agent.thread';
-const PAGE = 60;
-
-// null = 从没记过,回到最近对话;'' = 用户明确停在草稿,恢复草稿
-const loadId = (): string | null => { try { return localStorage.getItem(ID_KEY); } catch { return null; } };
-const saveId = (id: string) => { try { localStorage.setItem(ID_KEY, id); } catch { /* ignore */ } };
-
+interface Page {
+  messages: RawMessage[];
+  has_more: boolean;
+}
+interface ActiveReply {
+  controller: AbortController;
+  accepted: boolean;
+  cancel?: Promise<unknown>;
+}
 interface ThreadState {
-    threads: Thread[];
-    currentId: string;
-    meta: Meta;
-    liveIds: string[];
-
-    /** 可变数组:流式直接改行,靠 tick 触发重渲染。 */
-    rows: Row[];
-    busy: boolean;
-    stopping: boolean;
-    ready: boolean;
-    tick: number;
-    /** 自增 = 把视口拉回底部。 */
-    viewSeq: number;
-    hasMore: boolean;
-    loadingOlder: boolean;
+  threads: Thread[];
+  currentId: string;
+  status: Status | null;
+  messages: RawMessage[];
+  compactions: Compaction[];
+  notes: Row[];
+  expanded: Record<string, boolean>;
+  busy: boolean;
+  stopping: boolean;
+  ready: boolean;
+  loadError: string;
+  viewSeq: number;
+  generation: number;
+  active: ActiveReply | null;
+  hasMore: boolean;
+  loadingOlder: boolean;
 }
-
+export const threadTitle = (thread: Thread | undefined) =>
+  thread?.title || thread?.preview || "对话";
 export const useThread = create<ThreadState>(() => ({
-    threads: [],
-    currentId: '',
-    meta: { model: '', version: '' },
-    liveIds: [],
-    rows: [],
+  threads: [],
+  currentId: "",
+  status: null,
+  messages: [],
+  compactions: [],
+  notes: [],
+  expanded: {},
+  busy: false,
+  stopping: false,
+  ready: false,
+  loadError: "",
+  viewSeq: 0,
+  generation: 0,
+  active: null,
+  hasMore: false,
+  loadingOlder: false,
+}));
+const set = useThread.setState;
+const get = useThread.getState;
+const PAGE = 60;
+const url = (id: string) => `/api/sessions/${encodeURIComponent(id)}`;
+export function dispose() {
+  get().active?.controller.abort();
+  set((state) => ({
+    generation: state.generation + 1,
+    threads: state.threads.map((thread) =>
+      thread.id === state.currentId ? { ...thread, running: false } : thread,
+    ),
+    active: null,
     busy: false,
     stopping: false,
     ready: false,
-    tick: 0,
-    viewSeq: 0,
+  }));
+}
+function reset() {
+  dispose();
+  set({
+    messages: [],
+    compactions: [],
+    notes: [],
+    expanded: {},
+    busy: false,
+    stopping: false,
+    ready: false,
+    loadError: "",
     hasMore: false,
     loadingOlder: false,
-}));
-
-const set = useThread.setState;
-const get = useThread.getState;
-
-let stream: ReturnType<typeof setupStream> | null = null;
-let bound = false;
-let oldestId = 0;
-let lastSig = '';
-
-const bump = () => set((state) => ({ tick: state.tick + 1 }));
-const pushRow = (row: Row) => { get().rows.push(row); return row; };
-
-function rebuildStream() {
-    stream?.close();
-    const id = get().currentId;
-    stream = id
-        ? setupStream({
-            thread: id,
-            getRows: () => get().rows,
-            pushRow,
-            setBusy: (busy) => set({ busy, ...(busy ? {} : { stopping: false }) }),
-            bump,
-        })
-        : null;
+  });
 }
-
-function bind() {
-    if (bound) return;
-    bound = true;
-
-    // 断线重连:补上断线期间漏掉的消息和状态。首次连接不刷 —— init 刚拉过,再刷只会闪一下
-    let hadConnected = false;
-    useChannel.subscribe((state) => {
-        if (!state.connected) return;
-        if (!hadConnected) { hadConnected = true; return; }
-        void loadThreads();
-        void loadRuns();
-        void refresh({ keepView: true });
-    });
-
-    onChannel((type, event: ChannelEvent) => {
-        stream?.onEvent(type, event);
-
-        const id = String(event.thread || '');
-        const ENDED = [EVENTS.DONE, EVENTS.ABORTED, EVENTS.ERROR] as string[];
-        // 呼吸点跟事件走,任何对话的都算 —— 切走之后它还活着,侧栏那行得替它说话
-        if (id && type === EVENTS.START && !get().liveIds.includes(id)) {
-            set((state) => ({ liveIds: [...state.liveIds, id] }));
-        }
-        if (id && ENDED.includes(type)) {
-            set((state) => ({ liveIds: state.liveIds.filter((value) => value !== id) }));
-        }
-
-        if (type === EVENTS.THREADS_CHANGED) void loadThreads();
-        if (type === EVENTS.THREAD_DELETED && id === get().currentId) {
-            void (async () => {
-                await loadThreads();
-                const next = get().threads[0]?.id;
-                set({ currentId: '' });
-                if (next) await openThread(next);
-                else createDraft();
-            })();
-        }
-    });
-}
-
-export async function loadMeta() {
-    const meta = await api.get<Meta>('/api/meta').catch(() => null);
-    if (meta) set({ meta });
-}
-
-export async function loadThreads() {
-    const [chats, tasks] = await Promise.all([
-        api.get<{ chats: Thread[] }>('/api/chats').catch(() => null),
-        api.get<{ tasks: Thread[] }>('/api/tasks').catch(() => null),
-    ]);
-    if (!chats || !tasks) return false;
-    set({ threads: [
-        ...chats.chats.map((item) => ({ ...item, type: 'chat' as const })),
-        ...tasks.tasks.map((item) => ({ ...item, type: 'task' as const })),
-    ] });
+export async function loadStatus() {
+  try {
+    const status = await api.get<Status>("/api/status");
+    set({ status });
     return true;
+  } catch (error) {
+    toast(error instanceof Error ? error.message : "服务状态加载失败");
+    return false;
+  }
 }
-
-/** 谁还在跑。失败当成都没有 —— 少画一个点,好过网络一抖整列都亮。 */
-export async function loadRuns() {
-    const data = await api.get<{ ids: string[] }>('/api/turns').catch(() => null);
-    if (!data) return;
-    set({ liveIds: data.ids || [] });
-    const id = get().currentId;
-    if (id) set({ busy: data.ids.includes(id) });
+export async function loadThreads() {
+  try {
+    const data = await api.get<{ sessions: Thread[] }>("/api/sessions");
+    set({ threads: data.sessions });
+    return true;
+  } catch (error) {
+    toast(error instanceof Error ? error.message : "会话列表加载失败");
+    return false;
+  }
 }
-
-/** 入口:连通道 → 拉列表 → 恢复上次停留(草稿或某段对话)。 */
 export async function init() {
-    bind();
-    connectChannel();
-    void loadMeta();
-    await loadThreads();
-    let id = loadId();
-    if (id === null) id = get().threads[0]?.id || '';
-    else if (id && !get().threads.some((item) => item.id === id)) id = get().threads[0]?.id || '';
-    if (!id) { createDraft(); return; }
-    set({ currentId: id });
-    rebuildStream();
-    void loadRuns();
-    await refresh();
+  await Promise.all([loadStatus(), loadThreads()]);
 }
-
-/** 切换对话或断线重连时补拉历史；正常回答完成不刷新列表。 */
-export async function refresh({ keepView = false }: { keepView?: boolean } = {}) {
-    const id = get().currentId;
-    if (!id) return;
-    const data = await api
-        .get<{ messages: RawMessage[]; hasMore: boolean }>(`/api/threads/${id}/messages?limit=${PAGE}`)
-        .catch(() => null);
-    if (!data || id !== get().currentId) return; // 期间切走了,丢弃
-
-    const raw = data.messages || [];
-    // 指纹没变就跳过整体替换,避免无谓重渲染;有行还在流式时不替换
-    const sig = `${raw.length}:${raw[0]?.id || 0}:${raw[raw.length - 1]?.id || 0}`;
-    if (get().ready && sig === lastSig && !get().rows.some((row) => row.streaming)) return;
-    // 真在跑才护着直播行;不在跑还挂着 streaming 的是残骸(比如服务重启),照常替换
-    if (get().busy && keepView && get().rows.some((row) => row.streaming)) return;
-    lastSig = sig;
-    oldestId = raw[0]?.id || 0;
-
-    const next = renderMessages(raw);
-    // 同位置同类的行复用旧 key:React 原地复用 DOM,不整屏重挂
-    const prev = get().rows;
-    for (let i = 0; i < next.length && i < prev.length; i++) {
-        if (next[i].kind === prev[i].kind) next[i].key = prev[i].key;
+async function loadHistory(id: string, version: number) {
+  const [page, summaries] = await Promise.all([
+    api.get<Page>(`${url(id)}/messages?limit=${PAGE}`),
+    api.get<{ compactions: Compaction[] }>(`${url(id)}/compactions`),
+  ]);
+  if (get().generation !== version) {
+    return;
+  }
+  set({ messages: page.messages, compactions: summaries.compactions, hasMore: page.has_more });
+}
+export async function openThread(id: string, force = false) {
+  if (!id || (!force && get().currentId === id && (get().ready || get().busy))) {
+    return;
+  }
+  reset();
+  const version = get().generation;
+  set({ currentId: id });
+  try {
+    await loadHistory(id, version);
+    if (get().generation === version) {
+      set((state) => ({ ready: true, viewSeq: state.viewSeq + 1 }));
     }
-    set((state) => ({
-        rows: next,
-        ready: true,
-        hasMore: Boolean(data.hasMore),
-        viewSeq: keepView ? state.viewSeq : state.viewSeq + 1,
-    }));
-    bump();
-}
-
-/** 上滑加载更早一页:往头部插入。 */
-export async function loadOlder() {
-    const { hasMore, loadingOlder, currentId } = get();
-    if (!hasMore || loadingOlder || !oldestId || !currentId) return;
-    set({ loadingOlder: true });
-    try {
-        const data = await api
-            .get<{ messages: RawMessage[]; hasMore: boolean }>(
-                `/api/threads/${currentId}/messages?limit=${PAGE}&before=${oldestId}`,
-            )
-            .catch(() => null);
-        if (currentId !== get().currentId) return;
-        const raw = data?.messages || [];
-        if (!raw.length) { set({ hasMore: false }); return; }
-        oldestId = raw[0].id;
-        set({ rows: [...renderMessages(raw), ...get().rows], hasMore: Boolean(data?.hasMore) });
-        bump();
-    } finally {
-        set({ loadingOlder: false });
+  } catch (error) {
+    if (get().generation === version) {
+      set({ loadError: error instanceof Error ? error.message : "对话打开失败" });
     }
+  }
 }
-
-/** 切对话。正在跑的那段不打断 —— 轮子在服务端,切走它继续转,呼吸点替它说话。 */
-export async function openThread(id: string) {
-    if (!id || id === get().currentId) return;
-    set((state) => ({
-        currentId: id, rows: [], ready: false, hasMore: false,
-        busy: state.liveIds.includes(id), stopping: false,
-    }));
-    saveId(id);
-    oldestId = 0;
-    lastSig = '';
-    rebuildStream();
-    void loadRuns(); // live 集合可能是十秒前的,切完对一次账
-    await refresh();
-}
-
-/** 新对话 = 本地空白草稿。 */
 export function createDraft() {
+  reset();
+  set((state) => ({ currentId: "", ready: true, viewSeq: state.viewSeq + 1 }));
+}
+export async function loadOlder() {
+  const { currentId, hasMore, loadingOlder, busy, generation, messages } = get();
+  if (!currentId || !hasMore || loadingOlder || busy) {
+    return;
+  }
+  set({ loadingOlder: true });
+  try {
+    const page = await api.get<Page>(
+      `${url(currentId)}/messages?limit=${PAGE}&before=${messages[0].id}`,
+    );
+    if (get().generation !== generation) {
+      return;
+    }
     set((state) => ({
-        currentId: '', rows: [], ready: true, hasMore: false,
-        busy: false, stopping: false,
-        viewSeq: state.viewSeq + 1,
+      messages: mergeMessages(page.messages, state.messages),
+      hasMore: page.has_more,
     }));
-    saveId('');
-    oldestId = 0;
-    lastSig = '';
-    rebuildStream();
-    bump();
-}
-
-export async function send(text: string, attachments: Attachment[] = [], retryRow: Row | null = null) {
-    const current = get().threads.find((item) => item.id === get().currentId);
-    if (current?.type === 'task') return;
-    const content = text.trim();
-    if ((!content && !attachments.length) || get().busy) return;
-
-    const row = retryRow || pushRow({
-        key: mkKey('u'), kind: 'user', content,
-        attachments, clientId: crypto.randomUUID(), sending: true, failed: false, at: Date.now(),
-    });
-    row.clientId ||= crypto.randomUUID();
-    row.sending = true;
-    row.failed = false;
-    set((state) => ({ busy: true, stopping: false, viewSeq: state.viewSeq + 1 }));
-    bump();
-
-    const fail = (message?: string) => {
-        row.sending = false;
-        row.failed = true;
-        set({ busy: false });
-        bump();
-        if (message) toast(message);
-    };
-
-    // 草稿的首条消息:此刻才真正建对话
-    if (!get().currentId) {
-        const created = await api
-            .post<{ thread: Thread }>('/api/chats', { rules: getDraftRules() })
-            .catch((error: unknown) => { fail(error instanceof Error ? error.message : '创建对话失败'); return null; });
-        if (!created?.thread) return;
-        set((state) => ({
-            threads: [created.thread, ...state.threads],
-            currentId: created.thread.id,
-        }));
-        setDraftRules('');
-        saveId(created.thread.id);
-        rebuildStream();
+  } catch (error) {
+    if (get().generation === generation) {
+      toast(error instanceof Error ? error.message : "历史消息加载失败");
     }
-
-    const id = get().currentId;
-    try {
-        await api.post(`/api/threads/${id}/messages`, { content, attachments: row.attachments, clientId: row.clientId });
-        row.sending = false;
-        if (!get().liveIds.includes(id)) set((state) => ({ liveIds: [...state.liveIds, id] }));
-        bump();
-    } catch (error) {
-        if (error instanceof ApiError && error.status === 409) fail('这个对话正在运行,等它跑完再发');
-        else fail(error instanceof Error ? error.message : '发送失败');
+  } finally {
+    if (get().generation === generation) {
+      set({ loadingOlder: false });
     }
+  }
 }
 
-export const retrySend = (row: Row) => (row.failed ? send(row.content || '', row.attachments || [], row) : undefined);
-
-export function stopRun() {
-    const { busy, stopping, currentId } = get();
-    if (!busy || stopping || !currentId) return;
-    set({ stopping: true });
-    void api.post(`/api/threads/${currentId}/stop`).catch(() => set({ stopping: false }));
+// 同步完成发送检查并接管草稿；返回 true 后 Composer 才清空输入。
+export function send(
+  text: string,
+  retryRow: Row | null = null,
+  onCreated?: (id: string) => void,
+  images: string[] = [],
+): boolean {
+  const content = text.trim();
+  if ((!content && images.length === 0) || get().busy || !get().ready) {
+    return false;
+  }
+  if (images.length > 5) {
+    toast("每条消息最多发送 5 张图片");
+    return false;
+  }
+  if (!get().status?.model_ready) {
+    toast("请先确认服务连接并在设置中配置模型");
+    return false;
+  }
+  const key = retryRow?.key || crypto.randomUUID();
+  const item: MessageItem = { type: "message", role: "user", content: [] };
+  if (content) {
+    item.content.push({ type: "input_text", text: content });
+  }
+  for (const image of images) {
+    item.content.push({ type: "input_image", image_url: image, detail: "auto" });
+  }
+  const user: RawMessage = {
+    id: 0,
+    key,
+    item,
+    created_at: Date.now(),
+    sending: true,
+    failed: false,
+  };
+  const running: ActiveReply = { controller: new AbortController(), accepted: false };
+  set((state) => ({
+    messages: [...state.messages.filter((message) => message.key !== key), user],
+    notes: [],
+    busy: true,
+    stopping: false,
+    active: running,
+    viewSeq: state.viewSeq + 1,
+  }));
+  void receiveReply(content, key, running, get().generation, onCreated, images);
+  return true;
 }
-
+async function receiveReply(
+  content: string,
+  userKey: string,
+  running: ActiveReply,
+  version: number,
+  onCreated?: (id: string) => void,
+  images: string[] = [],
+) {
+  const abort = running.controller;
+  let id = get().currentId;
+  let failure = "";
+  let stopped = false;
+  try {
+    if (!id) {
+      const session = await api.post<Thread>("/api/sessions");
+      if (get().generation !== version) {
+        return;
+      }
+      id = session.id;
+      set((state) => ({ currentId: id, threads: [session, ...state.threads] }));
+      onCreated?.(id);
+    }
+    await streamMessage(
+      id,
+      content,
+      abort.signal,
+      (event) => {
+        if (get().generation !== version) {
+          return;
+        }
+        switch (event.type) {
+          case "message":
+          case "reasoning":
+          case "function_call":
+          case "function_call_output": {
+            if (event.item) {
+              const item = event.item;
+              if (item.type === "message" && item.role === "user") {
+                running.accepted = true;
+                set((state) => ({
+                  messages: state.messages.map((entry) =>
+                    entry.key === userKey
+                      ? {
+                          ...entry,
+                          item,
+                          sequence: event.sequence,
+                          created_at: event.created_at,
+                          sending: false,
+                        }
+                      : entry,
+                  ),
+                }));
+                break;
+              }
+              set((state) => {
+                const index = state.messages.findIndex(
+                  (entry) => entry.streaming && entry.item.type === item.type,
+                );
+                if (index >= 0) {
+                  return {
+                    messages: state.messages.map((entry, position) =>
+                      position === index
+                        ? {
+                            ...entry,
+                            item,
+                            sequence: event.sequence,
+                            created_at: event.created_at,
+                            streaming: false,
+                          }
+                        : entry,
+                    ),
+                  };
+                }
+                return {
+                  messages: [
+                    ...state.messages,
+                    {
+                      id: 0,
+                      key: crypto.randomUUID(),
+                      item,
+                      sequence: event.sequence,
+                      created_at: event.created_at,
+                    },
+                  ],
+                };
+              });
+            } else if (event.type === "message" || event.type === "reasoning") {
+              const delta = event.delta;
+              set((state) => {
+                const index = state.messages.findIndex(
+                  (entry) => entry.streaming && entry.item.type === event.type,
+                );
+                let text = delta;
+                if (index >= 0) {
+                  const item = state.messages[index].item;
+                  if (item.type === "message" || item.type === "reasoning") {
+                    text = itemText(item) + delta;
+                  }
+                }
+                let item: StoredItem;
+                if (event.type === "message") {
+                  item = {
+                    type: "message",
+                    role: "assistant",
+                    content: [{ type: "output_text", text }],
+                  };
+                } else {
+                  item = { type: "reasoning", summary: [{ type: "summary_text", text }] };
+                }
+                if (index >= 0) {
+                  return {
+                    messages: state.messages.map((entry, position) =>
+                      position === index ? { ...entry, item } : entry,
+                    ),
+                  };
+                }
+                return {
+                  messages: [
+                    ...state.messages,
+                    {
+                      id: 0,
+                      key: crypto.randomUUID(),
+                      item,
+                      streaming: true,
+                      created_at: Date.now(),
+                    },
+                  ],
+                };
+              });
+            }
+            break;
+          }
+          case "compact":
+            if (event.status === "started") {
+              toast("正在压缩上下文…");
+            } else {
+              set((state) => ({ compactions: [...state.compactions, event.compaction] }));
+            }
+            break;
+          case "retry":
+            toast(
+              `请求失败，${event.delayMs / 1000} 秒后重试（${event.attempt}/${event.maxRetries}）`,
+            );
+            break;
+          case "error":
+            failure = event.error;
+            break;
+          case "done":
+            if (event.status === "incomplete" && !failure) {
+              failure = event.stopReason || "回复未完成";
+            }
+            stopped = event.status === "aborted";
+            break;
+        }
+        if (event.saved) {
+          const saved = event.saved;
+          set((state) => ({
+            messages: state.messages.map((entry) => {
+              if (entry.id > 0 || entry.sequence === undefined) {
+                return entry;
+              }
+              const record = saved.find((row) => row.sequence === entry.sequence);
+              if (!record) {
+                return entry;
+              }
+              return {
+                ...entry,
+                id: record.id,
+                usage: record.usage,
+                created_at: record.created_at,
+                sequence: undefined,
+              };
+            }),
+          }));
+        }
+        if (event.session) {
+          const session = event.session;
+          set((state) => ({
+            threads: [session, ...state.threads.filter((thread) => thread.id !== session.id)].sort(
+              (a, b) => b.updated_at - a.updated_at,
+            ),
+          }));
+        }
+        if (get().stopping && running.accepted && !running.cancel) {
+          void stopRun();
+        }
+      },
+      images,
+    );
+  } catch (error) {
+    if (!abort.signal.aborted) {
+      failure = error instanceof Error ? error.message : "发送失败";
+      if (running.accepted) {
+        failure += "；请重新打开会话核对保存结果";
+      }
+    }
+  } finally {
+    await running.cancel;
+    if (get().generation === version) {
+      stopped = stopped || abort.signal.aborted;
+      const notes: Row[] = [];
+      if (failure) {
+        notes.push({ key: crypto.randomUUID(), kind: "system", code: "error", content: failure });
+      }
+      if (stopped) {
+        notes.push({ key: crypto.randomUUID(), kind: "system", code: "stopped" });
+      }
+      // 只保留确认已提交的记录。断流可能丢失确认，用户可重新打开核对。
+      set((state) => ({
+        messages: state.messages
+          .filter((entry) => entry.id > 0 || (!running.accepted && entry.key === userKey))
+          .map((entry) => {
+            if (entry.key === userKey && !running.accepted) {
+              return { ...entry, sending: false, failed: true };
+            }
+            return { ...entry, streaming: false };
+          }),
+        threads: state.threads.map((thread) =>
+          thread.id === id ? { ...thread, running: false } : thread,
+        ),
+        notes,
+        busy: false,
+        stopping: false,
+        active: null,
+      }));
+    }
+  }
+}
+export const retrySend = (row: Row, onCreated?: (id: string) => void) =>
+  row.failed ? send(row.content || "", row, onCreated, row.images) : false;
+export async function stopRun() {
+  const { currentId, busy, generation, active } = get();
+  if (!busy || !active || active.cancel) {
+    return;
+  }
+  set({ stopping: true });
+  // 尚未收到用户消息确认时记住停止意图，确认到达后再发 cancel。
+  if (!active.accepted) {
+    return;
+  }
+  // 请求服务端停止，保留 SSE 以接收已提交消息的确认和最终 done。
+  active.cancel = api.post(`${url(currentId)}/cancel`).catch((error) => {
+    if (get().generation === generation) {
+      active.cancel = undefined;
+      set({ stopping: false });
+      toast(error instanceof Error ? error.message : "停止失败");
+    }
+  });
+  await active.cancel;
+}
 export async function renameThread(id: string, title: string) {
-    await api.patch(`/api/threads/${id}`, { title }).catch(() => toast('重命名失败'));
+  try {
+    await api.patch(url(id), { title });
     await loadThreads();
+  } catch (error) {
+    toast(error instanceof Error ? error.message : "重命名失败");
+  }
 }
-
-export async function togglePinned(thread: Thread) {
-    await api.patch(`/api/threads/${thread.id}`, { pinned: !thread.pinned }).catch(() => null);
-    await loadThreads();
-}
-
 export async function removeThread(id: string) {
-    const removed = await api.del<{ deleted: boolean }>(`/api/threads/${id}`).catch(() => null);
-    if (!removed) { toast('删除失败'); return; }
+  try {
+    await api.del(url(id));
+    if (get().currentId === id) {
+      reset();
+      set({ currentId: "" });
+    }
     await loadThreads();
-    if (id !== get().currentId) return;
-    set({ currentId: '' }); // 保证 openThread 不被同 id 短路
-    const next = get().threads[0]?.id;
-    if (next) await openThread(next);
-    else createDraft();
-}
-
-export async function cancelTask(id: string) {
-    await api.patch(`/api/threads/${id}`, { status: 'cancelled' }).catch((error: unknown) => toast(error instanceof Error ? error.message : '取消失败'));
-    await loadThreads();
+    return true;
+  } catch (error) {
+    toast(error instanceof Error ? error.message : "删除失败");
+    return false;
+  }
 }

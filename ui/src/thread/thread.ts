@@ -1,171 +1,216 @@
-// 消息线的渲染模型:落库的 Responses item → 用户看得懂的行。
-//
-// 行是**可变对象**:流式增量直接改字段,再靠 store 的 tick 触发重渲染。
-// React 用 key 复用 DOM,原地改内容不重挂(不闪、不丢滚动、不断选中)。
-
-/** 服务端 /messages 返回的一条。 */
-export interface RawMessage {
-    id: number;
-    thread: string;
-    item: StoredItem;
-    created: string;
-}
-
-/** 落库的 item —— Responses 规范的形状。 */
-export interface StoredItem {
-    /** 摘要行:role 是 user,kind 标它是压缩产物,界面画成压缩卡。 */
-    kind?: string;
-    type?: string;
-    role?: string;
-    content?: string | Array<{ type?: string; text?: string }> | null;
-    /** 思考块:有的模型放 summary,有的放 content,两处都读。 */
-    summary?: Array<{ text?: string }>;
-    call_id?: string;
-    name?: string;
-    arguments?: string;
-    output?: string;
-    attachments?: Attachment[];
-}
-
-export interface Attachment { id: string; name: string; path: string; mimeType: string; size: number; url: string; }
-
-export interface Row {
-    key: string;
-    kind: 'user' | 'assistant' | 'tool' | 'system';
-    /** 行时间(ms),日期条和轮时长用。 */
-    at?: number;
-    content?: string;
-
-    // user
-    clientId?: string;
-    sending?: boolean;
-    failed?: boolean;
-    attachments?: Attachment[];
-
-    // assistant:思考与正文同一行(思考先流,正文后到)
-    reasoning?: string;
-    streaming?: boolean;
-
-    // system
-    code?: 'stopped' | 'error' | 'compacting' | 'compacted' | '';
-
-    // tool
-    callId?: string;
-    name?: string;
-    args?: Record<string, unknown>;
-    result?: string;
-    status?: 'running' | 'done';
-}
-
-let keySeq = 0;
-export function mkKey(prefix = 'r') {
-    keySeq += 1;
-    return `${prefix}:${keySeq}`;
-}
-
-const parseArgs = (value: unknown): Record<string, unknown> => {
-    if (value && typeof value === 'object') return value as Record<string, unknown>;
-    try { return JSON.parse(String(value ?? '{}')); } catch { return {}; }
+// 历史和实时消息使用同一种记录；显示行从记录生成，不保存第二份可变状态。
+export type TextPart = {
+  type: "input_text" | "output_text" | "summary_text" | "reasoning_text";
+  text: string;
 };
-
-/** item 里的纯文本:content 可能是串或分段;思考在 summary/content 里。 */
-function itemText(item: StoredItem): string {
-    if (item.type === 'reasoning') {
-        const parts = [...(item.summary || []), ...(Array.isArray(item.content) ? item.content : [])];
-        return parts.map((part) => String(part?.text || '')).join('');
-    }
-    if (typeof item.content === 'string') return item.content;
-    if (!Array.isArray(item.content)) return '';
-    return item.content
-        .filter((part) => part?.type === 'output_text' || part?.type === 'input_text')
-        .map((part) => String(part.text || ''))
-        .join('');
+export type ImagePart = {
+  type: "input_image";
+  image_url: string;
+  detail?: "auto" | "low" | "high";
+};
+export type ContentPart = TextPart | ImagePart | { type: "refusal"; refusal: string };
+export interface MessageItem {
+  type: "message";
+  id?: string;
+  role: "user" | "assistant" | "system" | "developer";
+  content: ContentPart[];
+}
+export interface ReasoningItem {
+  type: "reasoning";
+  id?: string;
+  summary: TextPart[];
+  content?: TextPart[];
+}
+export interface FunctionCallItem {
+  type: "function_call";
+  id?: string;
+  call_id: string;
+  name: string;
+  arguments: string;
+}
+export interface FunctionOutputItem {
+  type: "function_call_output";
+  call_id: string;
+  output: string | ContentPart[];
+}
+export type StoredItem = MessageItem | ReasoningItem | FunctionCallItem | FunctionOutputItem;
+export interface RawMessage {
+  id: number;
+  item: StoredItem;
+  created_at?: number;
+  key?: string;
+  sequence?: number;
+  usage?: Record<string, unknown> | null;
+  streaming?: boolean;
+  sending?: boolean;
+  failed?: boolean;
+}
+export interface Compaction {
+  id: number;
+  through_id: number;
+  summary: string;
+  created_at: number;
+}
+export interface Row {
+  key: string;
+  kind: "user" | "assistant" | "tool" | "system";
+  at?: number;
+  content?: string;
+  images?: string[];
+  sending?: boolean;
+  failed?: boolean;
+  reasoning?: string;
+  streaming?: boolean;
+  code?: "stopped" | "error" | "compacted" | "";
+  callId?: string;
+  name?: string;
+  args?: Record<string, unknown>;
+  result?: string;
+  status?: "running" | "done";
+}
+export function itemText(item: MessageItem | ReasoningItem): string {
+  if (item.type === "reasoning") {
+    return [...item.summary, ...(item.content || [])].map((part) => part.text).join("");
+  }
+  return item.content
+    .map((part) => {
+      if ("text" in part) {
+        return part.text;
+      }
+      if (part.type === "refusal") {
+        return part.refusal;
+      }
+      return "";
+    })
+    .join("");
+}
+function images(parts: ContentPart[]): string[] {
+  return parts
+    .filter((part): part is ImagePart => part.type === "input_image")
+    .map((part) => part.image_url);
 }
 
-export function toolRow(call: { call_id?: string; callId?: string; name?: string; args?: unknown; arguments?: unknown }, status: 'running' | 'done'): Row {
-    return {
-        key: mkKey('tool'),
-        kind: 'tool',
-        callId: call.call_id || call.callId || mkKey('cid'),
-        name: call.name || 'tool',
-        args: parseArgs(call.args ?? call.arguments),
-        result: '',
-        status,
-    };
+// 分页先合并原始记录，再按 call_id 配对。跨页的调用与结果只显示一行。
+export function mergeMessages(older: RawMessage[], current: RawMessage[]): RawMessage[] {
+  const records = new Map<number, RawMessage>();
+  for (const message of [...older, ...current]) {
+    records.set(message.id, message);
+  }
+  return [...records.values()].sort((a, b) => a.id - b.id);
 }
 
-/**
- * 历史 item → 渲染行。
- *
- * 思考是独立 item,但界面上它属于紧随其后的那条正文 —— 先攥在手里,
- * 遇到 assistant 正文就并进去;这一步只思考没说话(直接去调工具)就单独成行。
- * 工具结果回填到对应调用行;发起调用被压缩切掉的孤儿结果单独成行,不吞。
- */
-export function renderMessages(raw: RawMessage[]): Row[] {
-    const rows: Row[] = [];
-    const calls = new Map<string, Row>();
-    let pendingReasoning = '';
-
-    const flushReasoning = (at?: number) => {
-        if (!pendingReasoning.trim()) { pendingReasoning = ''; return; }
-        rows.push({ key: mkKey('a'), kind: 'assistant', content: '', reasoning: pendingReasoning.trim(), at });
-        pendingReasoning = '';
-    };
-
-    for (const message of raw) {
-        const item = message.item;
-        const at = Date.parse(message.created) || undefined;
-
-        if (item.type === 'reasoning') {
-            pendingReasoning += itemText(item);
-            continue;
-        }
-        if (item.type === 'function_call') {
-            flushReasoning(at);
-            const row = toolRow(item, 'done');
-            row.at = at;
-            calls.set(row.callId!, row);
-            rows.push(row);
-            continue;
-        }
-        if (item.type === 'function_call_output') {
-            const row = calls.get(item.call_id || '');
-            if (row) {
-                row.result = item.output || '';
-                row.status = 'done';
-            } else {
-                rows.push({ ...toolRow(item, 'done'), result: item.output || '', at });
-            }
-            continue;
-        }
-        if (item.role === 'user') {
-            flushReasoning(at);
-            if (item.kind === 'compaction') {
-                rows.push({ key: mkKey('s'), kind: 'system', code: 'compacted', content: itemText(item).replace(/^以下是历史上下文压缩摘要:\s*/, ''), at });
-                continue;
-            }
-            rows.push({ key: mkKey('u'), kind: 'user', content: itemText(item), attachments: item.attachments || [], at });
-            continue;
-        }
-        if (item.role === 'system') {
-            flushReasoning(at);
-            const text = itemText(item);
-            if (/^\[stopped\]/.test(text)) rows.push({ key: mkKey('s'), kind: 'system', code: 'stopped', content: '', at });
-            else if (/^\[error\]/.test(text)) {
-                rows.push({ key: mkKey('s'), kind: 'system', code: 'error', content: text.replace(/^\[error\]\s*/, ''), at });
-            }
-            // 其余系统条目是给模型看的,不进画面
-            continue;
-        }
-        if (item.role === 'assistant') {
-            const content = itemText(item).trim();
-            const reasoning = pendingReasoning.trim();
-            pendingReasoning = '';
-            if (content || reasoning) {
-                rows.push({ key: mkKey('a'), kind: 'assistant', content, reasoning, at });
-            }
-        }
+export function buildRows(
+  messages: RawMessage[],
+  compactions: Compaction[] = [],
+  busy = false,
+): Row[] {
+  const rows: Row[] = [];
+  const calls = new Map<string, Row>();
+  // 压缩行按覆盖位置插入；早于当前页的摘要放在页首，加载旧页后自动归位。
+  let compactIndex = 0;
+  const summaries = [...compactions].sort((a, b) => a.through_id - b.through_id || a.id - b.id);
+  const appendCompaction = (summary: Compaction) => {
+    rows.push({
+      key: `compact:${summary.id}`,
+      kind: "system",
+      code: "compacted",
+      content: summary.summary,
+      at: summary.created_at,
+    });
+  };
+  for (const message of messages) {
+    while (
+      compactIndex < summaries.length &&
+      message.id > 0 &&
+      summaries[compactIndex].through_id < message.id
+    ) {
+      appendCompaction(summaries[compactIndex++]);
     }
-    flushReasoning();
-    return rows;
+    const item = message.item;
+    const key = message.key || `message:${message.id}`;
+    const at = message.created_at;
+    switch (item.type) {
+      case "message":
+        rows.push({
+          key,
+          at,
+          kind: item.role === "user" ? "user" : "assistant",
+          content: itemText(item),
+          images: images(item.content),
+          streaming: message.streaming,
+          sending: message.sending,
+          failed: message.failed,
+        });
+        break;
+      case "reasoning":
+        rows.push({
+          key,
+          at,
+          kind: "assistant",
+          reasoning: itemText(item),
+          streaming: message.streaming,
+        });
+        break;
+      case "function_call": {
+        let args: Record<string, unknown> = {};
+        try {
+          args = JSON.parse(item.arguments);
+        } catch {
+          // 参数无效时仍展示调用；runner 返回明确的失败结果。
+        }
+        const row: Row = {
+          key: `tool:${item.call_id}`,
+          at,
+          kind: "tool",
+          callId: item.call_id,
+          name: item.name,
+          args,
+          result: "",
+          status: busy ? "running" : "done",
+        };
+        calls.set(item.call_id, row);
+        rows.push(row);
+        break;
+      }
+      case "function_call_output": {
+        let row = calls.get(item.call_id);
+        if (!row) {
+          row = {
+            key: `tool:${item.call_id}`,
+            at,
+            kind: "tool",
+            callId: item.call_id,
+            name: "tool",
+            status: "done",
+          };
+          calls.set(item.call_id, row);
+          rows.push(row);
+        }
+        const text =
+          typeof item.output === "string"
+            ? item.output
+            : item.output
+                .filter((part): part is TextPart => part.type === "input_text")
+                .map((part) => part.text)
+                .join("\n");
+        const result: { success: boolean; text: string } = JSON.parse(text);
+        row.result = result.text;
+        row.failed = !result.success;
+        row.images = typeof item.output === "string" ? [] : images(item.output);
+        row.status = "done";
+        break;
+      }
+    }
+    while (
+      compactIndex < summaries.length &&
+      message.id > 0 &&
+      summaries[compactIndex].through_id === message.id
+    ) {
+      appendCompaction(summaries[compactIndex++]);
+    }
+  }
+  while (compactIndex < summaries.length) {
+    appendCompaction(summaries[compactIndex++]);
+  }
+  return rows;
 }

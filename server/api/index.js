@@ -1,36 +1,44 @@
-// /api/* 路由表。只做解析、校验和应答,业务在 store / turns / channel 里。
-//
-// 每个资源一个文件,导出 route(ctx):处理了返回 true,不是自己的返回 false。
-// 这里按顺序问一遍,都不认就 404;抛出来的错统一按 error.status 应答。
-import { json } from './helpers.js';
-import { route as meta } from './meta.js';
-import { route as apps } from './apps.js';
-import { route as approvals } from './approvals.js';
-import { route as files } from './files.js';
-import { route as proposals } from './proposals.js';
-import { route as threads } from './threads.js';
+import auth from "./auth/index.js";
+import authorize from "./auth/authorize.js";
+import sessions from "./sessions/index.js";
+import config from "./config/index.js";
+import status from "./status/index.js";
+import images from "./images/index.js";
+import { fail } from "./http.js";
 
-const ROUTES = [meta, apps, approvals, files, proposals, threads];
+export default function createApi(context) {
+  // 只记录正在执行的请求，供取消和服务关闭时清理。
+  context.activeReplies = new Map();
 
-export function createApi(deps) {
-    /** 处理了返回 true;不是 /api 请求返回 false 交给静态层。 */
-    return async function handle(request, response, url) {
-        if (!url.pathname.startsWith('/api/')) return false;
-        const ctx = {
-            ...deps,
-            request,
-            response,
-            url,
-            method: request.method || 'GET',
-            path: url.pathname,
-            segments: url.pathname.split('/').filter(Boolean),
-        };
-        try {
-            for (const route of ROUTES) if (await route(ctx)) return true;
-            json(response, 404, { error: '接口不存在' });
-        } catch (error) {
-            json(response, error?.status || 500, { error: String(error?.message || error) });
-        }
-        return true;
-    };
+  async function route(req, res, parts) {
+    const name = parts[0];
+    const rest = parts.slice(1);
+    if (name === "auth") {
+      return auth(req, res, rest, context);
+    }
+    authorize(req, context);
+
+    switch (name) {
+      case "sessions":
+        return sessions(req, res, rest, context);
+      case "config":
+        return config(req, res, rest, context);
+      case "status":
+        return status(req, res, rest, context);
+      case "images":
+        return images(req, res, rest, context);
+      default:
+        fail(404, "接口不存在");
+    }
+  }
+
+  async function close() {
+    const requests = [...context.activeReplies.values()];
+    for (const request of requests) {
+      request.controller.abort();
+    }
+    await Promise.all(requests.map((request) => request.done));
+  }
+
+  return { route, close };
 }

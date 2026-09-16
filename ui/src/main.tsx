@@ -1,19 +1,23 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { StrictMode } from "react";
+import { BrowserRouter } from "react-router";
+import { createRoot } from "react-dom/client";
 
-import './styles/tokens.css';
-import './styles/base.css';
-import './shell/shell.css';
-import './thread/thread.css';
-import './approvals/confirm.css';
-import './apps/apps.css';
-import './styles/touch.css'; // 放最后:要压过各模块的字号
+import "./styles/tokens.css";
+import "./styles/base.css";
+import "./shell/shell.css";
+import "./thread/thread.css";
+import "./styles/app.css";
+import "./styles/touch.css";
 
-import { App } from './App';
-import { initTheme } from './lib/theme';
+import { App } from "./App";
+import { initTheme } from "./lib/theme";
 
 initTheme();
 
-createRoot(document.getElementById('app')!).render(
-    <StrictMode><App /></StrictMode>,
+createRoot(document.getElementById("app")!).render(
+  <StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </StrictMode>,
 );
